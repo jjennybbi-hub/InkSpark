@@ -3,10 +3,15 @@
 import { zipSync, zlibSync, type Zippable } from "fflate";
 
 export interface FixtureOptions {
+  /** Spine items, at least 1. Default 5. */
   chapters?: number;
+  /** Filler words per chapter. Default 400. */
   wordsPerChapter?: number;
+  /** Hebrew RTL chapter in the 3rd spine slot; needs `chapters >= 3` (fewer: omitted). */
   includeRtl?: boolean;
+  /** Japanese vertical-rl chapter in the 4th spine slot; needs `chapters >= 4` (fewer: omitted). */
   includeVertical?: boolean;
+  /** PNG in the 2nd chapter (the 1st if there is only one). Default true. */
   includeImage?: boolean;
 }
 
