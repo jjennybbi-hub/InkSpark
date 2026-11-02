@@ -66,12 +66,7 @@ const BANNED: readonly BannedCase[] = [
   },
 ];
 
-const BANNED_PATHS = [
-  "src/x.ts",
-  "src/x.mts",
-  "src/x.js",
-  "spikes/editor-text/src/x.ts",
-] as const;
+const BANNED_PATHS = ["src/x.ts", "src/x.mts", "src/x.js", "spikes/editor-text/src/x.ts"] as const;
 
 let eslint: ESLint;
 

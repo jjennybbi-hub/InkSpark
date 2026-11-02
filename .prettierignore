@@ -20,15 +20,5 @@ docs/**/*.md
 # Byte-exact fixtures (e.g. scriv-parser goldens) must never be reformatted.
 spikes/*/fixtures/
 
-# Track A test committed by the Test-author with one non-Prettier line break (a multi-line
-# `Linter.Config | undefined` union, strictness.test.ts:167). Implementers may not edit tests;
-# remove this entry once the Orchestrator runs `prettier --write` on it.
-tests/config/strictness.test.ts
-
-# Same as above for the hardened cases added in de77faa (multi-line BANNED_PATHS array).
-tests/lint/fs-write-ban.test.ts
-
-# Spike and test output
-**/results/
-**/playwright-report/
-**/test-results/
+# Subagent git worktrees
+.claude/

@@ -107,6 +107,7 @@ export default defineConfig([
     "**/target/**",
     "**/node_modules/**",
     "vendor/**",
+    ".claude/**",
     "src/contracts/bindings.ts",
     "src-tauri/gen/**",
     "**/results/**",

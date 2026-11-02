@@ -164,8 +164,7 @@ describe("ESLint and Prettier strictness (AC-7)", () => {
     async () => {
       const eslint = new ESLint({ cwd: repoRoot });
       const config = (await eslint.calculateConfigForFile("src/app/App.tsx")) as
-        | Linter.Config
-        | undefined;
+        Linter.Config | undefined;
       const rules = config?.rules ?? {};
       expect(severity(rules["@typescript-eslint/no-explicit-any"])).toBe(2);
       expect(severity(rules["@typescript-eslint/no-unsafe-assignment"])).toBe(2);
