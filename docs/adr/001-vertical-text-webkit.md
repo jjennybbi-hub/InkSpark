@@ -34,14 +34,18 @@ the horizontal baseline.
   for both vertical modes) and `perf` specs drive real Playwright keyboard and mouse input, plus
   vitest/jsdom unit tests for the harness. On macOS the tests use the native Cmd+Arrow bindings
   for line start/end and end of document.
-- **Latency** (`measureInputLatency`, as specified): per sample, `insertContent("a")` on a
-  50,000-character doc with the caret at the end, then await one `requestAnimationFrame`; the
-  time from before the dispatch to after the frame callback; 200 samples; p50/p95.
+- **Latency** (`measureInputLatency`, M0.md §4.1 as amended in `50f9d30`): 200 samples on a
+  50,000-character doc with the caret at the end. Each sample is the time from just before
+  `insertContent("a")` to just after a forced synchronous layout (`coordsAtPos` of the caret, then
+  `getBoundingClientRect` of the editor DOM). The harness then awaits one
+  `requestAnimationFrame` before the next sample; that wait is not timed. p95 ≤ 16 ms means the
+  per-keystroke work fits in one 60 Hz frame.
 - **Engines**: Playwright 1.63.0. Local: Chromium 153.0.8010.12 headless, Linux x86_64
   container, Node 22.23. CI (`spikes.yml`, job `spike-editor`): Chromium and WebKit on
   ubuntu-24.04 and macos-15 with `PW_WEBKIT=1`. Results go to
   `spikes/editor-text/results/<os>-<browser>.json` (M0.md §3.9).
-- **Commit**: local numbers are from `65dc6e4`.
+- **Commit**: functional results and the amended latency numbers are from `9764091`; the
+  superseded rAF-based latency numbers are from `65dc6e4`.
 - **Decides**: WebKit on macos-15 (closest to WKWebView). Ubuntu WebKit is a second data point;
   local Chromium is a sanity check only and does not count toward the verdict.
 
@@ -71,24 +75,27 @@ Functional tests: ✓ pass, ✗ fail. WebKit columns are filled in by the Orches
 | vertical-rl / lr: undo restores (P0 undo) | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
 | harness unit tests (vitest, jsdom; 38 tests) | pass | ✓ (Node) | — | — | ✓ |
 
-Input latency, 50,000-character doc, 200 samples (ms, p50 / p95). Two local runs:
+Input latency (amended definition), 50,000-character doc, 200 samples (ms, p50 / p95). Two
+local runs:
 
 | Mode | Threshold (p95) | Chromium (local) | ubuntu WebKit | macos WebKit | Pass |
 |---|---|---|---|---|---|
-| ltr | ≤ 16 | 16.7 / 20.5; 16.7 / 18.1 | pending CI | pending CI | pending CI |
-| rtl | ≤ 16 | 16.7 / 21.2; 16.7 / 19.8 | pending CI | pending CI | pending CI |
-| vertical-rl | ≤ 16 | 16.7 / 20.2; 16.7 / 26.9 | pending CI | pending CI | pending CI |
-| vertical-lr | ≤ 16 | 16.7 / 17.6; 16.7 / 21.2 | pending CI | pending CI | pending CI |
+| ltr | ≤ 16 | 0.6 / 1.4; 0.7 / 2.1 | pending CI | pending CI | pending CI |
+| rtl | ≤ 16 | 0.8 / 1.7; 0.7 / 2.0 | pending CI | pending CI | pending CI |
+| vertical-rl | ≤ 16 | 0.9 / 2.3; 0.9 / 2.2 | pending CI | pending CI | pending CI |
+| vertical-lr | ≤ 16 | 0.9 / 2.1; 0.9 / 2.6 | pending CI | pending CI | pending CI |
 
-**The latency metric as specified is bounded below by the frame interval.** Each sample starts
-inside the previous sample's `requestAnimationFrame` callback, so the next callback is one full
-vsync later: p50 is exactly 16.7 ms (60 Hz) in every mode, whatever the editor does, and p95 is
-one frame plus scheduling jitter. A p95 ≤ 16 ms threshold therefore fails by construction on a
-60 Hz clock and says nothing about the editor. As a diagnostic only (scratch script, same page
-and doc, not part of the committed suite), the synchronous cost of `insertContent("a")` plus a
-forced layout and `coordsAtPos` was, in local Chromium: ltr 0.7 / 0.9 ms, rtl 0.7 / 0.9 ms,
-vertical-rl 0.8 / 1.0 ms, vertical-lr 0.9 / 1.6 ms (p50 / p95). That is well inside one frame.
-The Orchestrator is asked to amend the latency criterion before the verdict (see Follow-ups).
+**Why the definition changed.** M0.md first defined a sample as the time from before
+`insertContent("a")` to after the next `requestAnimationFrame` callback. Each sample then started
+inside the previous sample's frame callback, so the next callback was one full refresh later: the
+metric was floored at the frame interval (16.7 ms at 60 Hz), whatever the editor did, and a
+p95 ≤ 16 ms threshold could never pass. Under that definition local Chromium gave (p50 / p95,
+two runs, commit `65dc6e4`): ltr 16.7 / 20.5 and 16.7 / 18.1; rtl 16.7 / 21.2 and 16.7 / 19.8;
+vertical-rl 16.7 / 20.2 and 16.7 / 26.9; vertical-lr 16.7 / 17.6 and 16.7 / 21.2. The p50 equals
+one refresh in every mode, and the p95 is one refresh plus scheduling jitter. Track B reported
+this, and the Orchestrator amended §4.1 (`50f9d30`) to time only the editor's synchronous work
+plus a forced layout. These old numbers are kept for the record only and do not count toward the
+verdict.
 
 ## Decision
 **Pending CI.** The rule below is fixed before the WebKit numbers are known (M0.md §4.3); macos-15
@@ -99,7 +106,7 @@ WebKit decides.
   - every vertical P0 test passes for `vertical-rl` on macos-15 WebKit: typing, arrows in all
     four directions (ArrowDown/ArrowUp within a line, ArrowLeft to the next line), click-to-caret,
     Shift-selection, Backspace, Enter, undo, caret visible after end of document;
-  - p95 input latency ≤ 16 ms in all modes (subject to the amendment requested above).
+  - p95 input latency ≤ 16 ms in all modes (amended definition, see Method).
 - **Go-with-conditions** if there are at most 3 vertical P0 failures, each fixable by a
   ProseMirror plugin or keymap estimated at ≤ 2 days, listed here with its fix. The
   `verticalWriting` flag then stays off until M8-A.
@@ -132,9 +139,6 @@ All in `spikes/editor-text/package.json`; none reach the shipped app in M0.
 | vite, vitest, jsdom | ^8.3.5, ^5.0.5, ^30.1.3 | MIT | Spike page build and unit tests (same versions as the root, ADR 007) |
 
 ## Follow-ups
-- Orchestrator (M0, before the verdict): amend the latency criterion so it measures editor work,
-  not vsync. Options: time from dispatch to the end of synchronous work plus a forced layout
-  (as in the diagnostic above), or count frames where that work exceeds a frame budget.
 - Orchestrator (M0): fill in the WebKit columns and the CI run link, record the verdict, and flip
   the status to Accepted.
 - M1/M8-A: re-check vertical typing, IME composition (not covered here; `insertText` bypasses
