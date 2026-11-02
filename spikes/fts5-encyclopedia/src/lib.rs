@@ -3,7 +3,7 @@
 
 mod results;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -322,19 +322,33 @@ pub enum FtsSpikeError {
     Query(String),
 }
 
+/// Index options beyond [`BuildOptions`] (which the spec fixes), used by the bench.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct IndexTuning<'a> {
+    /// FTS5 `prefix=` lengths on the article index (`prefix='2 3'`); empty for none.
+    pub prefix_index: &'a [u8],
+    /// A separate small `titles` FTS5 table with `prefix='2 3'`, for type-ahead on titles
+    /// ([`Encyclopedia::search_titles`]).
+    pub title_prefix_index: bool,
+}
+
+fn prefix_clause(lengths: &[u8]) -> String {
+    if lengths.is_empty() {
+        String::new()
+    } else {
+        let lengths: Vec<String> = lengths.iter().map(u8::to_string).collect();
+        format!(", prefix='{}'", lengths.join(" "))
+    }
+}
+
 fn create_schema(
     conn: &Connection,
     opts: &BuildOptions,
-    prefix_index: &[u8],
+    tuning: &IndexTuning<'_>,
 ) -> Result<(), FtsSpikeError> {
     let tokenize = opts.tokenizer.fts5_arg();
     let detail = opts.detail.name();
-    let prefix = if prefix_index.is_empty() {
-        String::new()
-    } else {
-        let lengths: Vec<String> = prefix_index.iter().map(u8::to_string).collect();
-        format!(", prefix='{}'", lengths.join(" "))
-    };
+    let prefix = prefix_clause(tuning.prefix_index);
     let ddl = if opts.external_content {
         format!(
             "CREATE TABLE articles(id INTEGER PRIMARY KEY, title TEXT NOT NULL, \
@@ -353,6 +367,12 @@ fn create_schema(
          {ddl}
          INSERT INTO fts(fts, rank) VALUES('rank', 'bm25(10.0, 1.0)');"
     ))?;
+    if tuning.title_prefix_index {
+        conn.execute_batch(&format!(
+            "CREATE VIRTUAL TABLE titles USING fts5(title, tokenize='{tokenize}', \
+               prefix='2 3');"
+        ))?;
+    }
     if opts.thumbnail_bytes.is_some() {
         conn.execute_batch("CREATE TABLE thumbnails(id INTEGER PRIMARY KEY, data BLOB NOT NULL);")?;
     }
@@ -363,10 +383,24 @@ fn create_schema(
         ("detail", detail.to_owned()),
         ("external_content", opts.external_content.to_string()),
         ("prefix_index", prefix.trim_start_matches(", ").to_owned()),
+        ("title_index", tuning.title_prefix_index.to_string()),
     ] {
         meta.execute(params![k, v])?;
     }
     Ok(())
+}
+
+fn with_suffix(path: &Path, suffix: &str) -> PathBuf {
+    let mut name = path.as_os_str().to_owned();
+    name.push(suffix);
+    PathBuf::from(name)
+}
+
+fn already_exists(path: &Path) -> FtsSpikeError {
+    FtsSpikeError::Io(std::io::Error::new(
+        std::io::ErrorKind::AlreadyExists,
+        format!("{} already exists", path.display()),
+    ))
 }
 
 /// Builds the file in one transaction, then `optimize`, `VACUUM` and `journal_mode=DELETE`:
@@ -376,24 +410,60 @@ pub fn build_encyclopedia(
     articles: impl IntoIterator<Item = Article>,
     opts: &BuildOptions,
 ) -> Result<BuildReport, FtsSpikeError> {
-    build_encyclopedia_with_prefix_index(path, articles, opts, &[])
+    build_encyclopedia_tuned(path, articles, opts, &IndexTuning::default())
 }
 
-/// [`build_encyclopedia`] plus FTS5 prefix indexes for the given prefix lengths
-/// (`prefix='2 3'`), which trade file size for fast `ab*` queries.
-pub fn build_encyclopedia_with_prefix_index(
+/// [`build_encyclopedia`] with extra index options.
+///
+/// The database is built at `<path>.tmp` and renamed to `path` only on success; on any error
+/// the temporary file (and its rollback journal) is removed, so `path` never holds a partial
+/// pack. Refuses to run if `path` or `<path>.tmp` already exists.
+pub fn build_encyclopedia_tuned(
     path: &Path,
     articles: impl IntoIterator<Item = Article>,
     opts: &BuildOptions,
-    prefix_index: &[u8],
+    tuning: &IndexTuning<'_>,
 ) -> Result<BuildReport, FtsSpikeError> {
     if path.exists() {
-        return Err(FtsSpikeError::Io(std::io::Error::new(
-            std::io::ErrorKind::AlreadyExists,
-            format!("{} already exists", path.display()),
-        )));
+        return Err(already_exists(path));
+    }
+    let tmp = with_suffix(path, ".tmp");
+    if tmp.exists() {
+        return Err(already_exists(&tmp));
     }
     let start = Instant::now();
+    let built = build_into(&tmp, articles, opts, tuning).and_then(|(count, raw)| {
+        std::fs::rename(&tmp, path)?;
+        Ok((count, raw))
+    });
+    let (count, raw) = match built {
+        Ok(v) => v,
+        Err(err) => {
+            // Only files this build created: the temporary database and its journal.
+            for p in [with_suffix(&tmp, "-journal"), tmp] {
+                if p.exists() {
+                    let _ = std::fs::remove_file(&p);
+                }
+            }
+            return Err(err);
+        }
+    };
+    let file_bytes = std::fs::metadata(path)?.len();
+    Ok(BuildReport {
+        articles: count,
+        raw_text_bytes: raw,
+        file_bytes,
+        build: start.elapsed(),
+    })
+}
+
+/// Writes the whole pack into `path`; returns (article count, raw text bytes).
+fn build_into(
+    path: &Path,
+    articles: impl IntoIterator<Item = Article>,
+    opts: &BuildOptions,
+    tuning: &IndexTuning<'_>,
+) -> Result<(u64, u64), FtsSpikeError> {
     let mut conn = Connection::open(path)?;
     // The file is regenerable build output, so durability during the build does not matter.
     // journal_mode is DELETE (never WAL), so no -wal/-shm can appear.
@@ -404,7 +474,7 @@ pub fn build_encyclopedia_with_prefix_index(
     let mut count = 0u64;
     let mut raw = 0u64;
     let tx = conn.transaction()?;
-    create_schema(&tx, opts, prefix_index)?;
+    create_schema(&tx, opts, tuning)?;
     {
         let mut insert_fts = if opts.external_content {
             tx.prepare("INSERT INTO fts(rowid, title, body) VALUES (?1, ?2, ?3)")?
@@ -415,6 +485,11 @@ pub fn build_encyclopedia_with_prefix_index(
             Some(tx.prepare(
                 "INSERT INTO articles(id, title, category, body) VALUES (?1, ?2, ?3, ?4)",
             )?)
+        } else {
+            None
+        };
+        let mut insert_title = if tuning.title_prefix_index {
+            Some(tx.prepare("INSERT INTO titles(rowid, title) VALUES (?1, ?2)")?)
         } else {
             None
         };
@@ -431,6 +506,9 @@ pub fn build_encyclopedia_with_prefix_index(
             } else {
                 insert_fts.execute(params![a.id, a.title, a.body, a.category])?;
             }
+            if let Some(stmt) = insert_title.as_mut() {
+                stmt.execute(params![a.id, a.title])?;
+            }
             if let (Some(stmt), Some(size)) = (insert_thumb.as_mut(), opts.thumbnail_bytes) {
                 stmt.execute(params![a.id, thumbnail(a.id, size)])?;
             }
@@ -438,17 +516,13 @@ pub fn build_encyclopedia_with_prefix_index(
         }
     }
     tx.execute_batch("INSERT INTO fts(fts) VALUES('optimize');")?;
+    if tuning.title_prefix_index {
+        tx.execute_batch("INSERT INTO titles(titles) VALUES('optimize');")?;
+    }
     tx.commit()?;
     conn.execute_batch("VACUUM; PRAGMA journal_mode=DELETE;")?;
     conn.close().map_err(|(_, e)| FtsSpikeError::Sqlite(e))?;
-
-    let file_bytes = std::fs::metadata(path)?.len();
-    Ok(BuildReport {
-        articles: count,
-        raw_text_bytes: raw,
-        file_bytes,
-        build: start.elapsed(),
-    })
+    Ok((count, raw))
 }
 
 /// Incompressible stand-in bytes for an article thumbnail (sizes only; not an image).
@@ -474,6 +548,7 @@ pub struct Encyclopedia {
     conn: Connection,
     detail: Detail,
     external_content: bool,
+    title_index: bool,
 }
 
 impl Encyclopedia {
@@ -499,10 +574,12 @@ impl Encyclopedia {
         }
         let detail = Detail::from_name(meta("detail")?.as_deref().unwrap_or("full"));
         let external_content = meta("external_content")?.as_deref() == Some("true");
+        let title_index = meta("title_index")?.as_deref() == Some("true");
         Ok(Self {
             conn,
             detail,
             external_content,
+            title_index,
         })
     }
 
@@ -523,6 +600,33 @@ impl Encyclopedia {
                 title: row.get(1)?,
                 snippet: row.get(2)?,
                 rank: row.get(3)?,
+            })
+        })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    /// Type-ahead over titles only, using the separate prefix-indexed `titles` table built with
+    /// [`IndexTuning::title_prefix_index`]. Same escaping as [`Self::search`]; the snippet is
+    /// the title. Errors if the pack has no title index.
+    pub fn search_titles(&self, query: &str, limit: u32) -> Result<Vec<Hit>, FtsSpikeError> {
+        if !self.title_index {
+            return Err(FtsSpikeError::Query(String::from(
+                "this encyclopedia has no title index",
+            )));
+        }
+        let Some(fts_query) = to_fts5_query(query, true) else {
+            return Ok(Vec::new());
+        };
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT rowid, title, rank FROM titles WHERE titles MATCH ?1 ORDER BY rank LIMIT ?2",
+        )?;
+        let rows = stmt.query_map(params![fts_query, limit], |row| {
+            let title: String = row.get(1)?;
+            Ok(Hit {
+                id: row.get(0)?,
+                snippet: title.clone(),
+                title,
+                rank: row.get(2)?,
             })
         })?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -656,6 +760,88 @@ fn alnum_runs(s: &str) -> impl Iterator<Item = &str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn temp_dir(label: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "inkspark-fts-unit-{label}-{}-{:?}",
+            std::process::id(),
+            std::time::SystemTime::now()
+        ));
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        dir
+    }
+
+    fn opts() -> BuildOptions {
+        BuildOptions {
+            tokenizer: Tokenizer::Unicode61RemoveDiacritics,
+            detail: Detail::Full,
+            external_content: false,
+            thumbnail_bytes: None,
+        }
+    }
+
+    fn article(id: i64, title: &str) -> Article {
+        Article {
+            id,
+            title: title.to_owned(),
+            category: String::from("Test"),
+            body: String::from("some body text"),
+        }
+    }
+
+    #[test]
+    fn a_failed_build_leaves_no_file_behind() {
+        let dir = temp_dir("failed");
+        let path = dir.join("pack.sqlite");
+        // A duplicate rowid fails the insert part-way through the build.
+        let result = build_encyclopedia(&path, vec![article(1, "A"), article(1, "B")], &opts());
+        assert!(result.is_err());
+        let left: Vec<_> = std::fs::read_dir(&dir)
+            .expect("read dir")
+            .flatten()
+            .collect();
+        assert!(left.is_empty(), "left behind: {left:?}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn title_index_serves_prefix_type_ahead() {
+        let dir = temp_dir("titles");
+        let path = dir.join("pack.sqlite");
+        let tuning = IndexTuning {
+            prefix_index: &[],
+            title_prefix_index: true,
+        };
+        build_encyclopedia_tuned(
+            &path,
+            vec![
+                article(1, "Babel Tower"),
+                article(2, "Kraken"),
+                article(3, "Baobab"),
+            ],
+            &opts(),
+            &tuning,
+        )
+        .expect("build");
+        let enc = Encyclopedia::open(&path).expect("open");
+        let mut ids: Vec<i64> = enc
+            .search_titles("ba*", 10)
+            .expect("search")
+            .iter()
+            .map(|h| h.id)
+            .collect();
+        ids.sort_unstable();
+        assert_eq!(ids, vec![1, 3]);
+        assert!(enc.search_titles("\"(", 10).expect("escaped").is_empty());
+        drop(enc);
+
+        let plain = dir.join("plain.sqlite");
+        build_encyclopedia(&plain, vec![article(1, "Babel")], &opts()).expect("build");
+        let enc = Encyclopedia::open(&plain).expect("open");
+        assert!(enc.search_titles("ba*", 10).is_err());
+        drop(enc);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn vocabulary_words_are_unique_and_never_contain_the_needle_prefix() {
