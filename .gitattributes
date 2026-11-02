@@ -1,0 +1,12 @@
+* text=auto eol=lf
+
+# Binary or byte-exact files: never normalize line endings.
+*.rtf -text
+*.scrivx -text
+*.epub -text
+*.png -text
+*.ttf -text
+*.otf -text
+*.ico binary
+*.icns binary
+spikes/scriv-parser/fixtures/** -text

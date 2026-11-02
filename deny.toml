@@ -1,0 +1,51 @@
+# cargo-deny configuration (M0 §3.5). Run with `cargo deny check`.
+
+[graph]
+all-features = false
+
+[advisories]
+version = 2
+yanked = "deny"
+# Unmaintained (not vulnerable) crates pulled in by the required Tauri/specta stack. No fixed
+# version exists; revisit when upstream drops them. Recorded in ADR 007.
+ignore = [
+  # paste: proc-macro used by specta/tauri-specta (=2.0.0-rc.26 pins, M0 §3.2).
+  { id = "RUSTSEC-2024-0436", reason = "transitive via specta; unmaintained, no known vulnerability" },
+  # proc-macro-error: via glib-macros 0.18 (gtk-rs, Linux webview stack used by tauri/wry).
+  { id = "RUSTSEC-2024-0370", reason = "transitive via tauri -> gtk-rs; unmaintained, no known vulnerability" },
+]
+
+[licenses]
+version = 2
+confidence-threshold = 0.9
+# The allow-list is the project policy (CLAUDE.md), not just today's dependency set.
+unused-allowed-license = "allow"
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "MPL-2.0",
+  "Zlib",
+  "Unicode-3.0",
+  "Unicode-DFS-2016",
+  "CC0-1.0",
+]
+# Anything else needs an explicit, commented exception here plus a mention in the relevant ADR.
+exceptions = []
+
+[licenses.private]
+# Our own workspace crates are `publish = false` and MIT; skip them.
+ignore = true
+
+[bans]
+multiple-versions = "warn"
+wildcards = "allow"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

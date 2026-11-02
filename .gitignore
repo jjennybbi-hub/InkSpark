@@ -1,0 +1,28 @@
+# Dependencies and build output
+node_modules/
+dist/
+target/
+*.tsbuildinfo
+
+# Tauri-generated schemas (rebuilt by tauri-build)
+src-tauri/gen/
+
+# Test and spike output
+coverage/
+playwright-report/
+test-results/
+spikes/*/results/
+e2e/logs/
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Local env
+.env
+.env.*
+!.env.example

@@ -1,0 +1,7 @@
+# Awareness only in M0: user files are written exclusively by the Rust `storage` module (M1).
+# Spike bench bins that write result files opt out locally with a commented
+# `#[allow(clippy::disallowed_methods)]`.
+disallowed-methods = [
+  { path = "std::fs::write", reason = "user-file writes go through the storage module (CLAUDE.md)" },
+  { path = "std::fs::File::create", reason = "user-file writes go through the storage module (CLAUDE.md)" },
+]
