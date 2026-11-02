@@ -12,7 +12,13 @@ package-lock.json
 Cargo.lock
 
 # Prose: Prettier would reflow hand-aligned tables in the plan, specs and ADRs.
-*.md
+PLAN.md
+README.md
+CLAUDE.md
+docs/**/*.md
+
+# Byte-exact fixtures (e.g. scriv-parser goldens) must never be reformatted.
+spikes/*/fixtures/
 
 # Track A test committed by the Test-author with one non-Prettier line break (a multi-line
 # `Linter.Config | undefined` union, strictness.test.ts:167). Implementers may not edit tests;

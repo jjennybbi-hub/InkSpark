@@ -106,11 +106,21 @@ No `unsafe-eval`. Only `core:default` is granted; no Tauri plugins are registere
 - **Lint config for committed tests.** `no-irregular-whitespace` uses `skipRegExps` (the tests
   strip a BOM with a literal U+FEFF in a regex), and `no-unnecessary-condition` is off in test
   and E2E files (they guard `textContent ?? ""`, which lib.dom types as non-null).
-- **Prettier ignores.** `*.md` (hand-aligned tables in the plan and specs) and
+- **Prettier ignores.** `PLAN.md`, `README.md`, `CLAUDE.md` and `docs/**/*.md` (hand-aligned
+  tables), `spikes/*/fixtures/` (byte-exact goldens) and
   `tests/config/strictness.test.ts` (committed with one non-Prettier line break; implementers
   may not edit tests). The latter entry should be removed after the Orchestrator reformats it.
 - **`bindings_ts()`** renders through a unique scratch file in the OS temp dir, because
   tauri-specta rc.26 exports only to a path. Output is LF-normalized.
+- **CI triggers.** `push` to `main` and `claude/**`, `pull_request` to `main`, and
+  `workflow_dispatch` (both workflows).
+- **dmg retry hygiene.** Before the retry, CI force-detaches `/Volumes/InkSpark` and removes
+  leftover `rw.*.dmg`/partial `.dmg` files. The `.app` zip and upload run whenever the build
+  step succeeded, even if the smoke launch failed (the job still fails).
+- **Spike jobs** export `SPIKE_OS`/`RUNNER_OS_LABEL` (the matrix OS label), `spike-typst` passes
+  `--size-report target/release/size-baseline` and runs its ignored tests, and `spike-scriv`
+  runs the release `perf` test. The `check` job runs the scriv property tests with
+  `PROPTEST_CASES=2000` once that crate exists.
 - **Rust toolchain in CI** is installed with `rustup toolchain install 1.97.0` (explicit, so it
   does not depend on rustup's auto-install behaviour) and then selected by
   `rust-toolchain.toml`.
@@ -126,6 +136,13 @@ No `unsafe-eval`. Only `core:default` is granted; no Tauri plugins are registere
   WebdriverIO 10 dev-dependency tree (`glob`/`minimatch` via `@wdio/config`); the only offered
   fix is a downgrade to WebdriverIO 9. They affect the E2E tooling only, never the shipped app.
   Revisit when WebdriverIO publishes a fix; expiry: end of M2.
+
+### npm licenses outside the allow-list (dev-only, not shipped)
+All of these come from dev tooling (Vite/Browserslist, WebdriverIO, jsdom, ESLint); none is in
+the shipped frontend bundle, which contains only React, react-dom and @tauri-apps/api (MIT):
+CC-BY-4.0 (`caniuse-lite`, `@promptbook/utils`), Unlicense, PSF-2.0, MIT-0, `jszip` (dual
+MIT/GPL-3.0, MIT elected), `pako` (MIT AND Zlib), CC-BY-3.0 (`spdx-exceptions`) and `css-value`
+(no license field in its package.json). Revisit if any of them moves into runtime dependencies.
 
 ## Consequences
 - tauri-specta, specta and specta-typescript upgrades go only through the Orchestrator, with

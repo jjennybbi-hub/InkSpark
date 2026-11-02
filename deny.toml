@@ -1,7 +1,8 @@
 # cargo-deny configuration (M0 §3.5). Run with `cargo deny check`.
 
 [graph]
-all-features = false
+# Check every optional feature (CI runs `cargo deny check` without extra arguments).
+all-features = true
 
 [advisories]
 version = 2
