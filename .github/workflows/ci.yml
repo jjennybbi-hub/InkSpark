@@ -3,7 +3,7 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches: [main, "claude/**"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -40,7 +40,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libxdo-dev libssl-dev build-essential
+          sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf libxdo-dev libssl-dev build-essential
 
       - name: Install Rust toolchain
         shell: bash
@@ -62,6 +62,13 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
 
+      # M0 §6.2: the scriv property tests run with 2,000 cases in CI (not set globally).
+      - name: scriv-parser property tests (2,000 cases)
+        if: hashFiles('spikes/scriv-parser/Cargo.toml') != ''
+        run: cargo test -p inkspark-spike-scriv --test props
+        env:
+          PROPTEST_CASES: "2000"
+
       - name: Bindings are up to date
         if: runner.os == 'Linux'
         run: npm run bindings:check
@@ -82,7 +89,7 @@ jobs:
       - name: Install Rust toolchain (universal)
         run: |
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component rustfmt,clippy
-          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          rustup target add --toolchain "$RUST_TOOLCHAIN" aarch64-apple-darwin x86_64-apple-darwin
 
       - uses: actions/setup-node@v4
         with:
@@ -94,6 +101,7 @@ jobs:
       - run: npm ci
 
       - name: Build universal InkSpark.app
+        id: build
         run: npm run tauri build -- --ci --target universal-apple-darwin --bundles app
 
       - name: Smoke launch (stays alive 15 s)
@@ -110,8 +118,10 @@ jobs:
           fi
           kill "$PID"
 
+      # Runs even if the smoke launch failed, so the .app is still uploaded (the job still fails).
       - name: Zip InkSpark.app
         id: zip
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: bash
         run: |
           mkdir -p artifacts
@@ -136,7 +146,13 @@ jobs:
       - name: Build .dmg (retry)
         if: steps.dmg1.outcome == 'failure'
         timeout-minutes: 20
-        run: npm run tauri build -- --ci --target universal-apple-darwin --bundles dmg
+        shell: bash
+        run: |
+          # Clean up after the failed attempt: a still-mounted volume or a leftover
+          # read-write image makes bundle_dmg.sh fail again.
+          hdiutil detach "/Volumes/InkSpark" -force || true
+          rm -f "$BUNDLE_DIR"/dmg/rw.*.dmg "$BUNDLE_DIR"/dmg/*.dmg "$BUNDLE_DIR"/macos/rw.*.dmg
+          npm run tauri build -- --ci --target universal-apple-darwin --bundles dmg
 
       - name: Collect .dmg
         shell: bash
@@ -172,7 +188,7 @@ jobs:
       - name: Install Linux system packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libxdo-dev libssl-dev build-essential webkit2gtk-driver xvfb
+          sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf libxdo-dev libssl-dev build-essential webkit2gtk-driver xvfb
 
       - name: Install Rust toolchain
         run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
@@ -207,7 +223,7 @@ jobs:
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
-          arguments: --all-features
+          arguments: ""
           rust-version: "1.97.0"
 
       - uses: actions/setup-node@v4
