@@ -49,9 +49,29 @@ const BANNED: readonly BannedCase[] = [
     code: 'const fs: unknown = require("fs");\n\nexport { fs };\n',
     isStaticImport: false,
   },
+  {
+    label: "dynamic import with a template literal",
+    code: "export async function load(): Promise<unknown> {\n  return await import(`node:fs`);\n}\n",
+    isStaticImport: false,
+  },
+  {
+    label: "require with a template literal",
+    code: "const fs: unknown = require(`fs`);\n\nexport { fs };\n",
+    isStaticImport: false,
+  },
+  {
+    label: "createRequire from node:module",
+    code: 'import { createRequire } from "node:module";\n\nexport const r = createRequire;\n',
+    isStaticImport: true,
+  },
 ];
 
-const BANNED_PATHS = ["src/x.ts", "spikes/editor-text/src/x.ts"] as const;
+const BANNED_PATHS = [
+  "src/x.ts",
+  "src/x.mts",
+  "src/x.js",
+  "spikes/editor-text/src/x.ts",
+] as const;
 
 let eslint: ESLint;
 
@@ -96,6 +116,14 @@ describe("fs-write ban (AC-4)", { timeout: 120_000 }, () => {
       });
     });
   }
+
+  it("cannot be silenced with an inline eslint-disable comment", async () => {
+    const code =
+      '// eslint-disable-next-line no-restricted-imports\nimport fs from "node:fs";\n\nexport const f = fs;\n';
+    const messages = await lint(code, "src/x.ts");
+    const errors = messages.filter((m) => m.severity === 2);
+    expect(errors.length, describeMessages(messages)).toBeGreaterThan(0);
+  });
 
   it("allows importing invoke from @tauri-apps/api/core with zero errors", async () => {
     const code =

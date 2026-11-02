@@ -1,0 +1,2 @@
+# Fixtures must stay byte-exact on every OS (M0 risk R7).
+* -text

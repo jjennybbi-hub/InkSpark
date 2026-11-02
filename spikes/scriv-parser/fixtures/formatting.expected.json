@@ -1,0 +1,120 @@
+{
+  "binder": {
+    "format_version": "2.0",
+    "items": [
+      {
+        "uuid": "939DF015-D794-4AA6-9F7D-67A650891601",
+        "kind": "DraftFolder",
+        "title": "Draft",
+        "include_in_compile": true,
+        "label_id": null,
+        "status_id": null,
+        "children": [
+          {
+            "uuid": "569A86D0-6D8B-4F4C-8DC6-F60F53447F8A",
+            "kind": "Text",
+            "title": "Styles",
+            "include_in_compile": true,
+            "label_id": 0,
+            "status_id": 2,
+            "children": []
+          }
+        ]
+      },
+      {
+        "uuid": "2FA0ECE6-5F8E-49CF-95BF-927C699B90D8",
+        "kind": "ResearchFolder",
+        "title": "Research",
+        "include_in_compile": false,
+        "label_id": null,
+        "status_id": null,
+        "children": []
+      },
+      {
+        "uuid": "6E4F6DA7-B047-42E6-A039-16695DB1AD83",
+        "kind": "TrashFolder",
+        "title": "Trash",
+        "include_in_compile": false,
+        "label_id": null,
+        "status_id": null,
+        "children": []
+      }
+    ],
+    "labels": {
+      "-1": "No Label",
+      "0": "Concept"
+    },
+    "statuses": {
+      "-1": "No Status",
+      "2": "Revised Draft"
+    }
+  },
+  "documents": {
+    "939DF015-D794-4AA6-9F7D-67A650891601": { "content": null, "synopsis": null, "notes": null },
+    "569A86D0-6D8B-4F4C-8DC6-F60F53447F8A": {
+      "content": {
+        "paragraphs": [
+          [
+            { "text": "Plain then ", "bold": false, "italic": false, "underline": false },
+            { "text": "bold", "bold": true, "italic": false, "underline": false },
+            { "text": " then ", "bold": false, "italic": false, "underline": false },
+            { "text": "italic", "bold": false, "italic": true, "underline": false },
+            { "text": " then ", "bold": false, "italic": false, "underline": false },
+            { "text": "underlined", "bold": false, "italic": false, "underline": true },
+            { "text": ".", "bold": false, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "Bold ", "bold": true, "italic": false, "underline": false },
+            { "text": "and italic", "bold": true, "italic": true, "underline": false },
+            { "text": " just italic", "bold": false, "italic": true, "underline": false },
+            { "text": " plain.", "bold": false, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "all three", "bold": true, "italic": true, "underline": true },
+            { "text": " none.", "bold": false, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "Escapes: \\ { }\ttabbed.", "bold": false, "italic": false, "underline": false }
+          ],
+          [],
+          [
+            { "text": "Before after.", "bold": false, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "The lantern went out. The lantern was ", "bold": false, "italic": false, "underline": false },
+            { "text": "borrowed", "bold": false, "italic": true, "underline": false },
+            { "text": ". And then darkness.", "bold": false, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "Image removed.", "bold": false, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "Bold carries", "bold": true, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "across paragraphs", "bold": true, "italic": false, "underline": false },
+            { "text": ".", "bold": false, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "under", "bold": false, "italic": false, "underline": true },
+            { "text": " over ", "bold": false, "italic": false, "underline": false },
+            { "text": "one", "bold": true, "italic": false, "underline": false },
+            { "text": ".", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      },
+      "synopsis": "Exercises every supported control word.",
+      "notes": {
+        "paragraphs": [
+          [
+            { "text": "Note:", "bold": true, "italic": false, "underline": false },
+            { "text": " remember the footnote.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      }
+    },
+    "2FA0ECE6-5F8E-49CF-95BF-927C699B90D8": { "content": null, "synopsis": null, "notes": null },
+    "6E4F6DA7-B047-42E6-A039-16695DB1AD83": { "content": null, "synopsis": null, "notes": null }
+  },
+  "warnings": []
+}

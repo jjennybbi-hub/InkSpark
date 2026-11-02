@@ -1,0 +1,218 @@
+{
+  "binder": {
+    "format_version": "2.0",
+    "items": [
+      {
+        "uuid": "5D983234-EEBE-4A7D-A228-3FB630F83778",
+        "kind": "DraftFolder",
+        "title": "Manuscript",
+        "include_in_compile": true,
+        "label_id": null,
+        "status_id": null,
+        "children": [
+          {
+            "uuid": "F3E7C284-A688-4DA3-B0A1-FE6F0C69E989",
+            "kind": "Folder",
+            "title": "Part One",
+            "include_in_compile": true,
+            "label_id": 1,
+            "status_id": 0,
+            "children": [
+              {
+                "uuid": "38B62E4E-ABD9-488B-A32D-3DACA1B3192E",
+                "kind": "Folder",
+                "title": "Chapter 1",
+                "include_in_compile": true,
+                "label_id": null,
+                "status_id": null,
+                "children": [
+                  {
+                    "uuid": "9F9B6953-4E56-4C0A-839E-4DC813CA2F7B",
+                    "kind": "Text",
+                    "title": "The Harbour",
+                    "include_in_compile": true,
+                    "label_id": 2,
+                    "status_id": 1,
+                    "children": []
+                  },
+                  {
+                    "uuid": "9671949F-000B-48FE-A20C-DE4CD7D2798E",
+                    "kind": "Text",
+                    "title": "Night Market",
+                    "include_in_compile": false,
+                    "label_id": 7,
+                    "status_id": null,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "F8276B34-DB97-4EA8-BFEB-6397841A883D",
+            "kind": "Folder",
+            "title": "Part Two",
+            "include_in_compile": true,
+            "label_id": null,
+            "status_id": null,
+            "children": [
+              {
+                "uuid": "AF15948A-594F-4BF1-B146-6E341FD3E90C",
+                "kind": "Text",
+                "title": "Interlude",
+                "include_in_compile": true,
+                "label_id": null,
+                "status_id": 3,
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "uuid": "A71C6BA8-0D8F-4D68-9E32-4A54DAF7405F",
+        "kind": "ResearchFolder",
+        "title": "Research",
+        "include_in_compile": false,
+        "label_id": null,
+        "status_id": null,
+        "children": [
+          {
+            "uuid": "76AF1CA5-696B-4024-B42B-345CF9F51AFF",
+            "kind": "Text",
+            "title": "Notes & Ideas",
+            "include_in_compile": false,
+            "label_id": 4,
+            "status_id": null,
+            "children": []
+          },
+          {
+            "uuid": "E8DD3517-F6CA-4F69-B21E-CF8FB3628F40",
+            "kind": { "Other": "PDF" },
+            "title": "Map of the Coast",
+            "include_in_compile": false,
+            "label_id": null,
+            "status_id": null,
+            "children": []
+          }
+        ]
+      },
+      {
+        "uuid": "919A8EE6-9D03-4E9D-9284-72E7357DF7F1",
+        "kind": "TrashFolder",
+        "title": "Trash",
+        "include_in_compile": false,
+        "label_id": null,
+        "status_id": null,
+        "children": [
+          {
+            "uuid": "625ED417-E658-4521-926D-888CDA16B133",
+            "kind": "Text",
+            "title": "Deleted Scene",
+            "include_in_compile": false,
+            "label_id": 2,
+            "status_id": 0,
+            "children": []
+          }
+        ]
+      }
+    ],
+    "labels": {
+      "-1": "No Label",
+      "0": "Concept",
+      "1": "Chapter",
+      "2": "Scene",
+      "3": "Idea",
+      "4": "Notes",
+      "7": "Flashback"
+    },
+    "statuses": {
+      "-1": "No Status",
+      "0": "To Do",
+      "1": "First Draft",
+      "2": "Revised Draft",
+      "3": "Final Draft",
+      "4": "Done"
+    }
+  },
+  "documents": {
+    "5D983234-EEBE-4A7D-A228-3FB630F83778": { "content": null, "synopsis": null, "notes": null },
+    "F3E7C284-A688-4DA3-B0A1-FE6F0C69E989": {
+      "content": null,
+      "synopsis": "The arrival, told in three movements.",
+      "notes": null
+    },
+    "38B62E4E-ABD9-488B-A32D-3DACA1B3192E": { "content": null, "synopsis": null, "notes": null },
+    "9F9B6953-4E56-4C0A-839E-4DC813CA2F7B": {
+      "content": {
+        "paragraphs": [
+          [
+            { "text": "The ferry docked at dusk. Mara counted the ", "bold": false, "italic": false, "underline": false },
+            { "text": "lanterns", "bold": false, "italic": true, "underline": false },
+            { "text": " along the quay.", "bold": false, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "Nobody came to meet her.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      },
+      "synopsis": "Mara arrives; no one is waiting.",
+      "notes": null
+    },
+    "9671949F-000B-48FE-A20C-DE4CD7D2798E": {
+      "content": {
+        "paragraphs": [
+          [
+            { "text": "Stalls of salt fish and paper kites.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      },
+      "synopsis": null,
+      "notes": null
+    },
+    "F8276B34-DB97-4EA8-BFEB-6397841A883D": { "content": null, "synopsis": null, "notes": null },
+    "AF15948A-594F-4BF1-B146-6E341FD3E90C": {
+      "content": {
+        "paragraphs": [
+          [
+            { "text": "A year passes.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      },
+      "synopsis": null,
+      "notes": null
+    },
+    "A71C6BA8-0D8F-4D68-9E32-4A54DAF7405F": { "content": null, "synopsis": null, "notes": null },
+    "76AF1CA5-696B-4024-B42B-345CF9F51AFF": {
+      "content": {
+        "paragraphs": [
+          [
+            { "text": "Lantern festival happens in late autumn.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      },
+      "synopsis": null,
+      "notes": {
+        "paragraphs": [
+          [
+            { "text": "Verify the date against the almanac.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      }
+    },
+    "E8DD3517-F6CA-4F69-B21E-CF8FB3628F40": { "content": null, "synopsis": null, "notes": null },
+    "919A8EE6-9D03-4E9D-9284-72E7357DF7F1": { "content": null, "synopsis": null, "notes": null },
+    "625ED417-E658-4521-926D-888CDA16B133": {
+      "content": {
+        "paragraphs": [
+          [
+            { "text": "An early version of the market scene.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      },
+      "synopsis": null,
+      "notes": null
+    }
+  },
+  "warnings": []
+}

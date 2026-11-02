@@ -1,0 +1,115 @@
+{
+  "binder": {
+    "format_version": "2.0",
+    "items": [
+      {
+        "uuid": "A23E8E4D-CA9A-4E1F-A455-B7E32A0CF189",
+        "kind": "DraftFolder",
+        "title": "Draft",
+        "include_in_compile": true,
+        "label_id": null,
+        "status_id": null,
+        "children": [
+          {
+            "uuid": "E6F187DC-927A-49A7-95E4-C4BC043E6915",
+            "kind": "Text",
+            "title": "Has Content",
+            "include_in_compile": true,
+            "label_id": null,
+            "status_id": null,
+            "children": []
+          },
+          {
+            "uuid": "F72BBDCC-1375-452A-B535-E78E2F006D91",
+            "kind": "Text",
+            "title": "No Directory",
+            "include_in_compile": true,
+            "label_id": null,
+            "status_id": null,
+            "children": []
+          },
+          {
+            "uuid": "F0A95F2C-67C5-47C3-995D-75EC9DA4CC79",
+            "kind": "Text",
+            "title": "Synopsis Only",
+            "include_in_compile": true,
+            "label_id": null,
+            "status_id": null,
+            "children": []
+          },
+          {
+            "uuid": "9A0C87B8-167C-4ABC-BE70-FCFEAE9FB6BE",
+            "kind": "Text",
+            "title": "Bad Notes",
+            "include_in_compile": true,
+            "label_id": null,
+            "status_id": null,
+            "children": []
+          }
+        ]
+      },
+      {
+        "uuid": "29579EAB-E4A2-4FBF-B72D-23EEF715700F",
+        "kind": "ResearchFolder",
+        "title": "Research",
+        "include_in_compile": false,
+        "label_id": null,
+        "status_id": null,
+        "children": []
+      },
+      {
+        "uuid": "FCE99142-2F55-4FF2-95CA-6BA48F1F5495",
+        "kind": "TrashFolder",
+        "title": "Trash",
+        "include_in_compile": false,
+        "label_id": null,
+        "status_id": null,
+        "children": []
+      }
+    ],
+    "labels": {
+      "-1": "No Label"
+    },
+    "statuses": {
+      "-1": "No Status"
+    }
+  },
+  "documents": {
+    "A23E8E4D-CA9A-4E1F-A455-B7E32A0CF189": { "content": null, "synopsis": null, "notes": null },
+    "E6F187DC-927A-49A7-95E4-C4BC043E6915": {
+      "content": {
+        "paragraphs": [
+          [
+            { "text": "This one is fine.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      },
+      "synopsis": null,
+      "notes": null
+    },
+    "F72BBDCC-1375-452A-B535-E78E2F006D91": { "content": null, "synopsis": null, "notes": null },
+    "F0A95F2C-67C5-47C3-995D-75EC9DA4CC79": {
+      "content": null,
+      "synopsis": "Planned but never written.",
+      "notes": null
+    },
+    "9A0C87B8-167C-4ABC-BE70-FCFEAE9FB6BE": {
+      "content": {
+        "paragraphs": [
+          [
+            { "text": "Content is fine; the notes are not.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      },
+      "synopsis": null,
+      "notes": null
+    },
+    "29579EAB-E4A2-4FBF-B72D-23EEF715700F": { "content": null, "synopsis": null, "notes": null },
+    "FCE99142-2F55-4FF2-95CA-6BA48F1F5495": { "content": null, "synopsis": null, "notes": null }
+  },
+  "warnings": [
+    "missing content for F72BBDCC-1375-452A-B535-E78E2F006D91",
+    "missing content for F0A95F2C-67C5-47C3-995D-75EC9DA4CC79",
+    "invalid rtf in 9A0C87B8-167C-4ABC-BE70-FCFEAE9FB6BE/notes.rtf"
+  ]
+}

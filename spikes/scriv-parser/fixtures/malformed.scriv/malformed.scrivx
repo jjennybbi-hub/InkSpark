@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ScrivenerProject Template="No" Version="2.0" Identifier="2ACB845D-3EA7-450A-9651-12CAB7A90FE7" Creator="SCRMAC-3.3.6-17410" Device="Fixture-Mac" Author="Fixture Author">
+    <Binder>
+        <BinderItem UUID="6E4F6DA7-0000-42E6-A039-16695DB1AD00" Type="DraftFolder" Created="2024-08-01 08:00:00 +0000" Modified="2024-08-01 08:00:00 +0000">
+            <Title>Draft</Title>
+            <MetaData>
+                <IncludeInCompile>Yes</IncludeInCompile>
+            </MetaData>
+            <Children>
+                <BinderItem UUID="6E4F6DA7-1111-42E6-A039-16695DB1AD11" Type="Text" Created="2024-08-01 08:01:00 +0000" Modified="2024-08-01 08:01:00 +0000">
+                    <Title>Chapt

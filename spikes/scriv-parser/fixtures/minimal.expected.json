@@ -1,0 +1,118 @@
+{
+  "binder": {
+    "format_version": "2.0",
+    "items": [
+      {
+        "uuid": "BE9FBB38-3A30-4932-92C9-E7A655063AC0",
+        "kind": "DraftFolder",
+        "title": "Draft",
+        "include_in_compile": true,
+        "label_id": null,
+        "status_id": null,
+        "children": [
+          {
+            "uuid": "D20CA403-93A4-4DF3-A22A-4E1B9559F2B6",
+            "kind": "Text",
+            "title": "Chapter One",
+            "include_in_compile": true,
+            "label_id": null,
+            "status_id": null,
+            "children": []
+          },
+          {
+            "uuid": "F652363A-74CD-4066-AA7F-C8CCF7871A37",
+            "kind": "Text",
+            "title": "Chapter Two",
+            "include_in_compile": true,
+            "label_id": 2,
+            "status_id": 1,
+            "children": []
+          }
+        ]
+      },
+      {
+        "uuid": "C862291E-9046-4E08-8A23-B1A749CA2BAD",
+        "kind": "ResearchFolder",
+        "title": "Research",
+        "include_in_compile": false,
+        "label_id": null,
+        "status_id": null,
+        "children": []
+      },
+      {
+        "uuid": "E9801571-1B16-4DCB-851A-CBFCCFDAFACC",
+        "kind": "TrashFolder",
+        "title": "Trash",
+        "include_in_compile": false,
+        "label_id": null,
+        "status_id": null,
+        "children": []
+      }
+    ],
+    "labels": {
+      "-1": "No Label",
+      "0": "Concept",
+      "1": "Chapter",
+      "2": "Scene",
+      "3": "Idea",
+      "4": "Notes"
+    },
+    "statuses": {
+      "-1": "No Status",
+      "0": "To Do",
+      "1": "First Draft",
+      "2": "Revised Draft",
+      "3": "Final Draft",
+      "4": "Done"
+    }
+  },
+  "documents": {
+    "BE9FBB38-3A30-4932-92C9-E7A655063AC0": {
+      "content": null,
+      "synopsis": null,
+      "notes": null
+    },
+    "D20CA403-93A4-4DF3-A22A-4E1B9559F2B6": {
+      "content": {
+        "paragraphs": [
+          [
+            { "text": "It was a quiet morning in the harbour town.", "bold": false, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "The kettle had not yet boiled.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      },
+      "synopsis": "Morning in the kitchen; the kettle waits.",
+      "notes": null
+    },
+    "F652363A-74CD-4066-AA7F-C8CCF7871A37": {
+      "content": {
+        "paragraphs": [
+          [
+            { "text": "Rain arrived by noon, and with it the letters.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      },
+      "synopsis": null,
+      "notes": {
+        "paragraphs": [
+          [
+            { "text": "Check the tide tables before revising.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      }
+    },
+    "C862291E-9046-4E08-8A23-B1A749CA2BAD": {
+      "content": null,
+      "synopsis": null,
+      "notes": null
+    },
+    "E9801571-1B16-4DCB-851A-CBFCCFDAFACC": {
+      "content": null,
+      "synopsis": null,
+      "notes": null
+    }
+  },
+  "warnings": []
+}

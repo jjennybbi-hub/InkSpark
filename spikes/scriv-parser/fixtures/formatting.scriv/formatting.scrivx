@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ScrivenerProject Template="No" Version="2.0" Identifier="7527B819-9330-4054-88C4-59AA2619DD85" Creator="SCRMAC-3.3.6-17410" Device="Fixture-Mac" Author="Fixture Author">
+    <Binder>
+        <BinderItem UUID="939DF015-D794-4AA6-9F7D-67A650891601" Type="DraftFolder" Created="2024-06-01 12:00:00 +0000" Modified="2024-06-02 12:00:00 +0000">
+            <Title>Draft</Title>
+            <MetaData>
+                <IncludeInCompile>Yes</IncludeInCompile>
+            </MetaData>
+            <Children>
+                <BinderItem UUID="569A86D0-6D8B-4F4C-8DC6-F60F53447F8A" Type="Text" Created="2024-06-01 12:01:00 +0000" Modified="2024-06-02 12:00:00 +0000">
+                    <Title>Styles</Title>
+                    <MetaData>
+                        <LabelID>0</LabelID>
+                        <StatusID>2</StatusID>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                    <TextSettings>
+                        <TextSelection>0,0</TextSelection>
+                    </TextSettings>
+                </BinderItem>
+            </Children>
+        </BinderItem>
+        <BinderItem UUID="2FA0ECE6-5F8E-49CF-95BF-927C699B90D8" Type="ResearchFolder" Created="2024-06-01 12:00:00 +0000" Modified="2024-06-01 12:00:00 +0000">
+            <Title>Research</Title>
+        </BinderItem>
+        <BinderItem UUID="6E4F6DA7-B047-42E6-A039-16695DB1AD83" Type="TrashFolder" Created="2024-06-01 12:00:00 +0000" Modified="2024-06-01 12:00:00 +0000">
+            <Title>Trash</Title>
+        </BinderItem>
+    </Binder>
+    <Collections>
+        <Collection Type="Binder" Color="0.5 0.5 0.5">
+            <Title>Binder</Title>
+        </Collection>
+    </Collections>
+    <LabelSettings>
+        <Title>Label</Title>
+        <DefaultLabelID>-1</DefaultLabelID>
+        <Labels>
+            <Label ID="-1">No Label</Label>
+            <Label ID="0" Color="0.698039 0.843137 0.988235">Concept</Label>
+        </Labels>
+    </LabelSettings>
+    <StatusSettings>
+        <Title>Status</Title>
+        <DefaultStatusID>-1</DefaultStatusID>
+        <StatusItems>
+            <Status ID="-1">No Status</Status>
+            <Status ID="2">Revised Draft</Status>
+        </StatusItems>
+    </StatusSettings>
+    <ProjectProperties>
+        <ProjectTitle>Formatting Fixture</ProjectTitle>
+        <FullName>Fixture Author</FullName>
+    </ProjectProperties>
+</ScrivenerProject>

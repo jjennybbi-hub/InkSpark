@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ScrivenerProject Template="No" Version="2.0" Identifier="1DE223F0-816A-4D4A-B1D5-89C838832175" Creator="SCRMAC-3.3.6-17410" Device="Fixture-Mac" Author="Fixture Author">
+    <Binder>
+        <BinderItem UUID="0109A858-1388-494E-9ED5-4F2D81EF9010" Type="DraftFolder" Created="2024-05-01 07:00:00 +0000" Modified="2024-05-03 07:00:00 +0000">
+            <Title>Draft</Title>
+            <MetaData>
+                <IncludeInCompile>Yes</IncludeInCompile>
+            </MetaData>
+            <Children>
+                <BinderItem UUID="E04FAEE9-5DCF-462D-87A9-9124A1065234" Type="Text" Created="2024-05-01 07:01:00 +0000" Modified="2024-05-03 07:00:00 +0000">
+                    <Title>Café &#x2014; Morning</Title>
+                    <MetaData>
+                        <LabelID>5</LabelID>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                </BinderItem>
+                <BinderItem UUID="E975550D-149E-43CF-91F9-D79E0E1BA044" Type="Text" Created="2024-05-01 07:02:00 +0000" Modified="2024-05-03 07:00:00 +0000">
+                    <Title>שלום עולם</Title>
+                    <MetaData>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                </BinderItem>
+                <BinderItem UUID="465D0C38-48AA-465D-8EFE-607E46C9094D" Type="Text" Created="2024-05-01 07:03:00 +0000" Modified="2024-05-03 07:00:00 +0000">
+                    <Title>Waves 🌊</Title>
+                    <MetaData>
+                        <StatusID>4</StatusID>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                </BinderItem>
+            </Children>
+        </BinderItem>
+        <BinderItem UUID="115CE715-8AD4-42A1-A9AB-6AC2EE552301" Type="ResearchFolder" Created="2024-05-01 07:00:00 +0000" Modified="2024-05-01 07:00:00 +0000">
+            <Title>Research</Title>
+        </BinderItem>
+        <BinderItem UUID="FA6FEF88-C7A5-42E0-9EA7-8D2B378126FF" Type="TrashFolder" Created="2024-05-01 07:00:00 +0000" Modified="2024-05-01 07:00:00 +0000">
+            <Title>Trash</Title>
+        </BinderItem>
+    </Binder>
+    <Collections>
+        <Collection Type="Binder" Color="0.5 0.5 0.5">
+            <Title>Binder</Title>
+        </Collection>
+    </Collections>
+    <LabelSettings>
+        <Title>Label</Title>
+        <DefaultLabelID>-1</DefaultLabelID>
+        <Labels>
+            <Label ID="-1">No Label</Label>
+            <Label ID="5" Color="0.9 0.7 0.3">Ελληνικά</Label>
+        </Labels>
+    </LabelSettings>
+    <StatusSettings>
+        <Title>Status</Title>
+        <DefaultStatusID>-1</DefaultStatusID>
+        <StatusItems>
+            <Status ID="-1">No Status</Status>
+            <Status ID="4">Terminé</Status>
+        </StatusItems>
+    </StatusSettings>
+    <ProjectProperties>
+        <ProjectTitle>Unicode Fixture</ProjectTitle>
+        <FullName>Fixture Author</FullName>
+    </ProjectProperties>
+</ScrivenerProject>
