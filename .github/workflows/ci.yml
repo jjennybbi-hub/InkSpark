@@ -29,7 +29,19 @@ jobs:
         os: [ubuntu-24.04, macos-15, windows-2022]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    env:
+      # The workspace debug target (tauri + typst + rusqlite) filled the ubuntu runner's disk.
+      # No debuginfo and no incremental cache keep it small; tests are unaffected.
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_INCREMENTAL: "0"
     steps:
+      - name: Free runner disk space (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
+
       - name: Enable long paths (Windows)
         if: runner.os == 'Windows'
         run: git config --global core.longpaths true

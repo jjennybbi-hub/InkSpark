@@ -763,9 +763,12 @@ mod tests {
 
     fn temp_dir(label: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!(
-            "inkspark-fts-unit-{label}-{}-{:?}",
+            "inkspark-fts-unit-{label}-{}-{}",
             std::process::id(),
+            // Nanoseconds since the epoch: `{:?}` of SystemTime contains ':' (invalid on Windows).
             std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |d| d.as_nanos())
         ));
         std::fs::create_dir_all(&dir).expect("create temp dir");
         dir
