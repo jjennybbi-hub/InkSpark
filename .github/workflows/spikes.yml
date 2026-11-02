@@ -1,0 +1,293 @@
+# M0 spike measurements (M0 §3.8). Not branch-protection gates.
+# Functional tests must pass; threshold verdicts go into results/*.json instead of failing.
+# Every results JSON is printed to the log and the step summary, because the Orchestrator reads
+# numbers from job logs (artifact downloads are blocked in the cloud session).
+name: Spikes
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # Must match rust-toolchain.toml.
+  RUST_TOOLCHAIN: "1.97.0"
+
+jobs:
+  # hashFiles() is not available in a job-level `if`, so one job detects which spikes exist and
+  # the spike jobs are skipped on its outputs until the spike lands.
+  detect:
+    name: detect spikes
+    runs-on: ubuntu-24.04
+    outputs:
+      editor: ${{ steps.d.outputs.editor }}
+      foliate: ${{ steps.d.outputs.foliate }}
+      typst: ${{ steps.d.outputs.typst }}
+      fts: ${{ steps.d.outputs.fts }}
+      speech: ${{ steps.d.outputs.speech }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: d
+        run: |
+          {
+            echo "editor=${{ hashFiles('spikes/editor-text/package.json') != '' }}"
+            echo "foliate=${{ hashFiles('spikes/foliate-view/package.json') != '' }}"
+            echo "typst=${{ hashFiles('spikes/typst-pdf/Cargo.toml') != '' }}"
+            echo "fts=${{ hashFiles('spikes/fts5-encyclopedia/Cargo.toml') != '' }}"
+            echo "speech=${{ hashFiles('spikes/macos-speech/Cargo.toml') != '' }}"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  spike-editor:
+    name: spike-editor (${{ matrix.os }})
+    needs: detect
+    if: needs.detect.outputs.editor == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      SPIKE_DIR: spikes/editor-text
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright browsers (CI only)
+        run: npx playwright install --with-deps chromium webkit
+      - name: Run spike
+        run: npm run spike:editor
+        env:
+          PW_WEBKIT: "1"
+      - name: Print results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=("$SPIKE_DIR"/results/*.json)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No results in $SPIKE_DIR/results" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          for f in "${files[@]}"; do
+            echo "::group::$f"
+            cat "$f"
+            echo
+            echo "::endgroup::"
+            {
+              echo "### $f"
+              echo '```json'
+              cat "$f"
+              echo
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
+      - name: Upload results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: spike-editor-${{ matrix.os }}
+          path: |
+            ${{ env.SPIKE_DIR }}/results/*.json
+            ${{ env.SPIKE_DIR }}/playwright-report/
+          if-no-files-found: warn
+
+  spike-foliate:
+    name: spike-foliate (${{ matrix.os }})
+    needs: detect
+    if: needs.detect.outputs.foliate == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      SPIKE_DIR: spikes/foliate-view
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright browsers (CI only)
+        run: npx playwright install --with-deps chromium webkit
+      - name: Run spike
+        run: npm run spike:foliate
+        env:
+          PW_WEBKIT: "1"
+      - name: Print results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=("$SPIKE_DIR"/results/*.json)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No results in $SPIKE_DIR/results" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          for f in "${files[@]}"; do
+            echo "::group::$f"
+            cat "$f"
+            echo
+            echo "::endgroup::"
+            {
+              echo "### $f"
+              echo '```json'
+              cat "$f"
+              echo
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
+      - name: Upload results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: spike-foliate-${{ matrix.os }}
+          path: |
+            ${{ env.SPIKE_DIR }}/results/*.json
+            ${{ env.SPIKE_DIR }}/playwright-report/
+          if-no-files-found: warn
+
+  spike-typst:
+    name: spike-typst (${{ matrix.os }})
+    needs: detect
+    if: needs.detect.outputs.typst == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      SPIKE_DIR: spikes/typst-pdf
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+      - uses: Swatinem/rust-cache@v2
+      - name: Build release bins (for the size delta)
+        run: cargo build --release -p inkspark-spike-typst --bins
+      - name: Run bench
+        run: |
+          mkdir -p "$SPIKE_DIR/results"
+          cargo run --release -p inkspark-spike-typst --bin typst-bench -- --pages 300 --out "$SPIKE_DIR/results/${{ matrix.os }}.json"
+      - name: Binary sizes
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          ls -l target/release/typst-bench target/release/size-baseline | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Print results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=("$SPIKE_DIR"/results/*.json)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No results in $SPIKE_DIR/results" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          for f in "${files[@]}"; do
+            echo "::group::$f"
+            cat "$f"
+            echo
+            echo "::endgroup::"
+            {
+              echo "### $f"
+              echo '```json'
+              cat "$f"
+              echo
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
+      - name: Upload results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: spike-typst-${{ matrix.os }}
+          path: ${{ env.SPIKE_DIR }}/results/*.json
+          if-no-files-found: warn
+
+  spike-fts:
+    name: spike-fts (${{ matrix.os }})
+    needs: detect
+    if: needs.detect.outputs.fts == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      SPIKE_DIR: spikes/fts5-encyclopedia
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+      - uses: Swatinem/rust-cache@v2
+      - name: Run bench
+        run: |
+          mkdir -p "$SPIKE_DIR/results"
+          cargo run --release -p inkspark-spike-fts --bin fts-bench -- --articles 5000,50000 --mean-words 1200 --out "$SPIKE_DIR/results/${{ matrix.os }}.json"
+      - name: Print results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=("$SPIKE_DIR"/results/*.json)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No results in $SPIKE_DIR/results" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          for f in "${files[@]}"; do
+            echo "::group::$f"
+            cat "$f"
+            echo
+            echo "::endgroup::"
+            {
+              echo "### $f"
+              echo '```json'
+              cat "$f"
+              echo
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
+      - name: Upload results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: spike-fts-${{ matrix.os }}
+          path: ${{ env.SPIKE_DIR }}/results/*.json
+          if-no-files-found: warn
+
+  spike-speech:
+    name: spike-speech (macos-15)
+    needs: detect
+    if: needs.detect.outputs.speech == 'true'
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: CI speech tests
+        run: cargo test -p inkspark-spike-speech -- --include-ignored ci_
+      - name: Build speech-spike
+        run: cargo build --release -p inkspark-spike-speech --bin speech-spike
+      - name: Upload speech-spike
+        uses: actions/upload-artifact@v4
+        with:
+          name: speech-spike-macos
+          path: target/release/speech-spike
+          if-no-files-found: error
