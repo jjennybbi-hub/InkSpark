@@ -1,6 +1,7 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { type JSX, useCallback, useEffect, useRef, useState } from "react";
 import { type Idea, type PageSummary, commands } from "../contracts";
+import { pickPrompt, promptHash } from "../spark/dealer";
 import "./shell.css";
 
 const AUTOSAVE_MS = 1000;
@@ -217,10 +218,14 @@ export function App(): JSX.Element {
     if (project === null) {
       return;
     }
-    const result = await commands.nextPrompt(project);
-    setPrompt(
-      result.status === "ok" ? result.data : "You have seen every prompt this app has to offer.",
-    );
+    const seen = await commands.seenPrompts(project);
+    const next = pickPrompt(new Set(seen.status === "ok" ? seen.data : []));
+    if (next === null) {
+      setPrompt("You have seen every prompt this app has to offer.");
+      return;
+    }
+    setPrompt(next);
+    await commands.markPromptSeen(project, promptHash(next));
   };
 
   const saveLabel =
@@ -279,7 +284,7 @@ export function App(): JSX.Element {
               </button>
               {prompt !== "" && (
                 <p>
-                  <span className="label">App prompt</span> {prompt}
+                  <span className="label">App prompt · AI-drafted</span> {prompt}
                 </p>
               )}
             </div>

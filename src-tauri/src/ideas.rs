@@ -80,63 +80,6 @@ pub fn add_idea(root: &Path, text: &str) -> Result<Idea, AppError> {
     })
 }
 
-const TEMPLATES: [&str; 6] = [
-    "Write about {a} {n}.",
-    "A {a} {n} turns up where it should not be. What happens next?",
-    "Describe {a} {n} without saying what it is for.",
-    "Someone is looking for {a} {n}. Write the scene.",
-    "Begin with {a} {n} and end somewhere unexpected.",
-    "Write a letter that mentions {a} {n}.",
-];
-
-const ADJECTIVES: [&str; 12] = [
-    "an old",
-    "a broken",
-    "a borrowed",
-    "a hidden",
-    "a quiet",
-    "a forgotten",
-    "a crooked",
-    "a distant",
-    "a stolen",
-    "a small",
-    "an unfinished",
-    "a familiar",
-];
-
-const NOUNS: [&str; 14] = [
-    "key",
-    "bridge",
-    "window",
-    "recipe",
-    "map",
-    "clock",
-    "garden",
-    "photograph",
-    "staircase",
-    "umbrella",
-    "train ticket",
-    "lantern",
-    "coat",
-    "promise",
-];
-
-/// 64-bit FNV-1a, so the stored hashes are stable across runs and builds.
-fn fnv1a(text: &str) -> u64 {
-    text.bytes().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
-        (hash ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3)
-    })
-}
-
-fn render(index: usize) -> String {
-    let n = NOUNS.len();
-    let a = ADJECTIVES.len();
-    let noun = NOUNS[index % n];
-    let adjective = ADJECTIVES[(index / n) % a];
-    let template = TEMPLATES[(index / (n * a)) % TEMPLATES.len()];
-    template.replace("{a}", adjective).replace("{n}", noun)
-}
-
 fn read_seen(root: &Path) -> Result<BTreeSet<String>, AppError> {
     match fs::read_to_string(root.join(SEEN_FILE)) {
         Ok(text) => serde_json::from_str(&text)
@@ -146,30 +89,32 @@ fn read_seen(root: &Path) -> Result<BTreeSet<String>, AppError> {
     }
 }
 
-/// Deals one prompt that this project has not been shown before and records it as seen.
+/// Returns the hashes of the prompts this project has already been shown.
 ///
 /// # Errors
 ///
-/// `NotFound` once every prompt has been seen; otherwise fails on I/O or a corrupt seen file.
-pub fn next_prompt(root: &Path) -> Result<String, AppError> {
+/// Fails on I/O or a corrupt seen file.
+pub fn seen_prompts(root: &Path) -> Result<Vec<String>, AppError> {
+    Ok(read_seen(root)?.into_iter().collect())
+}
+
+/// Records a prompt hash (16 hex digits) as seen.
+///
+/// # Errors
+///
+/// `Invalid` for a malformed hash; otherwise fails on I/O or a corrupt seen file.
+pub fn mark_prompt_seen(root: &Path, hash: &str) -> Result<(), AppError> {
+    let valid = hash.len() == 16 && hash.chars().all(|c| c.is_ascii_hexdigit());
+    if !valid {
+        return Err(AppError::Invalid(format!("bad prompt hash: {hash:?}")));
+    }
     let mut seen = read_seen(root)?;
-    let total = NOUNS.len() * ADJECTIVES.len() * TEMPLATES.len();
-    // Start at a time-based spot and walk forward to the first unseen prompt.
-    let start = usize::try_from(now_millis() % total as u128).unwrap_or(0);
-    let found = (0..total)
-        .map(|step| render((start + step) % total))
-        .find_map(|text| {
-            let hash = format!("{:016x}", fnv1a(&text));
-            (!seen.contains(&hash)).then_some((text, hash))
-        });
-    let Some((text, hash)) = found else {
-        return Err(AppError::NotFound("every prompt has been used".to_owned()));
-    };
-    seen.insert(hash);
-    let json = serde_json::to_string_pretty(&seen)
-        .map_err(|err| AppError::Io(format!("could not encode {SEEN_FILE}: {err}")))?;
-    atomic_write(&root.join(SEEN_FILE), json.as_bytes())?;
-    Ok(text)
+    if seen.insert(hash.to_ascii_lowercase()) {
+        let json = serde_json::to_string_pretty(&seen)
+            .map_err(|err| AppError::Io(format!("could not encode {SEEN_FILE}: {err}")))?;
+        atomic_write(&root.join(SEEN_FILE), json.as_bytes())?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -198,14 +143,15 @@ mod tests {
     }
 
     #[test]
-    fn prompts_never_repeat_until_exhausted() {
-        let root = temp_root("prompts");
-        let total = NOUNS.len() * ADJECTIVES.len() * TEMPLATES.len();
-        let mut dealt = BTreeSet::new();
-        for _ in 0..total {
-            let p = next_prompt(&root).unwrap_or_else(|e| panic!("{e}"));
-            assert!(dealt.insert(p));
-        }
-        assert!(next_prompt(&root).is_err());
+    fn seen_prompts_persist_and_reject_bad_hashes() {
+        let root = temp_root("seen");
+        assert!(seen_prompts(&root).unwrap_or_default().is_empty());
+        mark_prompt_seen(&root, "00ff00ff00ff00ff").unwrap_or_else(|e| panic!("{e}"));
+        mark_prompt_seen(&root, "00ff00ff00ff00ff").unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(
+            seen_prompts(&root).unwrap_or_default(),
+            ["00ff00ff00ff00ff"]
+        );
+        assert!(mark_prompt_seen(&root, "nope").is_err());
     }
 }

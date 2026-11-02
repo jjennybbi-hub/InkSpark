@@ -19,8 +19,10 @@ export const commands = {
 	listIdeas: (path: string) => typedError<Idea[], AppError>(__TAURI_INVOKE("list_ideas", { path })),
 	/**  Adds a note to the Idea Shelf. */
 	addIdea: (path: string, text: string) => typedError<Idea, AppError>(__TAURI_INVOKE("add_idea", { path, text })),
-	/**  Deals one app prompt this project has not seen before. */
-	nextPrompt: (path: string) => typedError<string, AppError>(__TAURI_INVOKE("next_prompt", { path })),
+	/**  Returns the hashes of prompts already shown in this project. */
+	seenPrompts: (path: string) => typedError<string[], AppError>(__TAURI_INVOKE("seen_prompts", { path })),
+	/**  Records a prompt hash as shown in this project. */
+	markPromptSeen: (path: string, hash: string) => typedError<null, AppError>(__TAURI_INVOKE("mark_prompt_seen", { path, hash })),
 };
 
 /* Types */

@@ -30,7 +30,8 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::save_page,
             commands::list_ideas,
             commands::add_idea,
-            commands::next_prompt
+            commands::seen_prompts,
+            commands::mark_prompt_seen
         ])
         .typ::<AppError>()
 }

@@ -105,11 +105,18 @@ pub fn add_idea(path: String, text: String) -> Result<Idea, AppError> {
     ideas::add_idea(Path::new(&path), &text)
 }
 
-/// Deals one app prompt this project has not seen before.
+/// Returns the hashes of prompts already shown in this project.
 #[tauri::command]
 #[specta::specta]
-pub fn next_prompt(path: String) -> Result<String, AppError> {
-    ideas::next_prompt(Path::new(&path))
+pub fn seen_prompts(path: String) -> Result<Vec<String>, AppError> {
+    ideas::seen_prompts(Path::new(&path))
+}
+
+/// Records a prompt hash as shown in this project.
+#[tauri::command]
+#[specta::specta]
+pub fn mark_prompt_seen(path: String, hash: String) -> Result<(), AppError> {
+    ideas::mark_prompt_seen(Path::new(&path), &hash)
 }
 
 #[cfg(test)]
