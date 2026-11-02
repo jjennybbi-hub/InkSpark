@@ -219,8 +219,10 @@ function nextFrame(): Promise<void> {
 }
 
 /**
- * Per sample: `insertContent("a")`, then await `requestAnimationFrame`; the time is measured from
- * before the dispatch to after the frame.
+ * Per sample (M0 §4.1, as amended): the time from just before `insertContent("a")` to just after a
+ * forced synchronous layout (`coordsAtPos` of the caret plus `getBoundingClientRect` of the editor
+ * DOM). The `requestAnimationFrame` wait before the next sample is not timed, so the result is the
+ * editor's own work and not the display's refresh interval.
  */
 export async function measureInputLatency(
   h: SpikeEditorHandle,
@@ -230,8 +232,10 @@ export async function measureInputLatency(
   for (let i = 0; i < samples; i += 1) {
     const start = performance.now();
     h.editor.commands.insertContent("a");
-    await nextFrame();
+    h.coordsAtPos(h.getSelection().from);
+    h.editor.view.dom.getBoundingClientRect();
     times.push(performance.now() - start);
+    await nextFrame();
   }
   times.sort((a, b) => a - b);
   return { p50: percentile(times, 0.5), p95: percentile(times, 0.95) };
