@@ -42,7 +42,9 @@ const LANGS: Record<SampleLang, LangSpec> = {
   ja: {
     words: words(
       "静かな 川が 古い 手紙を 運んで いった 朝の 光は 誰もいない 机の 上に 落ちて 雨が 細い 道を 通り 抜けて 小さな 舟が 夕方の " +
-        "風を 待って いる 町の 名前を 覚えて いない 人々は 窓を 開けた 縦書きの 文章 ひらがな カタカナ 漢字 ゆっくりと",
+        "風を 待って いる 町の 名前を 覚えて いない 人々は 窓を 開けた 縦書きの 文章 ひらがな カタカナ 漢字 ゆっくりと " +
+        // Latin and digit runs exercise `text-orientation: mixed` (rotated sideways in vertical text).
+        "2026年 TipTapで 3月の WebKit 10時に",
     ),
     wordJoin: "",
     stop: "。",
@@ -144,6 +146,14 @@ export interface SpikeEditorHandle {
   destroy(): void;
 }
 
+/** Human-readable accessible names for the editors. */
+const EDITOR_LABELS: Record<WritingMode, string> = {
+  ltr: "Left-to-right editor",
+  rtl: "Right-to-left editor",
+  "vertical-rl": "Vertical, right-to-left editor",
+  "vertical-lr": "Vertical, left-to-right editor",
+};
+
 /** Plain text → doc JSON: one paragraph per "\n\n"-separated block, empty blocks stay empty. */
 function textToDoc(text: string): JSONContent {
   return {
@@ -170,7 +180,7 @@ export function createSpikeEditor(
     content: textToDoc(initialText ?? ""),
     editorProps: {
       attributes: {
-        "aria-label": `Spike editor (${mode})`,
+        "aria-label": EDITOR_LABELS[mode],
         "aria-multiline": "true",
         role: "textbox",
         spellcheck: "false",
