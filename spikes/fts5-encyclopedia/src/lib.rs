@@ -453,7 +453,7 @@ pub fn build_encyclopedia_with_prefix_index(
 
 /// Incompressible stand-in bytes for an article thumbnail (sizes only; not an image).
 fn thumbnail(id: i64, size: u32) -> Vec<u8> {
-    let mut rng = SplitMix64::new(id.unsigned_abs() ^ 0x7417_8B4A_11);
+    let mut rng = SplitMix64::new(id.unsigned_abs() ^ 0x74_178B_4A11);
     let mut out = Vec::with_capacity(size as usize);
     while out.len() < size as usize {
         out.extend_from_slice(&rng.next_u64().to_le_bytes());

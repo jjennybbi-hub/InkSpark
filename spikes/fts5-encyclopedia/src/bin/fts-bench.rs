@@ -3,7 +3,7 @@
 //! For each corpus size, builds the variants {unicode61/full, porter/full, unicode61/column,
 //! unicode61/full with prefix indexes 2 and 3, trigram/full (5k only)}, then measures file size,
 //! build time, open-to-first-result, and the p95 of 1,000 random 1–2-term queries (uniform over
-//! the vocabulary, plus a Zipf-weighted stress set) and 200 prefix queries (`ab*`) drawn from
+//! the vocabulary, plus 200 Zipf-weighted stress queries) and 200 prefix queries (`ab*`) drawn from
 //! the corpus vocabulary. Writes the §3.9 results JSON to `--out`. Threshold misses are reported in the
 //! JSON, not as a failing exit code. Each built file is deleted once measured.
 #![forbid(unsafe_code)]
@@ -20,6 +20,9 @@ use inkspark_spike_fts::{
 
 const SEED: u64 = 0x00C0_FFEE;
 const TERM_QUERIES: usize = 1_000;
+/// The Zipf-weighted stress set is smaller: its common terms are slow on `detail=column`, and
+/// the CI job has a 60-minute budget.
+const ZIPF_QUERIES: usize = 200;
 const PREFIX_QUERIES: usize = 200;
 const LIMIT: u32 = 20;
 /// Trigram is built only for corpora up to this size (M0 §5.3: "5k only").
@@ -142,10 +145,10 @@ fn time_queries(enc: &Encyclopedia, queries: &[String]) -> Result<Timings, Bench
 
 /// 1–2-term queries. `zipf_weighted` draws terms by corpus frequency (a stress case: most
 /// terms then occur in nearly every article); otherwise uniformly over the vocabulary.
-fn term_queries(seed: u64, zipf_weighted: bool) -> Vec<String> {
+fn term_queries(seed: u64, count: usize, zipf_weighted: bool) -> Vec<String> {
     let zipf = Zipf::vocabulary();
     let mut rng = SplitMix64::new(seed);
-    (0..TERM_QUERIES)
+    (0..count)
         .map(|_| {
             let terms = 1 + rng.below(2);
             (0..terms)
@@ -378,8 +381,8 @@ fn bench_variant(
 fn run() -> Result<(), BenchError> {
     let args = parse_args()?;
     let queries = Queries {
-        uniform: term_queries(SEED ^ 0x7E57, false),
-        zipf: term_queries(SEED ^ 0x21FF, true),
+        uniform: term_queries(SEED ^ 0x7E57, TERM_QUERIES, false),
+        zipf: term_queries(SEED ^ 0x21FF, ZIPF_QUERIES, true),
         prefix: prefix_queries(SEED ^ 0x9FE1),
     };
 
