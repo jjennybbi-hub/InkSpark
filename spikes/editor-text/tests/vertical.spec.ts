@@ -68,6 +68,25 @@ function caretVisibility(page: Page, mode: WritingMode): Promise<CaretVisibility
   }, mode);
 }
 
+/**
+ * The first position of the second vertical line of the doc's first paragraph: the first position
+ * whose caret rect jumps back up (lower `top`) relative to the previous position.
+ */
+function secondLineStart(page: Page, mode: WritingMode): Promise<number> {
+  return page.evaluate((m) => {
+    const h = window.__spike?.[m];
+    if (h === undefined) throw new Error(`spike handle missing: ${m}`);
+    const end = h.editor.state.doc.firstChild?.content.size ?? 0;
+    let prevTop = h.coordsAtPos(1).top;
+    for (let pos = 2; pos <= end; pos += 1) {
+      const { top } = h.coordsAtPos(pos);
+      if (top < prevTop - 1) return pos;
+      prevTop = top;
+    }
+    throw new Error(`paragraph does not wrap onto a second line in ${m}`);
+  }, mode);
+}
+
 test.beforeEach(async ({ page }) => {
   await openSpike(page);
 });
@@ -75,6 +94,8 @@ test.beforeEach(async ({ page }) => {
 for (const mode of VERTICAL_MODES) {
   /** The key that moves to the next line: lines advance leftwards in rl and rightwards in lr. */
   const nextLineKey = mode === "vertical-rl" ? "ArrowLeft" : "ArrowRight";
+  /** The key that moves to the previous line: the opposite direction. */
+  const previousLineKey = mode === "vertical-rl" ? "ArrowRight" : "ArrowLeft";
 
   test.describe(mode, () => {
     test("Japanese inserted via keyboard.insertText appears in the doc", async ({ page }) => {
@@ -99,6 +120,16 @@ for (const mode of VERTICAL_MODES) {
       await page.keyboard.press(nextLineKey);
       await expect
         .poll(async () => (await getSelection(page, mode)).from - 3)
+        .toBeGreaterThanOrEqual(1);
+    });
+
+    test(`${previousLineKey} moves to the previous line`, async ({ page }) => {
+      await setText(page, mode, COLUMN_TEXT);
+      const start = (await secondLineStart(page, mode)) + 2;
+      await placeCaret(page, mode, start);
+      await page.keyboard.press(previousLineKey);
+      await expect
+        .poll(async () => start - (await getSelection(page, mode)).from)
         .toBeGreaterThanOrEqual(1);
     });
 
