@@ -2504,7 +2504,6 @@ dependencies = [
  "thiserror 2.0.21",
  "typst",
  "typst-kit",
- "typst-layout",
  "typst-pdf",
 ]
 
