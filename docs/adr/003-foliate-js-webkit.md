@@ -1,0 +1,161 @@
+# 003 — foliate-js EPUB view on WebKit under the Tauri CSP
+
+Status: Proposed · Date: 2026-11-02 · Track: M0-C
+
+## Context
+InkSpark's Reader View (PLAN.md §3, M5 `compile/epub`) shows the writer's own EPUB export, and
+EPUBs they import, inside the Tauri webview: WKWebView on macOS, WebKitGTK on Linux. PLAN.md
+§2 names foliate-js as the renderer, but asks for a spike first (M0.md §5.2). Two things could
+go wrong. foliate-js renders sections in blob: iframes, which may not survive the app's strict
+CSP. And WebKit pagination may be wrong for RTL and vertical-rl content. This ADR records what
+the spike found.
+
+## Hypothesis
+Upstream foliate-js, vendored unmodified, renders a reflowable EPUB 3 in WebKit under
+InkSpark's Tauri CSP, with correct pagination for LTR, RTL and vertical-rl content, and within
+the §5.2 performance thresholds.
+
+## Method
+- **Renderer.** foliate-js `78914aef4466eb960965702401634c2cb348e9b1`, vendored unmodified in
+  `vendor/foliate-js/` (see `VENDORED.md`). The npm package named `foliate-js` belongs to an
+  unrelated publisher and is not used.
+- **Harness.** `spikes/foliate-view/src/harness.ts`: `openBook()` creates a `<foliate-view>`,
+  opens the bytes as a `File`, and goes to section 0. The location (`fraction`,
+  `sectionIndex`) comes from foliate's `relocate` event. foliate's `book.transformTarget` hook
+  inlines linked book CSS (see CSP findings). A Vite plugin resolves `view.js`'s lazy
+  `import('./pdf.js')` to a stub that rejects PDFs, because pdf.js is not vendored.
+- **Fixture.** `spikes/foliate-view/fixtures/make-epub.ts`: a deterministic EPUB 3 built with
+  fflate (fixed mtime, `mimetype` stored first). The default book has 5 chapters: English with
+  a footnote, English with a 128×64 PNG, Hebrew with `dir="rtl"`, Japanese with
+  `writing-mode: vertical-rl` from the linked stylesheet, and English. It also has a nav
+  document and one linked stylesheet. The large fixture has 100 chapters × 3,000 words.
+- **CSP.** `vite preview` sends `TAURI_CSP` as the `Content-Security-Policy` header.
+  `src/csp.test.ts` checks that it equals `app.security.csp` in `src-tauri/tauri.conf.json`:
+  `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: blob: data:; font-src 'self' data: blob:; frame-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost`.
+  The tests listen for `securitypolicyviolation` in the page and in every frame, and fail on
+  any violation, console error or page error.
+- **Tests.** `tests/reader.spec.ts` (functional) and `tests/perf.spec.ts` (thresholds recorded
+  in `results/<os>-<browser>.json`, not asserted). Playwright 1.63.0, `vite build` +
+  `vite preview` (Vite 8.3.5), viewport 1280×720 (Desktop Chrome).
+- **Local run** (Linux container, Node 22.23, x86_64): Chromium 153.0.8010.12 only. This is a
+  sanity check: WebKit decides, and runs only in CI (`spikes.yml`, `PW_WEBKIT=1`, ubuntu-24.04
+  and macos-15). Local numbers are the range over 4 runs of the harness at commit `86ea923`.
+
+## Criteria and results
+Thresholds are from M0.md §5.2. WebKit columns are filled in from the `spike-foliate` CI job
+logs.
+
+| Metric | Threshold | ubuntu WebKit | macos WebKit | Local Chromium (reference) | Pass |
+|---|---|---|---|---|---|
+| Functional tests (`reader.spec.ts`, 7 tests) | all pass | pending CI | pending CI | 7/7 pass (with CSS inlining) | pending CI |
+| Default fixture open (median of 3) | ≤ 1,500 ms | pending CI | pending CI | 38–76 ms | pending CI |
+| Large fixture open, 100 × 3,000 words (median of 3) | ≤ 3,000 ms | pending CI | pending CI | 46–76 ms | pending CI |
+| Page turn p95 (50 turns, `next()` + 1 frame) | ≤ 150 ms | pending CI | pending CI | 133–148 ms (p50 ≈ 101 ms) | pending CI |
+| CSP relaxation beyond `blob:`/`data:` in img/font/frame | none | pending CI | pending CI | none needed with inlining; see CSP findings | pending CI |
+
+Functional tests, locally on Chromium:
+
+| Test | Result |
+|---|---|
+| opening the default fixture resolves with 5 TOC items | pass |
+| `next()` three times increases the fraction each time | pass |
+| `goToTocItem(2)` moves to section 2 | pass |
+| the RTL chapter renders with `dir=rtl` and `next()` still advances | pass |
+| the vertical chapter's body has `writing-mode: vertical-rl` | pass |
+| the fixture image loads with `naturalWidth > 0` | pass |
+| a full tour causes no CSP violations or console errors | pass |
+
+### Page-turn timing
+The p50 of about 101 ms is almost all foliate's own lock. When the paginator is not
+`animated`, `#turnPage` waits a fixed `wait(100)` before it resolves (paginator.js). The page
+itself moves well before that. So the measured p95 sits only 2–17 ms under the 150 ms
+threshold on Chromium (p95 133–148 ms), and slower runners may cross it without any visible lag. If WebKit
+misses the threshold, check whether the gap is this fixed lock before calling it a renderer
+problem. A follow-up below measures time to the `relocate` event instead.
+
+### CSP findings
+1. **Linked book CSS is blocked (the one real finding).** foliate's loader turns every EPUB
+   resource into a blob: URL and rewrites `<link rel="stylesheet">` hrefs to them. The app's
+   `style-src 'self' 'unsafe-inline'` does not match blob:. The section documents are blob:
+   iframes, which inherit the page's policy, so every linked stylesheet is blocked.
+   - Before the harness inlined CSS, all 7 reader tests failed on Chromium with
+     `style-src-elem blocked blob` (44 violations in one run). The vertical chapter rendered
+     `horizontal-tb`, because its `writing-mode` lives in the stylesheet.
+   - Almost every real EPUB uses linked CSS, so this cannot be ignored.
+2. **Mitigation used: inline the CSS, CSP unchanged.** `src/inline-styles.ts` listens to
+   foliate's public `book.transformTarget` `data` events. It keeps each stylesheet's
+   processed text, then replaces the section's `<link>` elements with `<style>` elements
+   holding the same CSS. `'unsafe-inline'` (already in the CSP) allows those. `url()`
+   references inside the CSS are already blob: URLs, which img-src and font-src allow. With
+   this, all tests pass with zero violations.
+   - Known gap: `@import` inside book CSS still points at a blob: stylesheet and stays
+     blocked.
+   - Known gap: CSS in a `text/html` (non-XHTML) section is serialized as XML and could
+     mis-escape a `<` inside the CSS. The fixture does not exercise this.
+3. **Alternative: add `blob:` to style-src.** As a local experiment only, `blob:` was added
+   to style-src in `csp.ts`; the change was not committed and the Tauri config was not
+   touched. With it and no inlining, all 10 tests passed on Chromium (default open 59 ms,
+   large 136 ms, p95 131 ms). This keeps foliate's behaviour unchanged, including
+   `@import`. But it is a style-src relaxation, which is outside the §5.2 allowance.
+4. **What already works.**
+   - `frame-src 'self' blob:` covers the section iframes. foliate sandboxes them with
+     `allow-same-origin allow-scripts`.
+   - `img-src blob:` covers images, and `font-src blob:` covers embedded fonts.
+   - zip.js runs with `useWebWorkers: false` and reads from a Blob, so it needs no
+     `worker-src` or `connect-src` change, and no WASM.
+   - Nothing needs `unsafe-eval`.
+5. **Book scripts.** The iframes are sandboxed with `allow-same-origin allow-scripts`, so the
+   only thing that stops scripts inside a book is `script-src 'self'`, which does not match
+   blob:. That is the behaviour we want, but the fixture has no scripts, so it is not tested
+   yet (follow-up below).
+
+## Decision
+**Pending CI (WebKit decides).** Proposed verdict if the WebKit jobs match Chromium:
+**Go-with-conditions**.
+1. The Reader View inlines linked book CSS through `transformTarget`, as the harness does,
+   so the Tauri CSP stays unchanged. The alternative is an Orchestrator-approved
+   `style-src … blob:` change: a narrow relaxation, but beyond §5.2's img/font/frame
+   allowance.
+2. foliate-js stays vendored unmodified at a pinned commit, without pdf.js.
+3. Vertical-rl and foliate are re-checked in the real app (WKWebView/WebKitGTK) behind the
+   `readerView` flag (M0.md R4).
+
+If WebKit fails a functional test or misses the open thresholds, the verdict becomes No-go
+and the Reader View needs another renderer.
+
+## Consequences
+- PLAN.md: the Reader View (M5) keeps foliate-js. It gets a "book CSS inlining" step and, if
+  chosen, the CSP change.
+- Contract request (Orchestrator): choose between keeping the CSP and inlining (no change),
+  or adding `blob:` to `style-src` in `src-tauri/tauri.conf.json` (and `csp.ts`).
+- PDF input is out of scope for foliate in InkSpark. Vendoring pdf.js would need its own ADR,
+  covering size, licenses, worker-src and fetches of cmaps and fonts.
+- Playwright WebKit is not WKWebView or WebKitGTK (M0.md R4). The ADR verdict is provisional
+  until the in-app check.
+
+## Dependencies added
+| Name | Version | License | Reason |
+|---|---|---|---|
+| foliate-js (vendored, `vendor/foliate-js/`) | `78914aef4466eb960965702401634c2cb348e9b1` | MIT | EPUB renderer for the Reader View |
+| zip.js (inside foliate-js `vendor/zip.js`) | 2.8.22 | BSD-3-Clause | foliate's EPUB unzip (upstream bundle) |
+| fflate (inside foliate-js `vendor/fflate.js`) | 0.8.2 | MIT | foliate's MOBI decompression (upstream bundle) |
+| fflate (npm, spike `dependencies`) | ^0.8.3 | MIT | builds the deterministic EPUB fixture |
+| @playwright/test (npm, spike dev) | 1.63.0 | Apache-2.0 | browser tests on Chromium and WebKit |
+
+## Follow-ups
+- **CI (M0):** fill in the WebKit columns from the `spike-foliate` job logs on ubuntu-24.04
+  and macos-15, then set the decision and Status.
+- **CI (M0/M5):** validate the generated fixture with epubcheck in CI. Maven was blocked
+  locally, so this did not run here.
+- **M5:** test a book with a `<script>`, and confirm it is blocked in the section iframe and
+  causes no console error the Reader View cannot handle.
+- **M5:** test `@import` in book CSS, and either inline it recursively or document the gap.
+- **M5:** measure page turns to the `relocate` event as well as to `next()` resolving,
+  because foliate's fixed 100 ms lock inflates the current metric.
+- **M5:** run real EPUBs (Gutenberg or Standard Ebooks samples) in CI. Real data is blocked
+  locally (M0.md R12).
+
+## Links
+- CI run: pending (`spikes.yml` → `spike-foliate`, artifacts `spike-foliate-ubuntu-24.04`,
+  `spike-foliate-macos-15`).
+- Local results file: `spikes/foliate-view/results/linux-chromium.json` (not committed).
