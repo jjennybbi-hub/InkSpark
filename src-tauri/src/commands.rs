@@ -1,6 +1,11 @@
 //! Tauri commands exposed to the frontend. Types here are exported to
 //! `src/contracts/bindings.ts` by tauri-specta (M0 §3.3).
 
+use std::path::Path;
+
+use crate::error::AppError;
+use crate::project::{self, PageSummary};
+
 /// Basic facts about the running build of the app.
 #[derive(Debug, Clone, serde::Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -55,6 +60,34 @@ pub fn app_info() -> AppInfo {
         arch: std::env::consts::ARCH.to_owned(),
         tauri_version: tauri::VERSION.to_owned(),
     }
+}
+
+/// Opens (creating if needed) the project in the folder at `path`; returns its pages in order.
+#[tauri::command]
+#[specta::specta]
+pub fn open_project(path: String) -> Result<Vec<PageSummary>, AppError> {
+    project::open_project(Path::new(&path))
+}
+
+/// Adds a blank page to the project at `path`.
+#[tauri::command]
+#[specta::specta]
+pub fn create_page(path: String) -> Result<PageSummary, AppError> {
+    project::create_page(Path::new(&path))
+}
+
+/// Returns the text of one page.
+#[tauri::command]
+#[specta::specta]
+pub fn read_page(path: String, id: String) -> Result<String, AppError> {
+    project::read_page(Path::new(&path), &id)
+}
+
+/// Atomically saves one page, keeping the previous version in `.history`.
+#[tauri::command]
+#[specta::specta]
+pub fn save_page(path: String, id: String, content: String) -> Result<(), AppError> {
+    project::save_page(Path::new(&path), &id, &content)
 }
 
 #[cfg(test)]

@@ -1,41 +1,255 @@
-import { type JSX, useEffect, useState } from "react";
-import type { AppInfo } from "../contracts";
-import { loadAppInfo } from "./appInfo";
+import { open } from "@tauri-apps/plugin-dialog";
+import { type JSX, useCallback, useEffect, useRef, useState } from "react";
+import { type PageSummary, commands } from "../contracts";
 import "./shell.css";
 
+const AUTOSAVE_MS = 1000;
+const LAST_PROJECT_KEY = "inkspark.lastProject";
+
+type SaveState = "saved" | "saving" | "failed";
+
+interface Session {
+  path: string;
+  id: string;
+  text: string;
+  dirty: boolean;
+}
+
+function firstLine(text: string): string {
+  const line = text.split("\n").find((l) => l.trim() !== "") ?? "";
+  return line
+    .trim()
+    .replace(/^#+\s*/, "")
+    .slice(0, 80);
+}
+
+function rememberedProject(): string | null {
+  try {
+    return localStorage.getItem(LAST_PROJECT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function rememberProject(path: string): void {
+  try {
+    localStorage.setItem(LAST_PROJECT_KEY, path);
+  } catch {
+    // Remembering the folder is a convenience only.
+  }
+}
+
 /**
- * The calm, empty shell (M0 §3.4): one `main` landmark and a visually hidden heading.
- * No buttons, text, dialogs, toasts, goals or streaks.
+ * Session A: a list of pages on the left, a plain editor on the right. Saves ~1 s after typing
+ * stops and on ⌘S; every write goes through Rust.
  */
 export function App(): JSX.Element {
-  const [info, setInfo] = useState<AppInfo | undefined>(undefined);
+  const [project, setProject] = useState<string | null>(null);
+  const [pages, setPages] = useState<PageSummary[]>([]);
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [text, setText] = useState("");
+  const [saveState, setSaveState] = useState<SaveState>("saved");
+  const [message, setMessage] = useState("");
+  const session = useRef<Session | null>(null);
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const timer = useRef<number | undefined>(undefined);
 
-  useEffect(() => {
-    let active = true;
-    loadAppInfo().then(
-      (loaded) => {
-        if (active) {
-          setInfo(loaded);
-        }
-      },
-      (error: unknown) => {
-        // The shell stays quiet: no UI for this, but the failure is reported, not swallowed.
-        console.error("InkSpark could not load app info:", error);
-      },
-    );
-    return () => {
-      active = false;
-    };
+  /** Saves the current page now if it has unsaved text. Saves run one at a time, in order. */
+  const flush = useCallback((): Promise<void> => {
+    window.clearTimeout(timer.current);
+    const s = session.current;
+    if (!s?.dirty) {
+      return queue.current;
+    }
+    const content = s.text;
+    s.dirty = false;
+    setSaveState("saving");
+    queue.current = queue.current.then(async () => {
+      let ok = false;
+      try {
+        ok = (await commands.savePage(s.path, s.id, content)).status === "ok";
+      } catch (error: unknown) {
+        console.error("InkSpark could not save:", error);
+      }
+      if (!ok) {
+        s.dirty = true;
+        setSaveState("failed");
+      } else if (!s.dirty) {
+        setSaveState("saved");
+      }
+    });
+    return queue.current;
   }, []);
 
+  const showPage = useCallback(
+    async (path: string, id: string): Promise<void> => {
+      await flush();
+      const result = await commands.readPage(path, id);
+      if (result.status === "error") {
+        setMessage(`Could not open that page: ${result.error.message}`);
+        return;
+      }
+      session.current = { path, id, text: result.data, dirty: false };
+      setCurrentId(id);
+      setText(result.data);
+      setSaveState("saved");
+      setMessage("");
+    },
+    [flush],
+  );
+
+  const openFolder = useCallback(
+    async (path: string): Promise<void> => {
+      await flush();
+      const result = await commands.openProject(path);
+      if (result.status === "error") {
+        setMessage(`Could not open that folder: ${result.error.message}`);
+        return;
+      }
+      rememberProject(path);
+      setProject(path);
+      setPages(result.data);
+      const first = result.data[0];
+      if (first !== undefined) {
+        await showPage(path, first.id);
+      }
+    },
+    [flush, showPage],
+  );
+
+  const chooseFolder = useCallback(async (): Promise<void> => {
+    try {
+      const picked = await open({ directory: true, multiple: false });
+      if (typeof picked === "string") {
+        await openFolder(picked);
+      }
+    } catch (error: unknown) {
+      console.error("InkSpark could not open the folder picker:", error);
+    }
+  }, [openFolder]);
+
+  const addPage = useCallback(async (): Promise<void> => {
+    if (project === null) {
+      return;
+    }
+    await flush();
+    const result = await commands.createPage(project);
+    if (result.status === "error") {
+      setMessage(`Could not add a page: ${result.error.message}`);
+      return;
+    }
+    setPages((prev) => [...prev, result.data]);
+    await showPage(project, result.data.id);
+  }, [flush, project, showPage]);
+
+  // Reopen the last project so the app opens straight to writing.
+  useEffect(() => {
+    const last = rememberedProject();
+    if (last !== null) {
+      queueMicrotask(() => {
+        void openFolder(last);
+      });
+    }
+  }, [openFolder]);
+
+  // ⌘S / Ctrl+S saves now; hiding the window or closing it saves too.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void flush();
+      }
+    };
+    const onHide = (): void => {
+      void flush();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, [flush]);
+
+  const onChange = (value: string): void => {
+    const s = session.current;
+    if (s === null) {
+      return;
+    }
+    s.text = value;
+    s.dirty = true;
+    setText(value);
+    setSaveState("saving");
+    setPages((prev) => prev.map((p) => (p.id === s.id ? { ...p, title: firstLine(value) } : p)));
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      void flush();
+    }, AUTOSAVE_MS);
+  };
+
+  const saveLabel =
+    saveState === "saved" ? "Saved" : saveState === "saving" ? "Saving" : "Not saved yet";
+
   return (
-    <main
-      className="app-shell"
-      data-testid="app-shell"
-      aria-label="InkSpark"
-      data-app-version={info?.version ?? ""}
-    >
+    <main className="app-shell" data-testid="app-shell" aria-label="InkSpark">
       <h1 className="visually-hidden">InkSpark</h1>
+      {project === null ? (
+        <div className="welcome">
+          <button type="button" onClick={() => void chooseFolder()}>
+            Choose a folder to write in
+          </button>
+          {message !== "" && <p className="note">{message}</p>}
+        </div>
+      ) : (
+        <div className="workspace">
+          <nav className="pages" aria-label="Pages">
+            <ul>
+              {pages.map((page) => (
+                <li key={page.id}>
+                  <button
+                    type="button"
+                    className="page-link"
+                    aria-current={page.id === currentId ? "page" : undefined}
+                    onClick={() => void showPage(project, page.id)}
+                  >
+                    {page.title === "" ? "Untitled" : page.title}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="pages-actions">
+              <button type="button" onClick={() => void addPage()}>
+                New page
+              </button>
+              <button type="button" onClick={() => void chooseFolder()}>
+                Change folder
+              </button>
+            </div>
+          </nav>
+          <section className="editor" aria-label="Editor">
+            <textarea
+              aria-label="Page text"
+              value={text}
+              spellCheck
+              autoFocus
+              disabled={currentId === null}
+              onChange={(event) => {
+                onChange(event.target.value);
+              }}
+            />
+            <span
+              className="save-dot"
+              data-state={saveState}
+              role="status"
+              aria-label={saveLabel}
+              title={saveLabel}
+            />
+            {message !== "" && <p className="note">{message}</p>}
+          </section>
+        </div>
+      )}
     </main>
   );
 }

@@ -48,8 +48,120 @@ body {
 }
 
 .app-shell {
-  min-height: 100%;
+  height: 100%;
   background: var(--paper);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+  border-radius: 6px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+
+button:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.welcome {
+  height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+}
+
+.workspace {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 15rem 1fr;
+}
+
+.pages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+  border-right: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
+}
+
+.pages ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+}
+
+.page-link {
+  width: 100%;
+  text-align: left;
+  border-color: transparent;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-link[aria-current="page"] {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+.pages-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.editor {
+  position: relative;
+  min-height: 0;
+}
+
+.editor textarea {
+  width: 100%;
+  height: 100%;
+  resize: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.15rem;
+  line-height: 1.7;
+  padding: 2rem max(2rem, calc((100% - 42rem) / 2));
+}
+
+.save-dot {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0.25;
+}
+
+.save-dot[data-state="saving"] {
+  opacity: 0.6;
+}
+
+.save-dot[data-state="failed"] {
+  background: transparent;
+  border: 2px solid var(--ink);
+  opacity: 0.8;
+}
+
+.note {
+  margin: 0;
+  position: absolute;
+  bottom: 1rem;
+  left: 2rem;
+  opacity: 0.7;
 }
 
 .visually-hidden {

@@ -7,6 +7,14 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 export const commands = {
 	/**  Returns static information about this build of InkSpark. */
 	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
+	/**  Opens (creating if needed) the project in the folder at `path`; returns its pages in order. */
+	openProject: (path: string) => typedError<PageSummary[], AppError>(__TAURI_INVOKE("open_project", { path })),
+	/**  Adds a blank page to the project at `path`. */
+	createPage: (path: string) => typedError<PageSummary, AppError>(__TAURI_INVOKE("create_page", { path })),
+	/**  Returns the text of one page. */
+	readPage: (path: string, id: string) => typedError<string, AppError>(__TAURI_INVOKE("read_page", { path, id })),
+	/**  Atomically saves one page, keeping the previous version in `.history`. */
+	savePage: (path: string, id: string, content: string) => typedError<null, AppError>(__TAURI_INVOKE("save_page", { path, id, content })),
 };
 
 /* Types */
@@ -35,4 +43,22 @@ export type AppInfo = {
 
 /**  The operating system family. */
 export type OsKind = "macos" | "linux" | "windows" | "other";
+
+/**  A page as shown in the left-hand list. */
+export type PageSummary = {
+	/**  File stem of `pages/<id>.md`. */
+	id: string,
+	/**  The first non-empty line of the page, or an empty string for a blank page. */
+	title: string,
+};
+
+/* Tauri Specta runtime */
+async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
+    try {
+        return { status: "ok", data: await result };
+    } catch (e) {
+        if (e instanceof Error) throw e;
+        return { status: "error", error: e as any };
+    }
+}
 

@@ -1,88 +1,105 @@
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
-import type { AppInfo } from "../contracts";
+import { mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { expectNoAxeViolations } from "../test/axe";
 import { App } from "./App";
 
-const MOCK_INFO: AppInfo = {
-  name: "InkSpark",
-  version: "3.1.4-test",
-  os: "linux",
-  arch: "x86_64",
-  tauriVersion: "2.12.4",
-};
-
-const FORBIDDEN_ROLES = ["button", "dialog", "alert", "status", "alertdialog"] as const;
 const ENCOURAGEMENT = /goal|streak|great job|keep going|words today|well done|badge/i;
 
-function mockAppInfo(): void {
-  mockIPC((cmd) => {
-    if (cmd === "app_info") {
-      return MOCK_INFO;
+interface Call {
+  cmd: string;
+  args: Record<string, unknown>;
+}
+
+function mockProject(calls: Call[]): void {
+  localStorage.setItem("inkspark.lastProject", "/tmp/book");
+  mockIPC((cmd, args) => {
+    calls.push({ cmd, args: (args ?? {}) as Record<string, unknown> });
+    if (cmd === "open_project") {
+      return [{ id: "p1", title: "Chapter one" }];
+    }
+    if (cmd === "read_page") {
+      return "Chapter one\nIt began.";
+    }
+    if (cmd === "save_page") {
+      return null;
     }
     throw new Error(`unexpected command: ${cmd}`);
   });
 }
 
-async function renderLoadedApp(): Promise<{ container: HTMLElement; main: HTMLElement }> {
-  mockAppInfo();
-  const { container } = render(<App />);
-  const main = screen.getByRole("main", { name: "InkSpark" });
-  await waitFor(() => {
-    expect(main).toHaveAttribute("data-app-version", MOCK_INFO.version);
-  });
-  return { container, main };
-}
-
-afterEach(() => {
-  clearMocks();
+beforeEach(() => {
+  localStorage.clear();
 });
 
-describe("App shell", () => {
-  it("renders a single main landmark named InkSpark", async () => {
-    await renderLoadedApp();
-    const mains = screen.getAllByRole("main");
-    expect(mains).toHaveLength(1);
-    expect(screen.getByRole("main", { name: "InkSpark" })).toHaveAttribute(
-      "data-testid",
-      "app-shell",
-    );
-  });
+afterEach(() => {
+  vi.useRealTimers();
+});
 
-  it("sets data-app-version to the version reported by app_info", async () => {
-    const { main } = await renderLoadedApp();
-    expect(main.getAttribute("data-app-version")).toBe(MOCK_INFO.version);
-  });
-
-  it("starts with an empty data-app-version until app_info resolves", () => {
-    mockIPC(() => new Promise<never>(() => undefined));
+describe("App", () => {
+  it("offers to choose a folder when none is remembered", () => {
+    mockIPC(() => undefined);
     render(<App />);
-    expect(screen.getByRole("main", { name: "InkSpark" })).toHaveAttribute("data-app-version", "");
-  });
-
-  it("has a level-1 heading named InkSpark", async () => {
-    await renderLoadedApp();
+    expect(screen.getByRole("button", { name: "Choose a folder to write in" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "InkSpark" })).toBeInTheDocument();
   });
 
-  it.each(FORBIDDEN_ROLES)("renders no %s elements", async (role) => {
-    await renderLoadedApp();
-    expect(screen.queryAllByRole(role)).toHaveLength(0);
+  it("reopens the last project and shows its page", async () => {
+    mockProject([]);
+    render(<App />);
+    const editor = await screen.findByRole("textbox", { name: "Page text" });
+    await waitFor(() => {
+      expect(editor).toHaveValue("Chapter one\nIt began.");
+    });
+    expect(screen.getByRole("button", { name: "Chapter one" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
-  it("shows no text besides the hidden InkSpark heading", async () => {
-    const { container } = await renderLoadedApp();
-    expect((container.textContent ?? "").trim()).toBe("InkSpark");
+  it("autosaves about a second after typing stops", async () => {
+    const calls: Call[] = [];
+    mockProject(calls);
+    render(<App />);
+    const editor = await screen.findByRole("textbox", { name: "Page text" });
+    await waitFor(() => {
+      expect(editor).toHaveValue("Chapter one\nIt began.");
+    });
+    vi.useFakeTimers();
+    fireEvent.change(editor, { target: { value: "Chapter one\nIt began slowly." } });
+    expect(screen.getByRole("status")).toHaveAttribute("aria-label", "Saving");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(900);
+    });
+    expect(calls.some((c) => c.cmd === "save_page")).toBe(false);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(200);
+    });
+    const save = calls.find((c) => c.cmd === "save_page");
+    expect(save?.args).toMatchObject({ id: "p1", content: "Chapter one\nIt began slowly." });
+    expect(screen.getByRole("status")).toHaveAttribute("aria-label", "Saved");
   });
 
-  it("shows no goal, streak or encouragement copy", async () => {
-    await renderLoadedApp();
+  it("saves at once on Cmd+S", async () => {
+    const calls: Call[] = [];
+    mockProject(calls);
+    render(<App />);
+    const editor = await screen.findByRole("textbox", { name: "Page text" });
+    await waitFor(() => {
+      expect(editor).toHaveValue("Chapter one\nIt began.");
+    });
+    fireEvent.change(editor, { target: { value: "changed" } });
+    fireEvent.keyDown(window, { key: "s", metaKey: true });
+    await waitFor(() => {
+      expect(calls.some((c) => c.cmd === "save_page")).toBe(true);
+    });
+  });
+
+  it("shows no goal, streak or encouragement copy and has no axe violations", async () => {
+    mockProject([]);
+    const { container } = render(<App />);
+    await screen.findByRole("textbox", { name: "Page text" });
     expect(document.body.textContent ?? "").not.toMatch(ENCOURAGEMENT);
-  });
-
-  it("has no axe violations", async () => {
-    const { container } = await renderLoadedApp();
     await expectNoAxeViolations(container);
   });
 });
