@@ -118,6 +118,8 @@ Feature findings:
   recompiles of the same world and across fresh worlds.
 
 ## Decision
+**User decision (2026-11-02):** the user accepts the app-size cost (about 40 MB) for real print PDF. The size condition is met. The remaining conditions (Libertinus-only fonts, advisories resolved) still apply before Typst enters `src-tauri`.
+
 **Go-with-conditions; the size condition awaits a user decision.** Typst stays the planned PDF
 engine, but it may not enter `src-tauri` until every condition below is met.
 

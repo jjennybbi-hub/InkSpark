@@ -155,6 +155,8 @@ What the numbers say:
   characters) and is 3.5× raw. Its size is recorded for future CJK packs.
 
 ## Decision
+**User decision (2026-11-02):** take the revised design ("Proposed path to Go-with-conditions" below). M7-B builds it and must re-measure every condition against the gates before the encyclopedia ships.
+
 **No-go for the design as measured**, confirmed in CI on both OSes. It fails three gates:
 - the 50k size ratio: 1.75× vs 1.5× (1.749× on every machine);
 - corpus-weighted term p95 at 50k: 87 ms (macos-15) / 101 ms (ubuntu-24.04) vs 30 ms;

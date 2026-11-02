@@ -133,9 +133,9 @@ Each milestone ends with a usable app and a macOS CI artifact. Tracks within a m
 
 - **M0 status: done** (report: `docs/milestones/M0-report.md`). Spike verdicts:
   - vertical editing on WebKit: **No-go** (ADR 001);
-  - Typst PDF: **Go-with-conditions**; the app-size cost needs a user decision (ADR 002);
+  - Typst PDF: **Go-with-conditions**; the user accepted the ~40 MB app-size cost (ADR 002);
   - foliate-js: **Go-with-conditions** (ADR 003);
-  - FTS5 encyclopedia: **No-go as designed**; a revised path needs a decision before M7-B (ADR 004);
+  - FTS5 encyclopedia: **No-go as first designed**; the user chose the revised design (title index, compression), which M7-B re-measures (ADR 004);
   - macOS speech: **pending the user's Mac test** (ADR 005);
   - `.scriv` parser: **Go** (ADR 006);
   - toolchain/CI: **Go** (ADR 007).
