@@ -1,6 +1,6 @@
 /**
  * Writing prompts. These 200 were drafted by an AI (Claude) and hand-edited into a varied set;
- * the app labels them "AI-drafted" wherever they are shown. They are prompts, not quotes:
+ * the project discloses AI authorship as a whole, not per prompt. They are prompts, not quotes:
  * nothing here is attributed to a human author. Keep every entry unique.
  */
 export const PROMPTS: readonly string[] = [

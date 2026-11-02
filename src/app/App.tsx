@@ -284,7 +284,7 @@ export function App(): JSX.Element {
               </button>
               {prompt !== "" && (
                 <p>
-                  <span className="label">App prompt · AI-drafted</span> {prompt}
+                  <span className="label">App prompt</span> {prompt}
                 </p>
               )}
             </div>
