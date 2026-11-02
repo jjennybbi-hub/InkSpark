@@ -14,12 +14,47 @@ path = "src/bin/speech-spike.rs"
 [dependencies]
 thiserror = "2"
 
+# Default features are off so only the classes and methods used in `src/macos/` are compiled.
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
-objc2-foundation = "0.3"
-objc2-speech = "0.3"
-objc2-avf-audio = "0.3"
 block2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = [
+  "std",
+  "NSArray",
+  "NSDate",
+  "NSEnumerator",
+  "NSError",
+  "NSLocale",
+  "NSObjCRuntime",
+  "NSObject",
+  "NSOperation",
+  "NSRunLoop",
+  "NSSet",
+  "NSString",
+  "NSURL",
+] }
+objc2-avf-audio = { version = "0.3", default-features = false, features = [
+  "std",
+  "block2",
+  "AVAudioBuffer",
+  "AVAudioEngine",
+  "AVAudioFormat",
+  "AVAudioIONode",
+  "AVAudioNode",
+  "AVAudioTime",
+  "AVAudioTypes",
+  "AVSpeechSynthesis",
+] }
+objc2-speech = { version = "0.3", default-features = false, features = [
+  "std",
+  "block2",
+  "objc2-avf-audio",
+  "SFSpeechRecognitionRequest",
+  "SFSpeechRecognitionResult",
+  "SFSpeechRecognitionTask",
+  "SFSpeechRecognizer",
+  "SFTranscription",
+] }
 
 # Not `workspace = true`: this is the one crate allowed `unsafe`, confined to `src/macos/`
 # (M0 §6.1). The clippy level matches the workspace.

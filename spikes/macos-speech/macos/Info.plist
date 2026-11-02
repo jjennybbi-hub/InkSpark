@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>app.inkspark.spike.speech</string>
+	<key>CFBundleName</key>
+	<string>speech-spike</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleVersion</key>
+	<string>0.0.0</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>InkSpark's speech spike turns your dictation into text on this Mac. Audio is not sent anywhere.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>InkSpark's speech spike listens to the microphone while you dictate a short test.</string>
+</dict>
+</plist>
