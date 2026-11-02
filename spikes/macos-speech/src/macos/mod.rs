@@ -5,6 +5,7 @@
 //! framework queues. They only write into `Arc<Mutex<_>>` state; the calling thread pumps its
 //! `NSRunLoop` until that state says "done" or a deadline passes (risk R5 in M0.md).
 
+use std::panic::AssertUnwindSafe;
 use std::path::Path;
 use std::ptr::NonNull;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -12,13 +13,15 @@ use std::time::{Duration, Instant};
 
 use block2::RcBlock;
 use objc2::AnyThread;
+use objc2::exception::{self, Exception};
 use objc2::rc::{Retained, autoreleasepool};
 use objc2_avf_audio::{
     AVAudioBuffer, AVAudioEngine, AVAudioPCMBuffer, AVAudioTime, AVSpeechBoundary,
     AVSpeechSynthesisVoice, AVSpeechSynthesizer, AVSpeechUtterance,
 };
 use objc2_foundation::{
-    NSDate, NSDefaultRunLoopMode, NSError, NSLocale, NSOperationQueue, NSRunLoop, NSString, NSURL,
+    NSDate, NSDefaultRunLoopMode, NSError, NSLocale, NSOperationQueue, NSRunLoop, NSString,
+    NSThread, NSURL,
 };
 use objc2_speech::{
     SFSpeechAudioBufferRecognitionRequest, SFSpeechRecognitionRequest, SFSpeechRecognitionResult,
@@ -58,8 +61,12 @@ fn pump_until(deadline: Instant, mut done: impl FnMut() -> bool) -> bool {
             return false;
         }
         let step = (deadline - now).min(PUMP_STEP);
-        let limit = NSDate::dateWithTimeIntervalSinceNow(step.as_secs_f64());
-        if !run_loop.runMode_beforeDate(mode, &limit) {
+        // One pool per step, so objects autoreleased by run-loop work are freed while we wait.
+        let ran = autoreleasepool(|_| {
+            let limit = NSDate::dateWithTimeIntervalSinceNow(step.as_secs_f64());
+            run_loop.runMode_beforeDate(mode, &limit)
+        });
+        if !ran {
             // No input sources on this run loop: it returned at once, so wait instead of spinning.
             std::thread::sleep(step);
         }
@@ -68,6 +75,14 @@ fn pump_until(deadline: Instant, mut done: impl FnMut() -> bool) -> bool {
 
 fn error_text(error: &NSError) -> String {
     error.localizedDescription().to_string()
+}
+
+/// Describes an Objective-C exception caught by `objc2::exception::catch`.
+fn exception_text(what: &str, exception: Option<Retained<Exception>>) -> SpeechError {
+    match exception {
+        Some(e) => SpeechError::Failed(format!("{what} raised an Objective-C exception: {e}")),
+        None => SpeechError::Failed(format!("{what} raised a nil Objective-C exception")),
+    }
 }
 
 pub(crate) fn platform_supported() -> bool {
@@ -185,6 +200,14 @@ pub(crate) fn synthesize_to_pcm(
         if !finished {
             // SAFETY: stopping a synthesizer that may or may not be writing has no preconditions.
             unsafe { synthesizer.stopSpeakingAtBoundary(AVSpeechBoundary::Immediate) };
+            if lock(&state).last_buffer.is_none() {
+                // The callback queue is undocumented (ADR 005, risk R5). Say which thread waited,
+                // so a CI failure shows whether main-queue delivery is the cause.
+                return Err(SpeechError::Failed(format!(
+                    "buffer callback never fired (main thread: {})",
+                    NSThread::isMainThread_class()
+                )));
+            }
             return Err(SpeechError::Timeout);
         }
         let s = lock(&state);
@@ -250,7 +273,7 @@ fn map_status(status: SFSpeechRecognizerAuthorizationStatus) -> AuthStatus {
 
 /// Asks for speech-recognition permission only when it was never answered. Manual paths only
 /// (`transcribe_file`, `dictate_microphone`); `recognizer_status` never calls this.
-fn ensure_authorized() -> Result<(), SpeechError> {
+fn ensure_authorized(deadline: Instant) -> Result<(), SpeechError> {
     match auth_status() {
         AuthStatus::Authorized => return Ok(()),
         AuthStatus::Denied | AuthStatus::Restricted => return Err(SpeechError::NotAuthorized),
@@ -264,7 +287,8 @@ fn ensure_authorized() -> Result<(), SpeechError> {
     // SAFETY: `handler` is a valid block that Speech copies; it only writes its own Arc state.
     // The binary embeds NSSpeechRecognitionUsageDescription (build.rs), so TCC does not abort.
     unsafe { SFSpeechRecognizer::requestAuthorization(&handler) };
-    if !pump_until(Instant::now() + AUTH_PROMPT, || lock(&answer).is_some()) {
+    let limit = deadline.min(Instant::now() + AUTH_PROMPT);
+    if !pump_until(limit, || lock(&answer).is_some()) {
         return Err(SpeechError::Timeout);
     }
     match *lock(&answer) {
@@ -364,6 +388,7 @@ fn result_handler(state: &Arc<Mutex<RecognitionState>>) -> ResultHandler {
 fn ready_recognizer(
     locale: &str,
     require_on_device: bool,
+    deadline: Instant,
 ) -> Result<Retained<SFSpeechRecognizer>, SpeechError> {
     let recognizer = recognizer(locale)?;
     // SAFETY: read-only property getters on a valid recognizer.
@@ -383,7 +408,7 @@ fn ready_recognizer(
             "on-device recognition is not supported for {locale}"
         )));
     }
-    ensure_authorized()?;
+    ensure_authorized(deadline)?;
     Ok(recognizer)
 }
 
@@ -418,7 +443,7 @@ pub(crate) fn transcribe_file(
         let path_str = path
             .to_str()
             .ok_or_else(|| SpeechError::Failed(format!("path is not UTF-8: {}", path.display())))?;
-        let recognizer = ready_recognizer(locale, require_on_device)?;
+        let recognizer = ready_recognizer(locale, require_on_device, deadline)?;
 
         let url = NSURL::fileURLWithPath(&NSString::from_str(path_str));
         // SAFETY: `initWithURL:` takes a freshly allocated object and a valid file URL.
@@ -455,7 +480,7 @@ pub(crate) fn dictate_microphone(locale: &str, seconds: u32) -> Result<Transcrip
             ));
         }
         // Local-first: dictation is always on-device; network recognition is never used.
-        let recognizer = ready_recognizer(locale, true)?;
+        let recognizer = ready_recognizer(locale, true, Instant::now() + AUTH_PROMPT)?;
 
         // SAFETY: `new` has no preconditions.
         let request = unsafe { SFSpeechAudioBufferRecognitionRequest::new() };
@@ -489,20 +514,37 @@ pub(crate) fn dictate_microphone(locale: &str, seconds: u32) -> Result<Transcrip
                 unsafe { feed.appendAudioPCMBuffer(buffer.as_ref()) };
             },
         );
-        // SAFETY: `tap` is a valid block that the node copies; `format` matches the bus format.
-        unsafe {
-            input.installTapOnBus_bufferSize_format_block(
-                0,
-                1024,
-                Some(&format),
-                RcBlock::as_ptr(&tap),
-            )
-        };
+        // AVAudioEngine reports some misconfigurations (for example a format mismatch) by
+        // raising NSException, which must not unwind into Rust: catch it and report it.
+        let installed = exception::catch(AssertUnwindSafe(|| {
+            // SAFETY: `tap` is a valid block that the node copies; `format` is the bus format.
+            unsafe {
+                input.installTapOnBus_bufferSize_format_block(
+                    0,
+                    1024,
+                    Some(&format),
+                    RcBlock::as_ptr(&tap),
+                )
+            }
+        }));
+        if let Err(e) = installed {
+            return Err(exception_text("installing the microphone tap", e));
+        }
 
-        // SAFETY: the engine has an input node with a tap and no other configuration.
-        let started = unsafe {
-            engine.prepare();
-            engine.startAndReturnError()
+        let started = exception::catch(AssertUnwindSafe(|| {
+            // SAFETY: the engine has an input node with a tap and no other configuration.
+            unsafe {
+                engine.prepare();
+                engine.startAndReturnError()
+            }
+        }));
+        let started = match started {
+            Ok(result) => result,
+            Err(e) => {
+                // SAFETY: removing the tap installed above.
+                unsafe { input.removeTapOnBus(0) };
+                return Err(exception_text("starting the audio engine", e));
+            }
         };
         if let Err(error) = started {
             // SAFETY: removing the tap installed above.
