@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ScrivenerProject Template="No" Version="2.0" Identifier="A23E8E4D-0000-4E1F-A455-B7E32A0CF100" Creator="SCRMAC-3.3.6-17410" Device="Fixture-Mac" Author="Fixture Author">
+    <Binder>
+        <BinderItem UUID="A23E8E4D-CA9A-4E1F-A455-B7E32A0CF189" Type="DraftFolder" Created="2024-07-01 08:00:00 +0000" Modified="2024-07-01 08:00:00 +0000">
+            <Title>Draft</Title>
+            <MetaData>
+                <IncludeInCompile>Yes</IncludeInCompile>
+            </MetaData>
+            <Children>
+                <BinderItem UUID="E6F187DC-927A-49A7-95E4-C4BC043E6915" Type="Text" Created="2024-07-01 08:01:00 +0000" Modified="2024-07-01 08:01:00 +0000">
+                    <Title>Has Content</Title>
+                    <MetaData>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                </BinderItem>
+                <BinderItem UUID="F72BBDCC-1375-452A-B535-E78E2F006D91" Type="Text" Created="2024-07-01 08:02:00 +0000" Modified="2024-07-01 08:02:00 +0000">
+                    <Title>No Directory</Title>
+                    <MetaData>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                </BinderItem>
+                <BinderItem UUID="F0A95F2C-67C5-47C3-995D-75EC9DA4CC79" Type="Text" Created="2024-07-01 08:03:00 +0000" Modified="2024-07-01 08:03:00 +0000">
+                    <Title>Synopsis Only</Title>
+                    <MetaData>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                </BinderItem>
+                <BinderItem UUID="9A0C87B8-167C-4ABC-BE70-FCFEAE9FB6BE" Type="Text" Created="2024-07-01 08:04:00 +0000" Modified="2024-07-01 08:04:00 +0000">
+                    <Title>Bad Notes</Title>
+                    <MetaData>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                </BinderItem>
+            </Children>
+        </BinderItem>
+        <BinderItem UUID="29579EAB-E4A2-4FBF-B72D-23EEF715700F" Type="ResearchFolder" Created="2024-07-01 08:00:00 +0000" Modified="2024-07-01 08:00:00 +0000">
+            <Title>Research</Title>
+        </BinderItem>
+        <BinderItem UUID="FCE99142-2F55-4FF2-95CA-6BA48F1F5495" Type="TrashFolder" Created="2024-07-01 08:00:00 +0000" Modified="2024-07-01 08:00:00 +0000">
+            <Title>Trash</Title>
+        </BinderItem>
+    </Binder>
+    <LabelSettings>
+        <Title>Label</Title>
+        <DefaultLabelID>-1</DefaultLabelID>
+        <Labels>
+            <Label ID="-1">No Label</Label>
+        </Labels>
+    </LabelSettings>
+    <StatusSettings>
+        <Title>Status</Title>
+        <DefaultStatusID>-1</DefaultStatusID>
+        <StatusItems>
+            <Status ID="-1">No Status</Status>
+        </StatusItems>
+    </StatusSettings>
+</ScrivenerProject>

@@ -1,0 +1,121 @@
+{
+  "binder": {
+    "format_version": "2.0",
+    "items": [
+      {
+        "uuid": "0109A858-1388-494E-9ED5-4F2D81EF9010",
+        "kind": "DraftFolder",
+        "title": "Draft",
+        "include_in_compile": true,
+        "label_id": null,
+        "status_id": null,
+        "children": [
+          {
+            "uuid": "E04FAEE9-5DCF-462D-87A9-9124A1065234",
+            "kind": "Text",
+            "title": "Café — Morning",
+            "include_in_compile": true,
+            "label_id": 5,
+            "status_id": null,
+            "children": []
+          },
+          {
+            "uuid": "E975550D-149E-43CF-91F9-D79E0E1BA044",
+            "kind": "Text",
+            "title": "שלום עולם",
+            "include_in_compile": true,
+            "label_id": null,
+            "status_id": null,
+            "children": []
+          },
+          {
+            "uuid": "465D0C38-48AA-465D-8EFE-607E46C9094D",
+            "kind": "Text",
+            "title": "Waves 🌊",
+            "include_in_compile": true,
+            "label_id": null,
+            "status_id": 4,
+            "children": []
+          }
+        ]
+      },
+      {
+        "uuid": "115CE715-8AD4-42A1-A9AB-6AC2EE552301",
+        "kind": "ResearchFolder",
+        "title": "Research",
+        "include_in_compile": false,
+        "label_id": null,
+        "status_id": null,
+        "children": []
+      },
+      {
+        "uuid": "FA6FEF88-C7A5-42E0-9EA7-8D2B378126FF",
+        "kind": "TrashFolder",
+        "title": "Trash",
+        "include_in_compile": false,
+        "label_id": null,
+        "status_id": null,
+        "children": []
+      }
+    ],
+    "labels": {
+      "-1": "No Label",
+      "5": "Ελληνικά"
+    },
+    "statuses": {
+      "-1": "No Status",
+      "4": "Terminé"
+    }
+  },
+  "documents": {
+    "0109A858-1388-494E-9ED5-4F2D81EF9010": { "content": null, "synopsis": null, "notes": null },
+    "E04FAEE9-5DCF-462D-87A9-9124A1065234": {
+      "content": {
+        "paragraphs": [
+          [
+            { "text": "Café au lait, “quoted”, €5.", "bold": false, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "Naïve résumé, crème.", "bold": false, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "“Smart” quotes.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      },
+      "synopsis": null,
+      "notes": null
+    },
+    "E975550D-149E-43CF-91F9-D79E0E1BA044": {
+      "content": {
+        "paragraphs": [
+          [
+            { "text": "Hebrew: שלום עולם.", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      },
+      "synopsis": "שלום — a greeting 🌊",
+      "notes": null
+    },
+    "465D0C38-48AA-465D-8EFE-607E46C9094D": {
+      "content": {
+        "paragraphs": [
+          [
+            { "text": "Emoji: 😀 and waves 🌊.", "bold": false, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "Unsigned: 😀.", "bold": false, "italic": false, "underline": false }
+          ],
+          [
+            { "text": "Lone: �!", "bold": false, "italic": false, "underline": false }
+          ]
+        ]
+      },
+      "synopsis": null,
+      "notes": null
+    },
+    "115CE715-8AD4-42A1-A9AB-6AC2EE552301": { "content": null, "synopsis": null, "notes": null },
+    "FA6FEF88-C7A5-42E0-9EA7-8D2B378126FF": { "content": null, "synopsis": null, "notes": null }
+  },
+  "warnings": []
+}

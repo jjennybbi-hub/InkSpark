@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ScrivenerProject Template="No" Version="2.0" Identifier="CE0BD9A1-34AA-4757-9E8C-76223EBC59A2" Creator="SCRMAC-3.3.6-17410" Device="Fixture-Mac" Author="Fixture Author">
+    <Binder>
+        <BinderItem UUID="5D983234-EEBE-4A7D-A228-3FB630F83778" Type="DraftFolder" Created="2024-04-10 08:00:00 +0000" Modified="2024-04-12 18:30:00 +0000">
+            <Title>Manuscript</Title>
+            <MetaData>
+                <IncludeInCompile>Yes</IncludeInCompile>
+            </MetaData>
+            <Children>
+                <BinderItem UUID="F3E7C284-A688-4DA3-B0A1-FE6F0C69E989" Type="Folder" Created="2024-04-10 08:05:00 +0000" Modified="2024-04-12 18:00:00 +0000">
+                    <Title>  Part One  </Title>
+                    <MetaData>
+                        <LabelID>1</LabelID>
+                        <StatusID>0</StatusID>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                    <Children>
+                        <BinderItem UUID="38B62E4E-ABD9-488B-A32D-3DACA1B3192E" Type="Folder" Created="2024-04-10 08:06:00 +0000" Modified="2024-04-12 17:55:00 +0000">
+                            <Title>Chapter 1</Title>
+                            <MetaData>
+                                <IncludeInCompile>Yes</IncludeInCompile>
+                            </MetaData>
+                            <Children>
+                                <BinderItem UUID="9F9B6953-4E56-4C0A-839E-4DC813CA2F7B" Type="Text" Created="2024-04-10 08:07:00 +0000" Modified="2024-04-12 17:50:00 +0000">
+                                    <Title>The Harbour</Title>
+                                    <MetaData>
+                                        <LabelID>2</LabelID>
+                                        <StatusID>1</StatusID>
+                                        <IncludeInCompile>Yes</IncludeInCompile>
+                                    </MetaData>
+                                    <TextSettings>
+                                        <TextSelection>0,0</TextSelection>
+                                    </TextSettings>
+                                </BinderItem>
+                                <BinderItem UUID="9671949F-000B-48FE-A20C-DE4CD7D2798E" Type="Text" Created="2024-04-10 08:08:00 +0000" Modified="2024-04-11 21:10:00 +0000">
+                                    <Title>Night Market</Title>
+                                    <MetaData>
+                                        <LabelID>7</LabelID>
+                                        <StatusID>-1</StatusID>
+                                        <IncludeInCompile>No</IncludeInCompile>
+                                    </MetaData>
+                                </BinderItem>
+                            </Children>
+                        </BinderItem>
+                    </Children>
+                </BinderItem>
+                <BinderItem UUID="F8276B34-DB97-4EA8-BFEB-6397841A883D" Type="Folder" Created="2024-04-10 08:10:00 +0000" Modified="2024-04-12 18:30:00 +0000">
+                    <Title>Part Two</Title>
+                    <MetaData>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                    <Children>
+                        <BinderItem UUID="AF15948A-594F-4BF1-B146-6E341FD3E90C" Type="Text" Created="2024-04-10 08:11:00 +0000" Modified="2024-04-12 18:30:00 +0000">
+                            <Title>Interlude</Title>
+                            <MetaData>
+                                <StatusID>3</StatusID>
+                                <IncludeInCompile>Yes</IncludeInCompile>
+                            </MetaData>
+                        </BinderItem>
+                    </Children>
+                </BinderItem>
+            </Children>
+        </BinderItem>
+        <BinderItem UUID="A71C6BA8-0D8F-4D68-9E32-4A54DAF7405F" Type="ResearchFolder" Created="2024-04-10 08:00:00 +0000" Modified="2024-04-11 12:00:00 +0000">
+            <Title>Research</Title>
+            <Children>
+                <BinderItem UUID="76AF1CA5-696B-4024-B42B-345CF9F51AFF" Type="Text" Created="2024-04-10 09:00:00 +0000" Modified="2024-04-11 12:00:00 +0000">
+                    <Title>Notes &amp; Ideas</Title>
+                    <MetaData>
+                        <LabelID>4</LabelID>
+                        <IncludeInCompile>No</IncludeInCompile>
+                    </MetaData>
+                </BinderItem>
+                <BinderItem UUID="E8DD3517-F6CA-4F69-B21E-CF8FB3628F40" Type="PDF" Created="2024-04-10 09:30:00 +0000" Modified="2024-04-10 09:30:00 +0000">
+                    <Title>Map of the Coast</Title>
+                </BinderItem>
+            </Children>
+        </BinderItem>
+        <BinderItem UUID="919A8EE6-9D03-4E9D-9284-72E7357DF7F1" Type="TrashFolder" Created="2024-04-10 08:00:00 +0000" Modified="2024-04-12 09:00:00 +0000">
+            <Title>Trash</Title>
+            <Children>
+                <BinderItem UUID="625ED417-E658-4521-926D-888CDA16B133" Type="Text" Created="2024-04-10 10:00:00 +0000" Modified="2024-04-12 09:00:00 +0000">
+                    <Title>Deleted Scene</Title>
+                    <MetaData>
+                        <LabelID>2</LabelID>
+                        <StatusID>0</StatusID>
+                        <IncludeInCompile>No</IncludeInCompile>
+                    </MetaData>
+                </BinderItem>
+            </Children>
+        </BinderItem>
+    </Binder>
+    <Collections>
+        <Collection Type="Binder" Color="0.5 0.5 0.5">
+            <Title>Binder</Title>
+        </Collection>
+        <Collection ID="D4A06667-E014-45AA-87EF-71A5AAF11B3C" Type="Search" Color="0.4 0.6 0.8">
+            <Title>Unfinished Scenes</Title>
+            <SearchSettings>
+                <SearchString>To Do</SearchString>
+            </SearchSettings>
+        </Collection>
+    </Collections>
+    <LabelSettings>
+        <Title>Label</Title>
+        <DefaultLabelID>-1</DefaultLabelID>
+        <Labels>
+            <Label ID="-1">No Label</Label>
+            <Label ID="0" Color="0.698039 0.843137 0.988235">Concept</Label>
+            <Label ID="1" Color="0.988235 0.760784 0.670588">Chapter</Label>
+            <Label ID="2" Color="0.756863 0.929412 0.709804">Scene</Label>
+            <Label ID="3" Color="0.980392 0.913725 0.596078">Idea</Label>
+            <Label ID="4" Color="0.858824 0.768627 0.952941">Notes</Label>
+            <Label ID="7" Color="0.6 0.6 0.6">Flashback</Label>
+        </Labels>
+    </LabelSettings>
+    <StatusSettings>
+        <Title>Status</Title>
+        <DefaultStatusID>-1</DefaultStatusID>
+        <StatusItems>
+            <Status ID="-1">No Status</Status>
+            <Status ID="0">To Do</Status>
+            <Status ID="1">First Draft</Status>
+            <Status ID="2">Revised Draft</Status>
+            <Status ID="3">Final Draft</Status>
+            <Status ID="4">Done</Status>
+        </StatusItems>
+    </StatusSettings>
+    <ProjectProperties>
+        <ProjectTitle>Nested Fixture</ProjectTitle>
+        <FullName>Fixture Author</FullName>
+    </ProjectProperties>
+</ScrivenerProject>
