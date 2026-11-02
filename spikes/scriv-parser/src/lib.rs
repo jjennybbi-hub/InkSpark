@@ -7,7 +7,7 @@ mod scrivx;
 
 use std::collections::BTreeMap;
 use std::fs;
-use std::io;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -114,7 +114,7 @@ pub fn read_project(scriv_dir: &Path) -> Result<ScrivProject, ScrivError> {
     let mut documents = BTreeMap::new();
     let mut warnings = Vec::new();
     for item in preorder(&binder.items) {
-        let dir = item_dir(&data_dir, &item.uuid);
+        let dir = item_dir(&data_dir, &item.uuid, &mut warnings);
         let mut read = |file: &str| match &dir {
             Some(dir) => read_optional(&dir.join(file), &item.uuid, file, &mut warnings),
             None => None,
@@ -178,24 +178,63 @@ fn find_scrivx(dir: &Path) -> Result<PathBuf, ScrivError> {
         .ok_or_else(|| not_a_package("no .scrivx file"))
 }
 
-/// The data directory of one item, or `None` when the UUID could escape `Files/Data`.
-fn item_dir(data_dir: &Path, uuid: &str) -> Option<PathBuf> {
-    let unsafe_name =
-        uuid.is_empty() || uuid == "." || uuid == ".." || uuid.contains(['/', '\\', ':', '\0']);
-    (!unsafe_name).then(|| data_dir.join(uuid))
+/// Largest per-item file that is read; anything bigger is skipped with a warning.
+const MAX_ITEM_FILE: u64 = 64 * 1024 * 1024;
+
+/// The data directory of one item, or `None` when the UUID is not plain `[0-9A-Za-z-]+` (so a
+/// crafted `.scrivx` cannot point outside `Files/Data`) or the directory is a symlink.
+fn item_dir(data_dir: &Path, uuid: &str, warnings: &mut Vec<String>) -> Option<PathBuf> {
+    let plain = !uuid.is_empty() && uuid.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-');
+    if !plain {
+        return None;
+    }
+    let dir = data_dir.join(uuid);
+    match fs::symlink_metadata(&dir) {
+        Ok(meta) if meta.file_type().is_symlink() => {
+            warnings.push(format!("ignored symlinked data directory for {uuid}"));
+            None
+        }
+        _ => Some(dir),
+    }
 }
 
-/// Reads one per-item file read-only. Absent gives `None`; other errors give `None` plus a
-/// warning, so a single bad file never fails the import.
+/// Reads one per-item file read-only. Absent gives `None`. A symlink, a non-regular file, a
+/// file over `MAX_ITEM_FILE` or a read error gives `None` plus a warning, so a single bad file
+/// never fails the import.
 fn read_optional(
     path: &Path,
     uuid: &str,
     file: &str,
     warnings: &mut Vec<String>,
 ) -> Option<Vec<u8>> {
-    match fs::read(path) {
+    let meta = match fs::symlink_metadata(path) {
+        Ok(meta) => meta,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return None,
+        Err(e) => {
+            warnings.push(format!("unreadable {uuid}/{file}: {e}"));
+            return None;
+        }
+    };
+    if !meta.file_type().is_file() {
+        warnings.push(format!("ignored non-regular file {uuid}/{file}"));
+        return None;
+    }
+    if meta.len() > MAX_ITEM_FILE {
+        warnings.push(format!("ignored oversized file {uuid}/{file}"));
+        return None;
+    }
+    let read = fs::File::open(path).and_then(|f| {
+        let mut bytes = Vec::new();
+        // Bounded even if the file grows after the size check.
+        f.take(MAX_ITEM_FILE + 1).read_to_end(&mut bytes)?;
+        Ok(bytes)
+    });
+    match read {
+        Ok(bytes) if bytes.len() as u64 > MAX_ITEM_FILE => {
+            warnings.push(format!("ignored oversized file {uuid}/{file}"));
+            None
+        }
         Ok(bytes) => Some(bytes),
-        Err(e) if e.kind() == io::ErrorKind::NotFound => None,
         Err(e) => {
             warnings.push(format!("unreadable {uuid}/{file}: {e}"));
             None

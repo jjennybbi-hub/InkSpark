@@ -378,12 +378,18 @@ pub(crate) fn rtf_to_doc(rtf: &[u8]) -> Result<RtfDoc, ScrivError> {
                         p.not_first_token();
                         let hi = bytes.get(pos).copied().and_then(hex_value);
                         let lo = bytes.get(pos + 1).copied().and_then(hex_value);
-                        // A truncated or invalid escape is ignored.
-                        if let (Some(hi), Some(lo)) = (hi, lo) {
-                            pos += 2;
-                            if p.skip_depth == 0 {
-                                p.text_byte((hi << 4) | lo);
+                        match (hi, lo) {
+                            (Some(hi), Some(lo)) => {
+                                pos += 2;
+                                if p.skip_depth == 0 {
+                                    p.text_byte((hi << 4) | lo);
+                                }
                             }
+                            // Truncated at end of input (`\'e`): the dangling digit belongs to
+                            // the escape, so it is consumed and ignored too.
+                            (Some(_), None) if pos + 1 >= bytes.len() => pos += 1,
+                            // An invalid escape is ignored; what follows is read normally.
+                            _ => {}
                         }
                     }
                     b'*' => p.star_symbol(),
@@ -411,4 +417,20 @@ pub(crate) fn rtf_to_doc(rtf: &[u8]) -> Result<RtfDoc, ScrivError> {
         }
     }
     Ok(p.finish())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::rtf_to_doc;
+
+    fn text(rtf: &[u8]) -> String {
+        rtf_to_doc(rtf).map(|d| d.plain_text()).unwrap_or_default()
+    }
+
+    #[test]
+    fn truncated_hex_escape_drops_its_dangling_digit() {
+        assert_eq!(text(b"{\\rtf1\\ansi a\\'e"), "a");
+        assert_eq!(text(b"{\\rtf1\\ansi a\\'"), "a");
+        assert_eq!(text(b"{\\rtf1\\ansi a\\'e9"), "a\u{e9}");
+    }
 }
