@@ -1,0 +1,25 @@
+# Build output and dependencies
+dist/
+target/
+node_modules/
+coverage/
+src-tauri/gen/
+
+# Generated or vendored: never reformat
+src/contracts/bindings.ts
+vendor/
+package-lock.json
+Cargo.lock
+
+# Prose: Prettier would reflow hand-aligned tables in the plan, specs and ADRs.
+*.md
+
+# Track A test committed by the Test-author with one non-Prettier line break (a multi-line
+# `Linter.Config | undefined` union, strictness.test.ts:167). Implementers may not edit tests;
+# remove this entry once the Orchestrator runs `prettier --write` on it.
+tests/config/strictness.test.ts
+
+# Spike and test output
+**/results/
+**/playwright-report/
+**/test-results/
