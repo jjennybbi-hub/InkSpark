@@ -192,13 +192,6 @@ textarea:focus-visible {
   opacity: 0.8;
 }
 
-.label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.7;
-}
-
 .shelf {
   display: flex;
   flex-direction: column;

@@ -282,11 +282,7 @@ export function App(): JSX.Element {
               <button type="button" onClick={() => void dealPrompt()}>
                 Prompt
               </button>
-              {prompt !== "" && (
-                <p>
-                  <span className="label">App prompt</span> {prompt}
-                </p>
-              )}
+              {prompt !== "" && <p>{prompt}</p>}
             </div>
             <span
               className="save-dot"
