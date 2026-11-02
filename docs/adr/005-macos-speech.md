@@ -34,13 +34,18 @@ module and every block/run-loop callback bounded by a timeout.
     setShouldReportPartialResults}`, `SFSpeechRecognitionResult::{bestTranscription, isFinal}`,
     `SFTranscription::formattedString`, `SFSpeechRecognitionTask::{cancel, finish}`.
   - Foundation: `NSRunLoop::{currentRunLoop, runMode_beforeDate}` with `NSDefaultRunLoopMode`,
-    `NSDate`, `NSLocale`, `NSURL::fileURLWithPath`, `NSOperationQueue::new`, `NSError`.
+    `NSDate`, `NSLocale`, `NSURL::fileURLWithPath`, `NSOperationQueue::new`, `NSError`,
+    `NSThread::isMainThread_class`.
   - block2 `RcBlock` for the buffer, tap, result and authorization callbacks.
+  - objc2 `exception::catch` (feature `exception`) around `installTapOnBus…` and
+    `prepare`/`startAndReturnError`, so an NSException from AVAudioEngine becomes
+    `SpeechError::Failed` instead of aborting the process.
 - Concurrency model (risk R5): callbacks only write into `Arc<Mutex<_>>` state. The calling
   thread pumps its `NSRunLoop` in 20 ms steps until the state says done or the deadline passes
   (`SpeechError::Timeout`). Recognizers deliver results on a private `NSOperationQueue`, not
   the main queue, so they also work off the main thread. Synthesis counts as finished on the
-  zero-length final buffer, or after 2 s without a new buffer.
+  zero-length final buffer, or after 2 s without a new buffer. Each pump step has its own
+  autorelease pool. The authorization wait is bounded by the caller's deadline (at most 120 s).
 - Permissions (risk R6): `build.rs` embeds `macos/Info.plist` (`CFBundleIdentifier`,
   `NSSpeechRecognitionUsageDescription`, `NSMicrophoneUsageDescription`) with
   `-Wl,-sectcreate,__TEXT,__info_plist,…` into every macOS link target (the bin and the test
@@ -52,8 +57,8 @@ module and every block/run-loop callback bounded by a timeout.
   and `cargo clippy -p inkspark-spike-speech --target aarch64-apple-darwin --all-targets --
   -D warnings` (type-checks the macOS code; it cannot link or run without the macOS SDK).
 - CI: `spike-speech` job on macos-15 runs `cargo test -p inkspark-spike-speech --
-  --include-ignored ci_`, then builds the release `speech-spike` and uploads it as
-  `speech-spike-macos`.
+  --include-ignored ci_`, then builds release `speech-spike` for aarch64 and x86_64, joins them
+  with `lipo` into a universal binary, and uploads it as `speech-spike-macos`.
 - Manual: the user runs the artifact on their Mac (below).
 
 ## Criteria and results
@@ -73,17 +78,42 @@ module and every block/run-loop callback bounded by a timeout.
 A CI runner may have no voices installed or no on-device model. If a `ci_` test fails only for
 that reason, the result is reported here and the decision relies on the manual run (R5).
 
+**Risk: the synthesizer's buffer-callback queue is undocumented.** Apple does not say on which
+queue `writeUtterance:toBufferCallback:` calls back. The `ci_` tests call it from a spawned
+thread while the test harness blocks the main thread. If Apple delivers on the main queue, the
+callback can never run there. In that case `synthesize_to_pcm` returns
+`Failed("buffer callback never fired (main thread: false)")` instead of a plain timeout. That
+failure says nothing about the API itself; the manual CLI run (`speech-spike synth "…"` and
+`speak`, which run on the main thread and pump its run loop) then decides read-aloud.
+
+**`Transcript.on_device`** reports what was requested, not something Speech confirms: Speech
+does not report which engine produced a result. With `requiresOnDeviceRecognition` set
+(dictation and the CLI, always), Speech fails rather than use the network, so `true` is
+reliable. With `require_on_device = false`, `on_device` is `false`, meaning "may have used the
+network".
+
 ### How you test it on your Mac
+The tool is one small program that runs in Terminal. It works on both Apple Silicon and
+Intel Macs (it is a universal binary).
+
 1. Open the latest CI run of this branch on GitHub, scroll to **Artifacts**, and download
-   `speech-spike-macos`. Unzip it; you get a file called `speech-spike`.
-2. Open Terminal and go to the folder: `cd ~/Downloads/speech-spike-macos` (or wherever it
-   unzipped).
-3. The download is unsigned, so macOS blocks it at first. Run
-   `chmod +x speech-spike` and then `xattr -d com.apple.quarantine speech-spike` (if the
-   second one says "No such xattr", that is fine).
-   The binary is built on the macos-15 runner, which is Apple Silicon. On an Intel Mac it will
-   not start ("bad CPU type"); tell the Orchestrator so an Intel build can be added.
-4. Run these four commands and note what happens:
+   `speech-spike-macos`. You must be signed in to GitHub to download artifacts. Unzip it;
+   you get a file called `speech-spike`.
+2. Open Terminal (in Applications → Utilities) and go to that folder, for example
+   `cd ~/Downloads/speech-spike-macos`.
+3. Make the file runnable. The zip download loses the "this is a program" mark, so type
+   `chmod +x speech-spike` and press Return. Nothing is printed when it works.
+4. Let macOS run it. The program is not signed by a registered Apple developer, so macOS
+   Gatekeeper blocks it the first time with a message like "cannot be opened because the
+   developer cannot be verified". The usual right-click → Open trick does not work for
+   Terminal programs. Use one of these two ways instead:
+   - In Terminal, type `xattr -d com.apple.quarantine ./speech-spike`. This removes the
+     "downloaded from the internet" tag that triggers the block. If it says "No such xattr",
+     the tag was not there, which is fine.
+   - Or run `./speech-spike voices` once, let macOS block it, then open System Settings →
+     Privacy & Security, scroll down to the message about `speech-spike`, click
+     **Allow Anyway**, and run the command again (click **Open** if asked).
+5. Run these four commands and note what happens:
 
 | Command | What you should see |
 |---|---|
@@ -92,7 +122,10 @@ that reason, the result is reported here and the decision relies on the manual r
 | `./speech-spike status en-US` | Four lines. The important one is `supports_on_device: true`. `authorization` may say `NotDetermined` the first time; that is fine. |
 | `./speech-spike dictate en-US 15` | The first time, macOS asks to allow speech recognition and microphone access for Terminal: allow both. It prints `Listening for 15 s.`; read three ordinary sentences aloud at a normal pace. After about 15 s it prints `on_device: true` and `text: …` with what it heard. |
 
-5. Send back the output of all four commands, plus the three sentences you read. The word
+   If the first `dictate` run prints empty text because you were answering the permission
+   prompts, run it again.
+
+6. Send back the output of all four commands, plus the three sentences you read. The word
    error rate is counted from those (target: at most 15 % of words wrong, missing or extra).
 
 If `status` shows `supports_on_device: false`, open System Settings → Keyboard → Dictation,
@@ -123,11 +156,19 @@ Speech Recognition and → Microphone.
   crate or a newer macOS minimum, decided later).
 - The TCC prompt names Terminal (the responsible process) for the CLI. In the app bundle it
   will name InkSpark, using the app's own Info.plist strings.
+- The production API drops the `require_on_device` parameter: recognition is always on-device,
+  and a locale without on-device support is reported as unavailable. The spike keeps the
+  parameter only to match the M0 §6.1 signature.
+- `objc2`'s `exception` feature compiles a small Objective-C helper (objc2-exception-helper).
+  For the local cross-check from Linux this needs
+  `CC_aarch64_apple_darwin=clang AR_aarch64_apple_darwin=llvm-ar-18`; macOS CI needs nothing
+  extra.
 
 ## Dependencies added
 | Name | Version | License | Reason |
 |---|---|---|---|
-| objc2 | 0.6.5 | MIT | Objective-C runtime bindings (macOS only) |
+| objc2 | 0.6.5 | MIT | Objective-C runtime bindings (macOS only); feature `exception` |
+| objc2-exception-helper | 0.1.1 | Zlib OR Apache-2.0 OR MIT | pulled in by `exception`: catches NSException (macOS only) |
 | block2 | 0.6.2 | MIT | Objective-C blocks for callbacks (macOS only) |
 | objc2-foundation | 0.3.2 | MIT | NSRunLoop, NSString, NSLocale, NSURL, NSError (macOS only) |
 | objc2-avf-audio | 0.3.2 | Zlib OR Apache-2.0 OR MIT | AVSpeechSynthesizer, AVAudioEngine (macOS only) |
@@ -146,8 +187,6 @@ objc2-core-video and objc2-audio-toolbox from the build.
 - Read-aloud milestone: voice picker from `list_voices`, rate/pitch, highlighting via
   `willSpeakRangeOfSpeechString` (needs an objc2 `define_class!` delegate).
 - If the CI runner has no voices, add a CI step that lists voices so the cause is visible.
-- M0 (Orchestrator, `spikes.yml`): if the user's Mac is Intel, build `speech-spike` for
-  `x86_64-apple-darwin` too (or `lipo` a universal binary), as for the app (risk R9).
 
 ## Links
 - CI run: pending CI (spike-speech job on macos-15).

@@ -24,16 +24,21 @@ better than `rtf-parser 0.4` (MIT) for this job.
   - `src/rtf.rs`: byte-level tokenizer. Formatting is saved on a `Vec` stack per `{`; ignored
     destinations (`{\*\…}` except `\Scrv_fn`, `\fonttbl`, `\colortbl`, `\stylesheet`, `\info`,
     `\pict`) are skipped with a depth counter, so 50,000 nested groups cost no stack.
-  - `src/lib.rs`: `read_project` opens files only with `std::fs::read` / `fs::metadata` /
-    `fs::read_dir` (read-only). Missing or unreadable per-item files become warnings.
+  - `src/lib.rs`: `read_project` opens files only for reading (`fs::read`, `File::open`,
+    `fs::metadata` / `symlink_metadata`, `fs::read_dir`). Missing or unreadable per-item files
+    become warnings.
 - Fixtures: the Test-author's six hand-written packages in `spikes/scriv-parser/fixtures/`.
   **They are synthetic.** Real Scrivener samples could not be downloaded: gutenberg.org and
   GitHub downloads are blocked in the cloud session (risk R12), so no real project was tested.
 - Tests: `golden.rs`, `malformed.rs`, `rtf.rs` (48 unit cases), `source_untouched.rs`,
-  `props.rs` (proptest), `perf.rs` (1,000 generated documents).
-- Local run: Linux container, 4 vCPU Intel Xeon, Rust 1.97.0, commit `0014176` on the Track D
-  worktree branch. CI numbers (macos-15 `check` job, which runs `cargo test --workspace`) are
-  added by the Orchestrator.
+  `props.rs` (proptest), `perf.rs` (1,000 generated documents), plus one in-crate unit test
+  (`src/rtf.rs`) for a truncated `\'e` at end of input.
+- Local run: Linux container, 4 vCPU Intel Xeon, Rust 1.97.0, on the Track D worktree branch
+  after the review fixes. Where the CI numbers come from (added by the Orchestrator):
+  - functional tests: ci.yml `check` job (`cargo test --workspace`, 3 OSes);
+  - 2,000-case property tests: ci.yml `check` job, step "scriv-parser property tests";
+  - 1,000-document timing: spikes.yml `spike-scriv` job
+    (`cargo test --release -p inkspark-spike-scriv -- --ignored --nocapture perf`).
 - Commands:
   - `cargo test -p inkspark-spike-scriv`
   - `PROPTEST_CASES=2000 cargo test --release -p inkspark-spike-scriv --test props`
@@ -42,13 +47,13 @@ better than `rtf-parser 0.4` (MIT) for this job.
 ## Criteria and results
 | Metric | Threshold | ubuntu | macos | Pass |
 |---|---|---|---|---|
-| Goldens exact (5 fixtures) | all equal | 5/5 (local) | pending CI | local yes |
-| `malformed` → `Err(Xml)`; non-package → `Err(NotAScrivPackage)` | yes | yes (local) | pending CI | local yes |
-| RTF unit cases (`rtf.rs`) | all pass | 48/48 (local) | pending CI | local yes |
-| Panics in proptest, 2,000 cases × 8 properties (+256 fs cases) | 0 | 0, 1.06 s (local, release) | pending CI | local yes |
-| 50,000 nested RTF groups (closed, unclosed, inside a destination) | no stack overflow | ok (local) | pending CI | local yes |
-| Sources untouched (bytes, len, permissions, mtimes) | equal | equal (local) | pending CI | local yes |
-| `read_project`, 1,000 docs, release | < 2,000 ms | 44–53 ms, median 47 ms (local) | pending CI | local yes |
+| Goldens exact (5 fixtures) | all equal | 5/5 (local) | pending CI (`check`) | local yes |
+| `malformed` → `Err(Xml)`; non-package → `Err(NotAScrivPackage)` | yes | yes (local) | pending CI (`check`) | local yes |
+| RTF unit cases (`rtf.rs` + in-crate test) | all pass | 48/48 + 1/1 (local) | pending CI (`check`) | local yes |
+| Panics in proptest, 2,000 cases × 8 properties (+256 fs cases) | 0 | 0, 0.74 s (local, release) | pending CI (`check`, props step) | local yes |
+| 50,000 nested RTF groups (closed, unclosed, inside a destination) | no stack overflow | ok (local) | pending CI (`check`) | local yes |
+| Sources untouched (bytes, len, permissions, mtimes) | equal | equal (local) | pending CI (`check`) | local yes |
+| `read_project`, 1,000 docs, release | < 2,000 ms | 50–52 ms, median 51 ms (local) | pending CI (`spike-scriv`) | local yes |
 
 ### rtf-parser 0.4 evaluation (not adopted)
 `rtf-parser 0.4.3` (MIT) was built in a throwaway crate outside the repo and run on the same
@@ -71,7 +76,7 @@ fixtures and edge cases:
 It is worse on every Scrivener-relevant case, so the in-house tokenizer stays.
 
 ## Decision
-**Go-with-conditions** (pending the macos-15 `check` run):
+**Go-with-conditions** (pending the macos-15 `check` and `spike-scriv` runs):
 1. The parser is used as the M6 importer's base, behind the importer's feature flag.
 2. Before the importer is accepted, it is run against real Scrivener 3 projects (see
    follow-ups); the synthetic fixtures alone are not enough to claim compatibility.
@@ -89,10 +94,21 @@ It is worse on every Scrivener-relevant case, so the in-house tokenizer stays.
     and Mac Roman are decoded; anything else falls back to cp1252.
 - Binder nesting is capped at 512 levels (`ScrivError::Xml`), because the derived
   `Drop`/`Clone`/`Serialize` of `BinderItem` recurse. Real projects are far below this.
-- A `UUID` attribute that is empty, `.`/`..`, or contains `/`, `\`, `:` or NUL is never joined
-  into a path, so a crafted `.scrivx` cannot make the reader open files outside `Files/Data`.
-- A per-item file that exists but cannot be read gives the warning
-  `unreadable <UUID>/<file>: <error>`; this string is not covered by the fixture README.
+- Hardening against crafted packages:
+  - a `UUID` is joined into a path only if it is plain `[0-9A-Za-z-]+`, so a crafted `.scrivx`
+    cannot make the reader open files outside `Files/Data`;
+  - a symlinked item directory is ignored (warning `ignored symlinked data directory for
+    <UUID>`);
+  - an item file is read only if `symlink_metadata` says it is a regular file (otherwise
+    `ignored non-regular file <UUID>/<file>`) and it is at most 64 MiB (otherwise
+    `ignored oversized file <UUID>/<file>`); the read itself is also bounded;
+  - an item file that exists but cannot be read gives `unreadable <UUID>/<file>: <error>`.
+
+  These warning strings are not in the fixture README and no fixture covers them (a note for
+  the Test-author). For a `Text` item, any of them also leaves `missing content for <UUID>`.
+- A `\'h` escape cut off at end of input consumes its dangling digit (`a\'e` gives `a`), as
+  the README requires. This is covered by an in-crate unit test; a matching case could be
+  added to `tests/rtf.rs` by the Test-author.
 - No contract changes are needed in M0. M6 needs an `ImportReport` contract (warnings,
   counts) via the Orchestrator.
 
@@ -117,5 +133,5 @@ It is worse on every Scrivener-relevant case, so the in-house tokenizer stays.
   older (Scrivener 2) packages with a clear "unsupported" error instead of an empty binder.
 
 ## Links
-- CI run: pending (Orchestrator adds the macos-15 `check` link).
-- Artifacts: none (runs inside `check` via `cargo test --workspace`).
+- CI runs: pending (Orchestrator adds the ci.yml `check` and spikes.yml `spike-scriv` links).
+- Artifacts: none (the numbers are read from the job logs).
