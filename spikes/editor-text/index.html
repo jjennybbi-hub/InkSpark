@@ -5,6 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="data:," />
     <title>InkSpark editor text spike</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          system-ui,
+          -apple-system,
+          "Noto Sans",
+          "Noto Sans CJK JP",
+          "Hiragino Sans",
+          "Noto Sans Hebrew",
+          "Noto Sans Arabic",
+          sans-serif;
+        font-size: 16px;
+        line-height: 1.8;
+        color: #1a1a1a;
+        background: #fafaf7;
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+      }
+      #app {
+        display: grid;
+        gap: 16px;
+        max-width: 960px;
+      }
+      /* Fixed-size hosts that scroll their own content, so long docs never grow the page. */
+      [data-testid^="editor-"] {
+        box-sizing: border-box;
+        width: 100%;
+        overflow: auto;
+        border: 1px solid #b8b8b0;
+        background: #fff;
+      }
+      [data-writing-mode="ltr"],
+      [data-writing-mode="rtl"] {
+        height: 160px;
+      }
+      /*
+       * Vertical hosts: 320px-tall lines (about 18 characters at 16px after padding), so a
+       * 10-character test line stays on one line and a 200-character paragraph wraps over about
+       * 12 lines that still fit in the 960px-wide host.
+       */
+      [data-writing-mode="vertical-rl"],
+      [data-writing-mode="vertical-lr"] {
+        height: 320px;
+      }
+      .ProseMirror {
+        box-sizing: border-box;
+        min-block-size: 100%;
+        padding: 12px;
+        outline: none;
+      }
+      .ProseMirror p {
+        margin-block: 0 0.6em;
+      }
+      .ProseMirror:focus-visible {
+        outline: 2px solid #1f5fbf;
+        outline-offset: -2px;
+      }
+    </style>
   </head>
   <body>
     <main id="app" aria-label="Editor text spike"></main>
