@@ -183,3 +183,7 @@ MIT/GPL-3.0, MIT elected), `pako` (MIT AND Zlib), CC-BY-3.0 (`spdx-exceptions`) 
 ## Links
 - CI run: _to be added by the Orchestrator_
 - Artifact: `InkSpark-macos-universal-unsigned` (`InkSpark-macos-universal.app.zip`, `.dmg`)
+
+## Integration fixes (Orchestrator, first CI run)
+- **`export-bindings` is a Cargo example, not a `[[bin]]`.** The Tauri bundler copies every `[[bin]]` into `InkSpark.app`, and the universal build only compiles the main binary, so bundling failed. Run it with `cargo run -p inkspark --example export-bindings` (same npm scripts).
+- **Windows app manifest for every target.** `tauri-build` embeds the comctl32 v6 manifest only into binaries. Test executables that link Tauri then exit with `STATUS_ENTRYPOINT_NOT_FOUND`. `build.rs` now uses `WindowsAttributes::new_without_app_manifest()` and embeds `src-tauri/windows-app-manifest.xml` into all MSVC targets with `/MANIFEST:EMBED /MANIFESTINPUT`.

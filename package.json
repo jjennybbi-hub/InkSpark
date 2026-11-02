@@ -22,8 +22,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "wdio run e2e/wdio.conf.ts",
-    "bindings": "cargo run -p inkspark --bin export-bindings",
-    "bindings:check": "cargo run -p inkspark --bin export-bindings -- --check",
+    "bindings": "cargo run -p inkspark --example export-bindings",
+    "bindings:check": "cargo run -p inkspark --example export-bindings -- --check",
     "spike:editor": "npm run test:browser -w @inkspark/spike-editor-text",
     "spike:foliate": "npm run test:browser -w @inkspark/spike-foliate-view",
     "audit": "npm audit --audit-level=high"
