@@ -24,3 +24,37 @@ all = { level = "deny", priority = -1 }
 lto = "thin"
 codegen-units = 1
 strip = true
+
+# ADR 002 size lever: optimise the Typst crates for size. Spike-only in M0 (typst is not in src-tauri).
+[profile.release.package.typst]
+opt-level = "s"
+
+[profile.release.package.typst-eval]
+opt-level = "s"
+
+[profile.release.package.typst-html]
+opt-level = "s"
+
+[profile.release.package.typst-kit]
+opt-level = "s"
+
+[profile.release.package.typst-layout]
+opt-level = "s"
+
+[profile.release.package.typst-library]
+opt-level = "s"
+
+[profile.release.package.typst-pdf]
+opt-level = "s"
+
+[profile.release.package.typst-realize]
+opt-level = "s"
+
+[profile.release.package.typst-svg]
+opt-level = "s"
+
+[profile.release.package.typst-syntax]
+opt-level = "s"
+
+[profile.release.package.typst-utils]
+opt-level = "s"
