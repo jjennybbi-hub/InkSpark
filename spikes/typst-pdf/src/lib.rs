@@ -249,7 +249,9 @@ pub struct SpikeWorld {
 }
 
 fn main_file_id() -> FileId {
-    // A constant, normalized relative path: `new` only fails for paths escaping the root.
+    // A constant, normalized relative path: `new` only fails for paths escaping the root, so
+    // this cannot fail at runtime. The allow is scoped to this one statement on a literal, not
+    // user data or I/O (CLAUDE.md), and keeps `SpikeWorld::new` infallible as M0 §5.1 requires.
     #[allow(clippy::expect_used)]
     let vpath = VirtualPath::new("main.typ").expect("constant virtual path is valid");
     FileId::new(RootedPath::new(VirtualRoot::Project, vpath))
@@ -305,6 +307,15 @@ impl SpikeWorld {
             .families()
             .map(|(family, _)| family.to_owned())
             .collect()
+    }
+
+    /// Bytes of font data this world holds, each font file counted once (face index 0).
+    pub fn font_data_bytes(&self) -> u64 {
+        (0..)
+            .map_while(|i| self.fonts.font(i))
+            .filter(|font| font.index() == 0)
+            .map(|font| font.data().len() as u64)
+            .sum()
     }
 }
 

@@ -17,6 +17,8 @@ use inkspark_spike_typst::{
 
 const SEED: u64 = 0x1_5EED;
 const WARM_RUNS: usize = 5;
+/// Decimal megabyte, the unit of the size threshold.
+const MB: f64 = 1_000_000.0;
 
 #[derive(Debug, thiserror::Error)]
 enum BenchError {
@@ -60,6 +62,12 @@ fn parse_args() -> Result<Args, BenchError> {
         }
     }
     let out = out.ok_or_else(|| BenchError::Usage(String::from("--out is required")))?;
+    if size_report.is_some() && cfg!(debug_assertions) {
+        return Err(BenchError::Usage(String::from(
+            "--size-report needs a release build (cargo run --release); debug binaries are not \
+             stripped or optimized, so the delta would be meaningless",
+        )));
+    }
     Ok(Args {
         pages,
         out,
@@ -123,12 +131,14 @@ fn run() -> Result<(), BenchError> {
 
     let mut warm_total = Vec::with_capacity(WARM_RUNS);
     let mut warm_compile = Vec::with_capacity(WARM_RUNS);
+    let mut warm_export = Vec::with_capacity(WARM_RUNS);
     for revision in 0..WARM_RUNS {
         world.set_main(edit_one_paragraph(&markup, revision));
         let start = Instant::now();
         let warm = compile_pdf(&world)?;
         warm_total.push(ms(start.elapsed()));
         warm_compile.push(ms(warm.compile));
+        warm_export.push(ms(warm.export));
     }
 
     metrics.push(Metric::new(
@@ -147,7 +157,7 @@ fn run() -> Result<(), BenchError> {
     ));
     metrics.push(Metric::new(
         "export_ms",
-        ms(cold.export),
+        median(warm_export),
         "ms",
         1000.0,
         Comparator::Le,
@@ -155,12 +165,15 @@ fn run() -> Result<(), BenchError> {
 
     notes.push(format!(
         "pages={} (target {}), pdf_bytes={}, cold_total_ms={:.1} (world creation + compile + \
-         export), warm_compile_only_median_ms={:.1}; warm_recompile_ms is compile + export \
-         after a one-paragraph edit mid-book (median of {WARM_RUNS})",
+         export), cold_compile_ms is the compile phase of that run, cold_export_ms={:.1}, \
+         warm_compile_only_median_ms={:.1}; warm_recompile_ms is compile + export after a \
+         one-paragraph edit mid-book and export_ms is the export phase, both medians of \
+         {WARM_RUNS} warm runs",
         cold.page_count,
         args.pages,
         cold.bytes.len(),
         ms(cold_total),
+        ms(cold.export),
         median(warm_compile),
     ));
 
@@ -171,17 +184,29 @@ fn run() -> Result<(), BenchError> {
         })?;
         let own = file_len(&exe)?;
         let base = file_len(baseline)?;
-        let delta_mib = (own as f64 - base as f64) / (1024.0 * 1024.0);
+        let delta = own as f64 - base as f64;
+        // The bench world holds exactly the typst-assets embedded fonts.
+        let fonts = world.font_data_bytes();
         metrics.push(Metric::new(
             "size_delta_mb",
-            delta_mib,
-            "MiB",
+            delta / MB,
+            "MB",
+            30.0,
+            Comparator::Le,
+        ));
+        metrics.push(Metric::new(
+            "size_delta_without_embedded_fonts_mb",
+            (delta - fonts as f64) / MB,
+            "MB",
             30.0,
             Comparator::Le,
         ));
         notes.push(format!(
-            "size: typst-bench={own} bytes, size-baseline={base} bytes (release profile: \
-             lto=thin, codegen-units=1, strip=true)"
+            "size (MB = 10^6 bytes): typst-bench={own} bytes, size-baseline={base} bytes, \
+             embedded typst-assets font data={fonts} bytes; \
+             size_delta_without_embedded_fonts_mb subtracts the font data and is context, not a \
+             gate (release profile: lto=thin, codegen-units=1, strip=true, plus any \
+             [profile.release.package] overrides in the root Cargo.toml)"
         ));
     } else {
         notes.push(String::from(
