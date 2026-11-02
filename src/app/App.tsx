@@ -3,6 +3,10 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type JSX, useCallback, useEffect, useRef, useState } from "react";
 import { type Idea, type PageSummary, commands } from "../contracts";
 import { pickPrompt, promptHash } from "../spark/dealer";
+import "@fontsource/atkinson-hyperlegible/400.css";
+import "@fontsource/atkinson-hyperlegible/700.css";
+import { AppearanceMenu } from "./AppearanceMenu";
+import { applyAppearance, loadAppearance, saveAppearance, type Appearance } from "./appearance";
 import "./shell.css";
 
 const AUTOSAVE_MS = 1000;
@@ -57,6 +61,8 @@ export function App(): JSX.Element {
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [shelfOpen, setShelfOpen] = useState(true);
   const [prompt, setPrompt] = useState("");
+  const [appearance, setAppearance] = useState<Appearance>(loadAppearance);
+  const [focusMode, setFocusMode] = useState(false);
   const quickCapture = useRef<HTMLTextAreaElement>(null);
   const session = useRef<Session | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());
@@ -181,10 +187,20 @@ export function App(): JSX.Element {
     }
   }, [openFolder]);
 
+  useEffect(() => {
+    applyAppearance(appearance);
+    saveAppearance(appearance);
+  }, [appearance]);
+
   // ⌘S / Ctrl+S saves now; hiding the window or closing it saves too.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        setFocusMode((v) => !v);
+      } else if (event.key === "Escape") {
+        setFocusMode(false);
+      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
         void flush();
       } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "i") {
@@ -285,7 +301,12 @@ export function App(): JSX.Element {
     saveState === "saved" ? "Saved" : saveState === "saving" ? "Saving" : "Not saved yet";
 
   return (
-    <main className="app-shell" data-testid="app-shell" aria-label="InkSpark">
+    <main
+      className="app-shell"
+      data-testid="app-shell"
+      aria-label="InkSpark"
+      data-focus={focusMode}
+    >
       <h1 className="visually-hidden">InkSpark</h1>
       {project === null ? (
         <div className="welcome">
@@ -319,6 +340,7 @@ export function App(): JSX.Element {
                 Change folder
               </button>
             </div>
+            <AppearanceMenu value={appearance} onChange={setAppearance} />
           </nav>
           <section className="editor" aria-label="Editor">
             <textarea

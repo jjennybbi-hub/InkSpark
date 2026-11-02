@@ -4,17 +4,56 @@
   color-scheme: light dark;
   --paper: #f6f1e7;
   --ink: #2e3440;
+  --text-size: 18px;
+  --font-body:
+    ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
   background: var(--paper);
   color: var(--ink);
-  font-family:
-    ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  font-family: var(--font-body);
 }
 
+/* "Follow system" is the default: light, switching to dark with the system. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]),
+  :root[data-theme="system"] {
     --paper: #23211e;
     --ink: #e6e0d4;
   }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --paper: #fbfbf9;
+  --ink: #22252b;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #23211e;
+  --ink: #e6e0d4;
+}
+
+:root[data-theme="sepia"] {
+  color-scheme: light;
+  --paper: #f1e4c8;
+  --ink: #4a3722;
+}
+
+:root[data-font="serif"] {
+  --font-body:
+    ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+}
+
+:root[data-font="sans"] {
+  --font-body: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+:root[data-font="mono"] {
+  --font-body: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+:root[data-font="dyslexia"] {
+  --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
 }
 
 *,
@@ -129,8 +168,8 @@ textarea:focus-visible {
   border: 0;
   background: transparent;
   color: inherit;
-  font: inherit;
-  font-size: 1.15rem;
+  font-family: var(--font-body);
+  font-size: var(--text-size);
   line-height: 1.7;
   padding: 2rem max(2rem, calc((100% - 42rem) / 2));
 }
@@ -223,4 +262,45 @@ textarea:focus-visible {
   display: grid;
   gap: 0.6rem;
   white-space: pre-wrap;
+}
+
+.appearance {
+  font-size: 0.9rem;
+}
+
+.appearance summary {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.appearance label {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.6rem;
+}
+
+.appearance select {
+  font: inherit;
+  color: inherit;
+  background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+  border-radius: 6px;
+  padding: 0.25rem;
+}
+
+.appearance .hint {
+  margin: 0.6rem 0 0;
+  opacity: 0.6;
+}
+
+/* Focus mode: only the text, centred. Nothing is unmounted, so saving is untouched. */
+.app-shell[data-focus="true"] .pages,
+.app-shell[data-focus="true"] .shelf,
+.app-shell[data-focus="true"] .prompt-bar,
+.app-shell[data-focus="true"] .save-dot {
+  display: none;
+}
+
+.app-shell[data-focus="true"] .workspace {
+  grid-template-columns: 1fr;
 }
