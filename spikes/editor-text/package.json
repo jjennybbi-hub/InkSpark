@@ -1,0 +1,25 @@
+{
+  "name": "@inkspark/spike-editor-text",
+  "private": true,
+  "version": "0.0.0",
+  "description": "M0 spike: TipTap/ProseMirror vertical and RTL text on WebKit (ADR 001)",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit -p .",
+    "test:browser": "playwright test"
+  },
+  "dependencies": {
+    "@tiptap/core": "^3.32.0",
+    "@tiptap/pm": "^3.32.0",
+    "@tiptap/starter-kit": "^3.32.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "^22.19.0",
+    "jsdom": "^30.1.3",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

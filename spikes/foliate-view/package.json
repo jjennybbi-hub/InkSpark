@@ -1,0 +1,22 @@
+{
+  "name": "@inkspark/spike-foliate-view",
+  "private": true,
+  "version": "0.0.0",
+  "description": "M0 spike: foliate-js EPUB reader on WebKit under the Tauri CSP (ADR 003)",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit -p .",
+    "test:browser": "playwright test"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "^22.19.0",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

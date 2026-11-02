@@ -92,7 +92,8 @@ No `unsafe-eval`. Only `core:default` is granted; no Tauri plugins are registere
   "No workspaces found" while no `spikes/*/package.json` exists. `typecheck` therefore runs
   `tsc -b && npm run typecheck:spikes`, and `typecheck:spikes` runs the workspace command only
   when a spike package exists (a portable `node -e` guard; it still fails when a workspace's
-  typecheck fails). Once the spike stubs land, the Orchestrator may restore the exact §3.6 form.
+  typecheck fails). The Orchestrator restored the exact §3.6 form at the M0 stub step, once
+  `spikes/editor-text` and `spikes/foliate-view` had a `package.json`.
 - **Spike job skipping.** `hashFiles()` is not available in a job-level `if`, so `spikes.yml`
   has a `detect` job that evaluates `hashFiles(...)` in a step and exposes outputs; each spike
   job has `needs: detect` and `if: needs.detect.outputs.<spike> == 'true'`.

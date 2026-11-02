@@ -14,6 +14,23 @@ ignore = [
   { id = "RUSTSEC-2024-0436", reason = "transitive via specta; unmaintained, no known vulnerability" },
   # proc-macro-error: via glib-macros 0.18 (gtk-rs, Linux webview stack used by tauri/wry).
   { id = "RUSTSEC-2024-0370", reason = "transitive via tauri -> gtk-rs; unmaintained, no known vulnerability" },
+  # The rest come only from typst 0.15.1 (the latest release), used solely by the M0 spike crate
+  # `inkspark-spike-typst`, which is never a dependency of the app (M0 §2.1). typst-library
+  # depends on them unconditionally, so there is no feature to drop them. Recorded in ADR 002;
+  # revisit at the next typst release or before typst enters src-tauri.
+  # bincode 1: via syntect (typst code highlighting); unmaintained, no known vulnerability.
+  { id = "RUSTSEC-2025-0141", reason = "spike-only, via typst -> syntect; unmaintained, no known vulnerability" },
+  # yaml-rust: via syntect; unmaintained, no known vulnerability.
+  { id = "RUSTSEC-2024-0320", reason = "spike-only, via typst -> syntect; unmaintained, no known vulnerability" },
+  # unsafe-libyaml: via serde_yaml -> hayagriva (typst bibliographies); unmaintained.
+  { id = "RUSTSEC-2024-0449", reason = "spike-only, via typst -> hayagriva -> serde_yaml; unmaintained, no known vulnerability" },
+  # rustybuzz and ttf-parser: typst's text shaping and font parsing; unmaintained.
+  { id = "RUSTSEC-2026-0206", reason = "spike-only, via typst/krilla text shaping; unmaintained, no known vulnerability" },
+  { id = "RUSTSEC-2026-0192", reason = "spike-only, via typst/fontdb font parsing; unmaintained, no known vulnerability" },
+  # quick-xml 0.38 (via hayagriva -> citationberg, CSL styles): DoS on untrusted XML. The spike
+  # never loads bibliographies or CSL files; the scriv spike uses the fixed quick-xml 0.42.
+  { id = "RUSTSEC-2026-0194", reason = "spike-only, via typst -> hayagriva -> citationberg; no untrusted CSL/XML is parsed" },
+  { id = "RUSTSEC-2026-0195", reason = "spike-only, via typst -> hayagriva -> citationberg; no untrusted CSL/XML is parsed" },
 ]
 
 [licenses]

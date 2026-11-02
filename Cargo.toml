@@ -1,7 +1,12 @@
 [workspace]
 resolver = "3"
-# The Orchestrator adds the spike crates at the M0 stub step (M0 §3.1).
-members = ["src-tauri"]
+members = [
+  "src-tauri",
+  "spikes/typst-pdf",
+  "spikes/fts5-encyclopedia",
+  "spikes/scriv-parser",
+  "spikes/macos-speech",
+]
 
 [workspace.package]
 edition = "2024"

@@ -1,0 +1,22 @@
+[package]
+name = "inkspark-spike-scriv"
+version = "0.0.0"
+description = "M0 spike: read-only Scrivener 3 (.scriv) parser (ADR 006)"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+quick-xml = "0.42"
+encoding_rs = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[dev-dependencies]
+proptest = "1"
+serde_json = "1"
+
+[lints]
+workspace = true

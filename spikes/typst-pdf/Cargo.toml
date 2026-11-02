@@ -1,0 +1,29 @@
+[package]
+name = "inkspark-spike-typst"
+version = "0.0.0"
+description = "M0 spike: Typst PDF compile speed and size (ADR 002)"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "typst-bench"
+path = "src/bin/typst-bench.rs"
+
+[[bin]]
+name = "size-baseline"
+path = "src/bin/size-baseline.rs"
+
+[dependencies]
+typst = "0.15.1"
+typst-pdf = "0.15.1"
+typst-kit = { version = "0.15.1", default-features = false, features = ["embedded-fonts"] }
+thiserror = "2"
+serde_json = "1"
+
+[dev-dependencies]
+lopdf = "0.46"
+
+[lints]
+workspace = true

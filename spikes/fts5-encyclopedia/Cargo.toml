@@ -1,0 +1,23 @@
+[package]
+name = "inkspark-spike-fts"
+version = "0.0.0"
+description = "M0 spike: SQLite FTS5 encyclopedia size and search speed (ADR 004)"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "fts-bench"
+path = "src/bin/fts-bench.rs"
+
+[dependencies]
+rusqlite = { version = "0.41", features = ["bundled"] }
+thiserror = "2"
+serde_json = "1"
+
+[dev-dependencies]
+proptest = "1"
+
+[lints]
+workspace = true
