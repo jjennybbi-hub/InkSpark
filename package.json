@@ -18,7 +18,7 @@
     "lint": "eslint . --max-warnings 0 && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "tsc -b && npm run typecheck:spikes",
-    "typecheck:spikes": "node -e \"const fs=require('node:fs');const ws=fs.existsSync('spikes')?fs.readdirSync('spikes').filter((d)=>fs.existsSync('spikes/'+d+'/package.json')):[];if(ws.length>0){require('node:child_process').execSync('npm run typecheck --workspaces --if-present',{stdio:'inherit'})}\"",
+    "typecheck:spikes": "node -e \"const fs=require('node:fs');const ws=fs.existsSync('spikes')?fs.readdirSync('spikes').filter(function(d){return fs.existsSync('spikes/'+d+'/package.json')}):[];if(ws.length){require('node:child_process').execSync('npm run typecheck --workspaces --if-present',{stdio:'inherit'})}\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "wdio run e2e/wdio.conf.ts",
