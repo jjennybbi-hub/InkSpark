@@ -238,7 +238,7 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 120
     env:
       SPIKE_DIR: spikes/fts5-encyclopedia
       SPIKE_OS: ${{ matrix.os }}
@@ -298,13 +298,22 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: CI speech tests
         run: cargo test -p inkspark-spike-speech -- --include-ignored ci_
-      - name: Build speech-spike
-        run: cargo build --release -p inkspark-spike-speech --bin speech-spike
+      - name: Build universal speech-spike (Apple Silicon + Intel)
+        run: |
+          rustup target add --toolchain "$RUST_TOOLCHAIN" aarch64-apple-darwin x86_64-apple-darwin
+          cargo build --release -p inkspark-spike-speech --bin speech-spike --target aarch64-apple-darwin
+          cargo build --release -p inkspark-spike-speech --bin speech-spike --target x86_64-apple-darwin
+          mkdir -p dist-speech
+          lipo -create -output dist-speech/speech-spike \
+            target/aarch64-apple-darwin/release/speech-spike \
+            target/x86_64-apple-darwin/release/speech-spike
+          chmod +x dist-speech/speech-spike
+          lipo -info dist-speech/speech-spike
       - name: Upload speech-spike
         uses: actions/upload-artifact@v4
         with:
           name: speech-spike-macos
-          path: target/release/speech-spike
+          path: dist-speech/speech-spike
           if-no-files-found: error
 
   spike-scriv:

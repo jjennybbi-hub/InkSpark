@@ -10,3 +10,4 @@
 *.ico binary
 *.icns binary
 spikes/scriv-parser/fixtures/** -text
+vendor/** -text
