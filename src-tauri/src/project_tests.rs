@@ -45,10 +45,19 @@ fn atomic_write_failure_keeps_the_old_file() {
     let root = temp_root("atomic-fail");
     let file = root.join("a.md");
     atomic_write(&file, b"keep me").unwrap_or_else(|err| panic!("{err}"));
-    // A directory squatting on the temp name makes the temp file impossible to create.
-    fs::create_dir(root.join(".a.md.tmp")).unwrap_or_else(|err| panic!("{err}"));
-    assert!(atomic_write(&file, b"lost").is_err());
+    // A non-empty directory at the target makes the final rename fail.
+    let blocked = root.join("b.md");
+    fs::create_dir_all(blocked.join("inner")).unwrap_or_else(|err| panic!("{err}"));
+    assert!(atomic_write(&blocked, b"lost").is_err());
     assert_eq!(fs::read(&file).unwrap_or_default(), b"keep me");
+    let temps = fs::read_dir(&root)
+        .map(|rd| {
+            rd.filter_map(Result::ok)
+                .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
+                .count()
+        })
+        .unwrap_or(99);
+    assert_eq!(temps, 0, "failed write must clean up its temp file");
 }
 
 #[test]
@@ -96,4 +105,118 @@ fn page_ids_cannot_escape_the_pages_folder() {
     let root = temp_root("ids");
     assert!(save_page(&root, "../evil", "x").is_err());
     assert!(read_page(&root, "a/b").is_err());
+}
+
+#[test]
+fn pruning_never_deletes_files_it_did_not_create() {
+    let root = temp_root("prune-foreign");
+    fs::create_dir_all(root.join("pages")).unwrap_or_else(|err| panic!("{err}"));
+    let id = "pg";
+    save_page(&root, id, "v0").unwrap_or_else(|err| panic!("{err}"));
+    let dir = root.join(".history").join(id);
+    fs::create_dir_all(&dir).unwrap_or_else(|err| panic!("{err}"));
+    atomic_write(&dir.join("my-notes.md"), b"keep me").unwrap_or_else(|err| panic!("{err}"));
+    for n in 1..=(HISTORY_LIMIT + 5) {
+        save_page(&root, id, &format!("v{n}")).unwrap_or_else(|err| panic!("{err}"));
+    }
+    assert_eq!(
+        fs::read_to_string(dir.join("my-notes.md")).unwrap_or_default(),
+        "keep me"
+    );
+}
+
+#[test]
+fn a_clock_that_moves_backwards_does_not_get_the_newest_copy_pruned() {
+    let root = temp_root("clock");
+    fs::create_dir_all(root.join("pages")).unwrap_or_else(|err| panic!("{err}"));
+    let id = "pg";
+    save_page(&root, id, "v0").unwrap_or_else(|err| panic!("{err}"));
+    let dir = root.join(".history").join(id);
+    fs::create_dir_all(&dir).unwrap_or_else(|err| panic!("{err}"));
+    // Fifty copies stamped far in the future, as if the clock had been ahead.
+    let future = now_millis() + 10_000_000_000;
+    for n in 0..HISTORY_LIMIT as u128 {
+        atomic_write(&dir.join(format!("{:020}.md", future + n)), b"old")
+            .unwrap_or_else(|err| panic!("{err}"));
+    }
+    save_page(&root, id, "v1").unwrap_or_else(|err| panic!("{err}"));
+    let copies: Vec<String> = history_files(&root, id)
+        .iter()
+        .map(|n| fs::read_to_string(dir.join(n)).unwrap_or_default())
+        .collect();
+    assert!(
+        copies.contains(&"v0".to_owned()),
+        "the version just replaced must be kept"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn an_unreadable_page_is_not_overwritten() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = temp_root("unreadable");
+    fs::create_dir_all(root.join("pages")).unwrap_or_else(|err| panic!("{err}"));
+    let id = "pg";
+    save_page(&root, id, "precious").unwrap_or_else(|err| panic!("{err}"));
+    let path = page_path(&root, id);
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o000))
+        .unwrap_or_else(|err| panic!("{err}"));
+    if fs::read(&path).is_ok() {
+        return; // running as root: permissions do not apply
+    }
+    assert!(save_page(&root, id, "new").is_err());
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o600))
+        .unwrap_or_else(|err| panic!("{err}"));
+    assert_eq!(fs::read_to_string(&path).unwrap_or_default(), "precious");
+}
+
+#[test]
+fn overlapping_saves_never_corrupt_the_page() {
+    let root = temp_root("overlap");
+    fs::create_dir_all(root.join("pages")).unwrap_or_else(|err| panic!("{err}"));
+    let id = "pg";
+    save_page(&root, id, "start").unwrap_or_else(|err| panic!("{err}"));
+    let handles: Vec<_> = (0..8)
+        .map(|t| {
+            let root = root.clone();
+            std::thread::spawn(move || {
+                for n in 0..10 {
+                    save_page(&root, id, &format!("thread {t} save {n}"))
+                        .unwrap_or_else(|err| panic!("{err}"));
+                }
+            })
+        })
+        .collect();
+    for h in handles {
+        h.join().unwrap_or_else(|_| panic!("save thread panicked"));
+    }
+    let text = fs::read_to_string(page_path(&root, id)).unwrap_or_default();
+    assert!(text.starts_with("thread "), "page was: {text:?}");
+    let leftovers = fs::read_dir(root.join("pages"))
+        .map(|rd| rd.filter_map(Result::ok).count())
+        .unwrap_or(0);
+    assert_eq!(leftovers, 1, "no temp files left behind");
+}
+
+#[cfg(unix)]
+#[test]
+fn a_read_only_folder_fails_cleanly_and_keeps_the_old_text() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = temp_root("readonly");
+    fs::create_dir_all(root.join("pages")).unwrap_or_else(|err| panic!("{err}"));
+    let id = "pg";
+    save_page(&root, id, "safe").unwrap_or_else(|err| panic!("{err}"));
+    let pages = root.join("pages");
+    fs::set_permissions(&pages, fs::Permissions::from_mode(0o500))
+        .unwrap_or_else(|err| panic!("{err}"));
+    let result = save_page(&root, id, "changed");
+    fs::set_permissions(&pages, fs::Permissions::from_mode(0o700))
+        .unwrap_or_else(|err| panic!("{err}"));
+    if result.is_ok() {
+        return; // running as root
+    }
+    assert_eq!(
+        fs::read_to_string(page_path(&root, id)).unwrap_or_default(),
+        "safe"
+    );
 }

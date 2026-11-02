@@ -1,10 +1,13 @@
 import { open } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type JSX, useCallback, useEffect, useRef, useState } from "react";
 import { type Idea, type PageSummary, commands } from "../contracts";
 import { pickPrompt, promptHash } from "../spark/dealer";
 import "./shell.css";
 
 const AUTOSAVE_MS = 1000;
+const UNSAVED_NOTE =
+  "Your page has changes that could not be saved yet, so nothing was closed or switched.";
 const LAST_PROJECT_KEY = "inkspark.lastProject";
 
 type SaveState = "saved" | "saving" | "failed";
@@ -70,17 +73,22 @@ export function App(): JSX.Element {
     s.dirty = false;
     setSaveState("saving");
     queue.current = queue.current.then(async () => {
-      let ok = false;
+      let failure = "";
       try {
-        ok = (await commands.savePage(s.path, s.id, content)).status === "ok";
+        const result = await commands.savePage(s.path, s.id, content);
+        if (result.status === "error") {
+          failure = result.error.message;
+        }
       } catch (error: unknown) {
-        console.error("InkSpark could not save:", error);
+        failure = String(error);
       }
-      if (!ok) {
+      if (failure !== "") {
         s.dirty = true;
         setSaveState("failed");
+        setMessage(`Could not save: ${failure}`);
       } else if (!s.dirty) {
         setSaveState("saved");
+        setMessage("");
       }
     });
     return queue.current;
@@ -92,6 +100,11 @@ export function App(): JSX.Element {
       const result = await commands.readPage(path, id);
       if (result.status === "error") {
         setMessage(`Could not open that page: ${result.error.message}`);
+        return;
+      }
+      // Text typed while the page was loading (or a save that failed) must not be replaced.
+      if (session.current?.dirty === true) {
+        setMessage(UNSAVED_NOTE);
         return;
       }
       session.current = { path, id, text: result.data, dirty: false };
@@ -106,6 +119,10 @@ export function App(): JSX.Element {
   const openFolder = useCallback(
     async (path: string): Promise<void> => {
       await flush();
+      if (session.current?.dirty === true) {
+        setMessage(UNSAVED_NOTE);
+        return;
+      }
       const result = await commands.openProject(path);
       if (result.status === "error") {
         setMessage(`Could not open that folder: ${result.error.message}`);
@@ -141,6 +158,10 @@ export function App(): JSX.Element {
       return;
     }
     await flush();
+    if (session.current?.dirty === true) {
+      setMessage(UNSAVED_NOTE);
+      return;
+    }
     const result = await commands.createPage(project);
     if (result.status === "error") {
       setMessage(`Could not add a page: ${result.error.message}`);
@@ -182,6 +203,38 @@ export function App(): JSX.Element {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("pagehide", onHide);
       document.removeEventListener("visibilitychange", onHide);
+    };
+  }, [flush]);
+
+  // Closing the window waits for the page to be saved; if it cannot be, the window stays open.
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let disposed = false;
+    try {
+      void getCurrentWindow()
+        .onCloseRequested(async (event) => {
+          await flush();
+          if (session.current?.dirty === true) {
+            event.preventDefault();
+            setMessage(UNSAVED_NOTE);
+          }
+        })
+        .then((off) => {
+          if (disposed) {
+            off();
+          } else {
+            unlisten = off;
+          }
+        })
+        .catch(() => {
+          // Not running inside the desktop window (for example in tests).
+        });
+    } catch {
+      // Same as above.
+    }
+    return () => {
+      disposed = true;
+      unlisten?.();
     };
   }, [flush]);
 

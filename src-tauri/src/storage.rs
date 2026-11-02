@@ -3,6 +3,9 @@
 use std::fs;
 use std::io::Write;
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// Writes `bytes` to `path` so a crash never leaves a half-written file: the data goes to a
 /// temp file in the same folder, is fsynced, and is then renamed over `path`.
@@ -18,7 +21,9 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
         .file_name()
         .ok_or_else(|| std::io::Error::other("path has no file name"))?
         .to_string_lossy();
-    let tmp = parent.join(format!(".{name}.tmp"));
+    // Unique per call so two overlapping writes to one file never share a temp file.
+    let unique = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let tmp = parent.join(format!(".{name}.{}-{unique}.tmp", std::process::id()));
     let written = (|| {
         let mut file = fs::OpenOptions::new()
             .write(true)

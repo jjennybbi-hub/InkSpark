@@ -5,12 +5,16 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use crate::error::AppError;
 use crate::storage::atomic_write;
 
 /// How many previous versions of a page are kept.
 pub const HISTORY_LIMIT: usize = 50;
+
+/// Saves never overlap, whichever thread they arrive on.
+static SAVE_LOCK: Mutex<()> = Mutex::new(());
 
 const PROJECT_FILE: &str = "project.json";
 
@@ -162,34 +166,66 @@ pub fn read_page(root: &Path, id: &str) -> Result<String, AppError> {
 /// Fails when the history copy or the write fails; in that case the page file is untouched.
 pub fn save_page(root: &Path, id: &str, content: &str) -> Result<(), AppError> {
     check_id(id)?;
+    let _guard = SAVE_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let path = page_path(root, id);
-    if let Ok(previous) = fs::read(&path) {
-        if previous == content.as_bytes() {
-            return Ok(());
-        }
-        let dir = root.join(".history").join(id);
-        fs::create_dir_all(&dir)?;
-        let mut stamp = now_millis();
-        let target = loop {
-            // Zero-padded so names sort in time order.
-            let candidate = dir.join(format!("{stamp:020}.md"));
-            if !candidate.exists() {
-                break candidate;
+    match fs::read(&path) {
+        Ok(previous) => {
+            if previous == content.as_bytes() {
+                return Ok(());
             }
-            stamp += 1;
-        };
-        atomic_write(&target, &previous)?;
-        prune_history(&dir)?;
+            let dir = root.join(".history").join(id);
+            fs::create_dir_all(&dir)?;
+            // Never older than a version already kept, even if the clock moved backwards,
+            // so pruning can never pick the copy we are about to make.
+            let mut stamp = now_millis().max(newest_history_stamp(&dir).saturating_add(1));
+            let target = loop {
+                // Zero-padded so names sort in time order.
+                let candidate = dir.join(format!("{stamp:020}.md"));
+                if !candidate.exists() {
+                    break candidate;
+                }
+                stamp += 1;
+            };
+            atomic_write(&target, &previous)?;
+            // Tidying old copies must never stop the user's words being saved.
+            let _ = prune_history(&dir);
+        }
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+        // Unreadable but present: we cannot keep a copy, so do not overwrite it.
+        Err(err) => return Err(err.into()),
     }
     atomic_write(&path, content.as_bytes())?;
     Ok(())
 }
 
+/// The stamp encoded in a history file name (`<20 digits>.md`), if it is one of ours.
+fn history_stamp(name: &str) -> Option<u128> {
+    let stem = name.strip_suffix(".md")?;
+    if stem.len() == 20 && stem.bytes().all(|b| b.is_ascii_digit()) {
+        stem.parse().ok()
+    } else {
+        None
+    }
+}
+
+fn newest_history_stamp(dir: &Path) -> u128 {
+    fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .filter_map(Result::ok)
+        .filter_map(|e| history_stamp(&e.file_name().to_string_lossy()))
+        .max()
+        .unwrap_or(0)
+}
+
 fn prune_history(dir: &Path) -> Result<(), AppError> {
+    // Only files this module created are ever considered for deletion.
     let mut names: Vec<_> = fs::read_dir(dir)?
         .filter_map(Result::ok)
         .map(|entry| entry.file_name())
-        .filter(|name| name.to_string_lossy().ends_with(".md"))
+        .filter(|name| history_stamp(&name.to_string_lossy()).is_some())
         .collect();
     names.sort();
     let excess = names.len().saturating_sub(HISTORY_LIMIT);
