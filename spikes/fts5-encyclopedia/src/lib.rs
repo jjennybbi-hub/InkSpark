@@ -235,7 +235,7 @@ fn generate_article(id: i64, mean_words: u32, zipf: &Zipf, rng: &mut SplitMix64)
 }
 
 /// Articles `1..=spec.articles`, each with its needle term planted once in the body.
-pub fn generate_corpus(spec: &CorpusSpec) -> impl Iterator<Item = Article> {
+pub fn generate_corpus(spec: &CorpusSpec) -> impl Iterator<Item = Article> + use<> {
     let zipf = Zipf::vocabulary();
     let mut rng = SplitMix64::new(spec.seed);
     let mean_words = spec.mean_words;
@@ -322,25 +322,36 @@ pub enum FtsSpikeError {
     Query(String),
 }
 
-fn create_schema(conn: &Connection, opts: &BuildOptions) -> Result<(), FtsSpikeError> {
+fn create_schema(
+    conn: &Connection,
+    opts: &BuildOptions,
+    prefix_index: &[u8],
+) -> Result<(), FtsSpikeError> {
     let tokenize = opts.tokenizer.fts5_arg();
     let detail = opts.detail.name();
+    let prefix = if prefix_index.is_empty() {
+        String::new()
+    } else {
+        let lengths: Vec<String> = prefix_index.iter().map(u8::to_string).collect();
+        format!(", prefix='{}'", lengths.join(" "))
+    };
     let ddl = if opts.external_content {
         format!(
             "CREATE TABLE articles(id INTEGER PRIMARY KEY, title TEXT NOT NULL, \
                category TEXT NOT NULL, body TEXT NOT NULL);
              CREATE VIRTUAL TABLE fts USING fts5(title, body, content='articles', \
-               content_rowid='id', tokenize='{tokenize}', detail={detail});"
+               content_rowid='id', tokenize='{tokenize}', detail={detail}{prefix});"
         )
     } else {
         format!(
             "CREATE VIRTUAL TABLE fts USING fts5(title, body, category UNINDEXED, \
-               tokenize='{tokenize}', detail={detail});"
+               tokenize='{tokenize}', detail={detail}{prefix});"
         )
     };
     conn.execute_batch(&format!(
         "CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL) WITHOUT ROWID;
-         {ddl}"
+         {ddl}
+         INSERT INTO fts(fts, rank) VALUES('rank', 'bm25(10.0, 1.0)');"
     ))?;
     if opts.thumbnail_bytes.is_some() {
         conn.execute_batch("CREATE TABLE thumbnails(id INTEGER PRIMARY KEY, data BLOB NOT NULL);")?;
@@ -351,6 +362,7 @@ fn create_schema(conn: &Connection, opts: &BuildOptions) -> Result<(), FtsSpikeE
         ("tokenizer", opts.tokenizer.name().to_owned()),
         ("detail", detail.to_owned()),
         ("external_content", opts.external_content.to_string()),
+        ("prefix_index", prefix.trim_start_matches(", ").to_owned()),
     ] {
         meta.execute(params![k, v])?;
     }
@@ -363,6 +375,17 @@ pub fn build_encyclopedia(
     path: &Path,
     articles: impl IntoIterator<Item = Article>,
     opts: &BuildOptions,
+) -> Result<BuildReport, FtsSpikeError> {
+    build_encyclopedia_with_prefix_index(path, articles, opts, &[])
+}
+
+/// [`build_encyclopedia`] plus FTS5 prefix indexes for the given prefix lengths
+/// (`prefix='2 3'`), which trade file size for fast `ab*` queries.
+pub fn build_encyclopedia_with_prefix_index(
+    path: &Path,
+    articles: impl IntoIterator<Item = Article>,
+    opts: &BuildOptions,
+    prefix_index: &[u8],
 ) -> Result<BuildReport, FtsSpikeError> {
     if path.exists() {
         return Err(FtsSpikeError::Io(std::io::Error::new(
@@ -381,7 +404,7 @@ pub fn build_encyclopedia(
     let mut count = 0u64;
     let mut raw = 0u64;
     let tx = conn.transaction()?;
-    create_schema(&tx, opts)?;
+    create_schema(&tx, opts, prefix_index)?;
     {
         let mut insert_fts = if opts.external_content {
             tx.prepare("INSERT INTO fts(rowid, title, body) VALUES (?1, ?2, ?3)")?
@@ -489,8 +512,10 @@ impl Encyclopedia {
             return Ok(Vec::new());
         };
         let mut stmt = self.conn.prepare_cached(
-            "SELECT rowid, title, snippet(fts, -1, '[', ']', '…', 12), bm25(fts, 10.0, 1.0) AS r
-             FROM fts WHERE fts MATCH ?1 ORDER BY r LIMIT ?2",
+            // `rank` is configured as bm25(10.0, 1.0) (title weighted 10×) at build time;
+            // `ORDER BY rank` is FTS5's optimized top-N path.
+            "SELECT rowid, title, snippet(fts, -1, '[', ']', '…', 12), rank
+             FROM fts WHERE fts MATCH ?1 ORDER BY rank LIMIT ?2",
         )?;
         let rows = stmt.query_map(params![fts_query, limit], |row| {
             Ok(Hit {

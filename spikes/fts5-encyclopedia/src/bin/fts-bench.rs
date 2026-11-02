@@ -1,9 +1,10 @@
 //! `fts-bench --articles 5000,50000 --mean-words 1200 --out PATH [--work-dir DIR]` (M0 §5.3).
 //!
 //! For each corpus size, builds the variants {unicode61/full, porter/full, unicode61/column,
-//! trigram/full (5k only)}, then measures file size, build time, open-to-first-result, and the
-//! p95 of 1,000 random 1–2-term queries and 200 prefix queries (`ab*`) drawn from the corpus
-//! vocabulary. Writes the §3.9 results JSON to `--out`. Threshold misses are reported in the
+//! unicode61/full with prefix indexes 2 and 3, trigram/full (5k only)}, then measures file size,
+//! build time, open-to-first-result, and the p95 of 1,000 random 1–2-term queries (uniform over
+//! the vocabulary, plus a Zipf-weighted stress set) and 200 prefix queries (`ab*`) drawn from
+//! the corpus vocabulary. Writes the §3.9 results JSON to `--out`. Threshold misses are reported in the
 //! JSON, not as a failing exit code. Each built file is deleted once measured.
 #![forbid(unsafe_code)]
 
@@ -13,8 +14,8 @@ use std::time::{Duration, Instant};
 
 use inkspark_spike_fts::{
     BuildOptions, Comparator, CorpusSpec, Detail, Encyclopedia, FtsSpikeError, Metric, SplitMix64,
-    Tokenizer, Zipf, build_encyclopedia, generate_corpus, needle_term, vocabulary_word,
-    write_results_with_notes,
+    Tokenizer, VOCABULARY_SIZE, Zipf, build_encyclopedia_with_prefix_index, generate_corpus,
+    needle_term, vocabulary_word, write_results_with_notes,
 };
 
 const SEED: u64 = 0x00C0_FFEE;
@@ -139,18 +140,34 @@ fn time_queries(enc: &Encyclopedia, queries: &[String]) -> Result<Timings, Bench
     })
 }
 
-fn term_queries(seed: u64) -> Vec<String> {
+/// 1–2-term queries. `zipf_weighted` draws terms by corpus frequency (a stress case: most
+/// terms then occur in nearly every article); otherwise uniformly over the vocabulary.
+fn term_queries(seed: u64, zipf_weighted: bool) -> Vec<String> {
     let zipf = Zipf::vocabulary();
     let mut rng = SplitMix64::new(seed);
     (0..TERM_QUERIES)
         .map(|_| {
             let terms = 1 + rng.below(2);
             (0..terms)
-                .map(|_| vocabulary_word(zipf.sample(&mut rng)))
+                .map(|_| {
+                    let rank = if zipf_weighted {
+                        zipf.sample(&mut rng)
+                    } else {
+                        rng.below(VOCABULARY_SIZE)
+                    };
+                    vocabulary_word(rank)
+                })
                 .collect::<Vec<_>>()
                 .join(" ")
         })
         .collect()
+}
+
+/// The query sets every variant runs.
+struct Queries {
+    uniform: Vec<String>,
+    zipf: Vec<String>,
+    prefix: Vec<String>,
 }
 
 fn prefix_queries(seed: u64) -> Vec<String> {
@@ -168,11 +185,20 @@ fn prefix_queries(seed: u64) -> Vec<String> {
 struct Variant {
     tokenizer: Tokenizer,
     detail: Detail,
+    /// FTS5 `prefix=` lengths; empty for none.
+    prefix_index: &'static [u8],
 }
 
 impl Variant {
     fn name(&self) -> String {
-        format!("{}_{}", self.tokenizer.name(), self.detail.name())
+        let mut name = format!("{}_{}", self.tokenizer.name(), self.detail.name());
+        if !self.prefix_index.is_empty() {
+            name.push_str("_prefix");
+            for n in self.prefix_index {
+                name.push_str(&n.to_string());
+            }
+        }
+        name
     }
 }
 
@@ -181,20 +207,29 @@ fn variants(articles: u32) -> Vec<Variant> {
         Variant {
             tokenizer: Tokenizer::Unicode61RemoveDiacritics,
             detail: Detail::Full,
+            prefix_index: &[],
         },
         Variant {
             tokenizer: Tokenizer::Porter,
             detail: Detail::Full,
+            prefix_index: &[],
         },
         Variant {
             tokenizer: Tokenizer::Unicode61RemoveDiacritics,
             detail: Detail::Column,
+            prefix_index: &[],
+        },
+        Variant {
+            tokenizer: Tokenizer::Unicode61RemoveDiacritics,
+            detail: Detail::Full,
+            prefix_index: &[2, 3],
         },
     ];
     if articles <= TRIGRAM_MAX_ARTICLES {
         v.push(Variant {
             tokenizer: Tokenizer::Trigram,
             detail: Detail::Full,
+            prefix_index: &[],
         });
     }
     v
@@ -210,8 +245,7 @@ fn bench_variant(
     args: &Args,
     articles: u32,
     variant: &Variant,
-    terms: &[String],
-    prefixes: &[String],
+    queries: &Queries,
 ) -> Result<Outcome, BenchError> {
     let label = format!("n{articles}_{}", variant.name());
     let dir = args
@@ -232,15 +266,16 @@ fn bench_variant(
         seed: SEED,
     });
     eprintln!("fts-bench: building {label}...");
-    let report = build_encyclopedia(&path, corpus, &opts)?;
+    let report = build_encyclopedia_with_prefix_index(&path, corpus, &opts, variant.prefix_index)?;
 
     let open_start = Instant::now();
     let enc = Encyclopedia::open(&path)?;
     let first = enc.search(&needle_term(i64::from(articles / 2).max(1)), LIMIT)?;
     let open_first = ms(open_start.elapsed());
 
-    let term = time_queries(&enc, terms)?;
-    let prefix = time_queries(&enc, prefixes)?;
+    let term = time_queries(&enc, &queries.uniform)?;
+    let zipf = time_queries(&enc, &queries.zipf)?;
+    let prefix = time_queries(&enc, &queries.prefix)?;
     drop(enc);
 
     let file_mib = report.file_bytes as f64 / MIB;
@@ -259,6 +294,13 @@ fn bench_variant(
         Metric::new(
             &format!("{label}_term_p95_ms"),
             term.p95,
+            "ms",
+            30.0,
+            Comparator::Le,
+        ),
+        Metric::new(
+            &format!("{label}_term_zipf_p95_ms"),
+            zipf.p95,
             "ms",
             30.0,
             Comparator::Le,
@@ -299,13 +341,18 @@ fn bench_variant(
     let mut notes = vec![format!(
         "{label}: file={file_mib:.1} MiB raw={raw_mib:.1} MiB ratio={size_ratio:.3} \
          build={build_s:.1}s first_hits={} term p50/p95/max={:.2}/{:.2}/{:.2} ms \
-         (mean hits {:.1}) prefix p50/p95/max={:.2}/{:.2}/{:.2} ms (mean hits {:.1}); \
+         (mean hits {:.1}) term_zipf p50/p95/max={:.2}/{:.2}/{:.2} ms (mean hits {:.1}) \
+         prefix p50/p95/max={:.2}/{:.2}/{:.2} ms (mean hits {:.1}); \
          linear 300k extrapolation: file≈{:.0} MiB build≈{:.0}s",
         first.len(),
         term.p50,
         term.p95,
         term.max,
         term.mean_hits,
+        zipf.p50,
+        zipf.p95,
+        zipf.max,
+        zipf.mean_hits,
         prefix.p50,
         prefix.p95,
         prefix.max,
@@ -330,15 +377,19 @@ fn bench_variant(
 
 fn run() -> Result<(), BenchError> {
     let args = parse_args()?;
-    let terms = term_queries(SEED ^ 0x7E57);
-    let prefixes = prefix_queries(SEED ^ 0x9FE1);
+    let queries = Queries {
+        uniform: term_queries(SEED ^ 0x7E57, false),
+        zipf: term_queries(SEED ^ 0x21FF, true),
+        prefix: prefix_queries(SEED ^ 0x9FE1),
+    };
 
     let mut metrics = Vec::new();
     let mut notes = vec![format!(
         "synthetic corpus (SplitMix64 seed {SEED:#x}, Zipf s=1.07 over 60k pseudo-words, \
          35% stopwords, accented words, planted needles), mean_words={}; real Wikipedia data \
-         was not used (dumps.wikimedia.org blocked in the cloud session); queries drawn \
-         Zipf-weighted from the vocabulary, limit {LIMIT}, bm25 + snippet; work dir {}",
+         was not used (dumps.wikimedia.org blocked in the cloud session); term queries: \
+         uniform over the vocabulary (gated) and Zipf-weighted (stress); prefix queries are \
+         2-char prefixes of Zipf-weighted words; limit {LIMIT}, bm25 + snippet; work dir {}",
         args.mean_words,
         args.work_dir.display()
     )];
@@ -347,7 +398,7 @@ fn run() -> Result<(), BenchError> {
     for &n in &args.articles {
         let mut best = f64::INFINITY;
         for variant in variants(n) {
-            let outcome = bench_variant(&args, n, &variant, &terms, &prefixes)?;
+            let outcome = bench_variant(&args, n, &variant, &queries)?;
             for m in &outcome.metrics {
                 eprintln!(
                     "  {}: {:.3} {} (<= {}) {}",
