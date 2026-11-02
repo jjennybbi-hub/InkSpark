@@ -15,6 +15,12 @@ export const commands = {
 	readPage: (path: string, id: string) => typedError<string, AppError>(__TAURI_INVOKE("read_page", { path, id })),
 	/**  Atomically saves one page, keeping the previous version in `.history`. */
 	savePage: (path: string, id: string, content: string) => typedError<null, AppError>(__TAURI_INVOKE("save_page", { path, id, content })),
+	/**  Lists the Idea Shelf, newest first. */
+	listIdeas: (path: string) => typedError<Idea[], AppError>(__TAURI_INVOKE("list_ideas", { path })),
+	/**  Adds a note to the Idea Shelf. */
+	addIdea: (path: string, text: string) => typedError<Idea, AppError>(__TAURI_INVOKE("add_idea", { path, text })),
+	/**  Deals one app prompt this project has not seen before. */
+	nextPrompt: (path: string) => typedError<string, AppError>(__TAURI_INVOKE("next_prompt", { path })),
 };
 
 /* Types */
@@ -39,6 +45,14 @@ export type AppInfo = {
 	arch: string,
 	/**  The Tauri runtime version. */
 	tauriVersion: string,
+};
+
+/**  One note on the shelf. */
+export type Idea = {
+	/**  File stem of `ideas/<id>.md`; ids sort oldest first. */
+	id: string,
+	/**  The note text. */
+	text: string,
 };
 
 /**  The operating system family. */

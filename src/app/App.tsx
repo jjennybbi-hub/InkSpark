@@ -1,6 +1,6 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { type JSX, useCallback, useEffect, useRef, useState } from "react";
-import { type PageSummary, commands } from "../contracts";
+import { type Idea, type PageSummary, commands } from "../contracts";
 import "./shell.css";
 
 const AUTOSAVE_MS = 1000;
@@ -50,6 +50,10 @@ export function App(): JSX.Element {
   const [text, setText] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [message, setMessage] = useState("");
+  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [shelfOpen, setShelfOpen] = useState(true);
+  const [prompt, setPrompt] = useState("");
+  const quickCapture = useRef<HTMLTextAreaElement>(null);
   const session = useRef<Session | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());
   const timer = useRef<number | undefined>(undefined);
@@ -109,6 +113,9 @@ export function App(): JSX.Element {
       rememberProject(path);
       setProject(path);
       setPages(result.data);
+      setPrompt("");
+      const shelf = await commands.listIdeas(path);
+      setIdeas(shelf.status === "ok" ? shelf.data : []);
       const first = result.data[0];
       if (first !== undefined) {
         await showPage(path, first.id);
@@ -158,6 +165,10 @@ export function App(): JSX.Element {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
         void flush();
+      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "i") {
+        event.preventDefault();
+        setShelfOpen(true);
+        window.setTimeout(() => quickCapture.current?.focus(), 0);
       }
     };
     const onHide = (): void => {
@@ -187,6 +198,29 @@ export function App(): JSX.Element {
     timer.current = window.setTimeout(() => {
       void flush();
     }, AUTOSAVE_MS);
+  };
+
+  const captureIdea = async (box: HTMLTextAreaElement): Promise<void> => {
+    if (project === null || box.value.trim() === "") {
+      return;
+    }
+    const result = await commands.addIdea(project, box.value);
+    if (result.status === "error") {
+      setMessage(`Could not save that idea: ${result.error.message}`);
+      return;
+    }
+    box.value = "";
+    setIdeas((prev) => [result.data, ...prev]);
+  };
+
+  const dealPrompt = async (): Promise<void> => {
+    if (project === null) {
+      return;
+    }
+    const result = await commands.nextPrompt(project);
+    setPrompt(
+      result.status === "ok" ? result.data : "You have seen every prompt this app has to offer.",
+    );
   };
 
   const saveLabel =
@@ -239,6 +273,16 @@ export function App(): JSX.Element {
                 onChange(event.target.value);
               }}
             />
+            <div className="prompt-bar">
+              <button type="button" onClick={() => void dealPrompt()}>
+                Prompt
+              </button>
+              {prompt !== "" && (
+                <p>
+                  <span className="label">App prompt</span> {prompt}
+                </p>
+              )}
+            </div>
             <span
               className="save-dot"
               data-state={saveState}
@@ -248,6 +292,38 @@ export function App(): JSX.Element {
             />
             {message !== "" && <p className="note">{message}</p>}
           </section>
+          <aside className="shelf" aria-label="Idea Shelf" data-open={shelfOpen}>
+            <button
+              type="button"
+              aria-expanded={shelfOpen}
+              onClick={() => {
+                setShelfOpen((v) => !v);
+              }}
+            >
+              {shelfOpen ? "Hide ideas" : "Ideas"}
+            </button>
+            {shelfOpen && (
+              <>
+                <textarea
+                  ref={quickCapture}
+                  aria-label="Quick capture"
+                  placeholder="Jot an idea, then ⌘↵"
+                  rows={3}
+                  onKeyDown={(event) => {
+                    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                      event.preventDefault();
+                      void captureIdea(event.currentTarget);
+                    }
+                  }}
+                />
+                <ul>
+                  {ideas.map((idea) => (
+                    <li key={idea.id}>{idea.text}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </aside>
         </div>
       )}
     </main>

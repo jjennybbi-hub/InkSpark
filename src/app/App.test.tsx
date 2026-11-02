@@ -24,6 +24,9 @@ function mockProject(calls: Call[]): void {
     if (cmd === "save_page") {
       return null;
     }
+    if (cmd === "list_ideas") {
+      return [];
+    }
     throw new Error(`unexpected command: ${cmd}`);
   });
 }

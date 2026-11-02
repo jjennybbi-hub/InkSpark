@@ -3,6 +3,7 @@
 
 pub mod commands;
 pub mod error;
+pub mod ideas;
 pub mod project;
 pub mod storage;
 
@@ -11,6 +12,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 pub use commands::{AppInfo, OsKind, app_info};
 pub use error::AppError;
+pub use ideas::Idea;
 pub use project::PageSummary;
 
 /// The first line of the generated bindings file (M0 §3.3).
@@ -25,7 +27,10 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::open_project,
             commands::create_page,
             commands::read_page,
-            commands::save_page
+            commands::save_page,
+            commands::list_ideas,
+            commands::add_idea,
+            commands::next_prompt
         ])
         .typ::<AppError>()
 }

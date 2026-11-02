@@ -4,6 +4,7 @@
 use std::path::Path;
 
 use crate::error::AppError;
+use crate::ideas::{self, Idea};
 use crate::project::{self, PageSummary};
 
 /// Basic facts about the running build of the app.
@@ -88,6 +89,27 @@ pub fn read_page(path: String, id: String) -> Result<String, AppError> {
 #[specta::specta]
 pub fn save_page(path: String, id: String, content: String) -> Result<(), AppError> {
     project::save_page(Path::new(&path), &id, &content)
+}
+
+/// Lists the Idea Shelf, newest first.
+#[tauri::command]
+#[specta::specta]
+pub fn list_ideas(path: String) -> Result<Vec<Idea>, AppError> {
+    ideas::list_ideas(Path::new(&path))
+}
+
+/// Adds a note to the Idea Shelf.
+#[tauri::command]
+#[specta::specta]
+pub fn add_idea(path: String, text: String) -> Result<Idea, AppError> {
+    ideas::add_idea(Path::new(&path), &text)
+}
+
+/// Deals one app prompt this project has not seen before.
+#[tauri::command]
+#[specta::specta]
+pub fn next_prompt(path: String) -> Result<String, AppError> {
+    ideas::next_prompt(Path::new(&path))
 }
 
 #[cfg(test)]
