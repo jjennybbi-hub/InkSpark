@@ -39,7 +39,7 @@ live preview and export, with an acceptable binary-size cost.
   RTL Hebrew compiles; `set_main` changes the output. The `#[ignore]` test `bench_300_pages`
   runs in release.
 - Local: Linux x86_64 container (Intel Xeon, 4 vCPU, 15 GiB), Rust 1.97.0, branch commit
-  `be07662`. Reference only: the decision is made on macos-15 in the `spike-typst` job
+  `7cd420f` (the bench ran on that code before it was committed, so the results JSON records parent `9d2c811`). Reference only: the decision is made on macos-15 in the `spike-typst` job
   (`.github/workflows/spikes.yml`).
 
 ## Criteria and results
