@@ -103,11 +103,20 @@ No `unsafe-eval`. Only `core:default` is granted; no Tauri plugins are registere
   tsconfig.json), with `defaultProject: tsconfig.app.json`. Existing files are excluded because
   typescript-eslint rejects a file that is both default-project and in a tsconfig. Verified
   with and without a simulated spike tsconfig.
+- **fs-write ban hardening.** The ban covers `{ts,tsx,mts,cts,js,jsx,mjs,cjs}` under `src/` and
+  `spikes/*/src/`, catches template-literal `import()`/`require()`, and bans `module`/
+  `node:module` (`createRequire`). Inline eslint comments are disabled there
+  (`noInlineConfig`), so the ban cannot be silenced; unused disable directives are errors
+  everywhere. Frontend `.js` files use the TypeScript parser without type information.
+- **Spikes before their stub.** Spike tests were committed before any spike `package.json`.
+  Existing files of spikes without a `package.json` are left out of the root ESLint run (listed
+  from disk, so virtual paths are still linted), matching the typecheck and vitest guards. Once a
+  spike gets its stub, its tsconfig must include its `tests/` and `fixtures/` TypeScript too.
 - **Lint config for committed tests.** `no-irregular-whitespace` uses `skipRegExps` (the tests
   strip a BOM with a literal U+FEFF in a regex), and `no-unnecessary-condition` is off in test
   and E2E files (they guard `textContent ?? ""`, which lib.dom types as non-null).
 - **Prettier ignores.** `PLAN.md`, `README.md`, `CLAUDE.md` and `docs/**/*.md` (hand-aligned
-  tables), `spikes/*/fixtures/` (byte-exact goldens) and
+  tables), `spikes/*/fixtures/` (byte-exact goldens), `tests/lint/fs-write-ban.test.ts` and
   `tests/config/strictness.test.ts` (committed with one non-Prettier line break; implementers
   may not edit tests). The latter entry should be removed after the Orchestrator reformats it.
 - **`bindings_ts()`** renders through a unique scratch file in the OS temp dir, because

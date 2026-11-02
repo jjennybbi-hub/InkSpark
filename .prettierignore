@@ -25,6 +25,9 @@ spikes/*/fixtures/
 # remove this entry once the Orchestrator runs `prettier --write` on it.
 tests/config/strictness.test.ts
 
+# Same as above for the hardened cases added in de77faa (multi-line BANNED_PATHS array).
+tests/lint/fs-write-ban.test.ts
+
 # Spike and test output
 **/results/
 **/playwright-report/

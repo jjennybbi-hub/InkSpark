@@ -10,11 +10,49 @@ import tseslint from "typescript-eslint";
 const FS_WRITE_MESSAGE = "Writes go through the Rust storage module (CLAUDE.md).";
 const root = import.meta.dirname;
 
+const TS_EXTS = ["ts", "tsx", "mts", "cts"];
+const JS_EXTS = ["js", "jsx", "mjs", "cjs"];
+const TS_EXT_RE = /\.(?:[cm]?ts|tsx)$/;
+const LINTABLE_RE = /\.(?:[cm]?[jt]s|[jt]sx)$/;
+
+/** Frontend code covered by the single-write-path ban (AC-4). */
+const BANNED_DIRS = ["src", "spikes/*/src"];
+const ALL_EXTS = `{${[...TS_EXTS, ...JS_EXTS].join(",")}}`;
+const BANNED_FILES = BANNED_DIRS.map((dir) => `${dir}/**/*.${ALL_EXTS}`);
+
 /** @param {string} dir */
 function listDir(dir) {
   const abs = path.join(root, dir);
   return existsSync(abs) ? readdirSync(abs, { withFileTypes: true }) : [];
 }
+
+/** @param {string} dir @returns {string[]} repo-relative paths of lintable files under `dir` */
+function lintableFiles(dir) {
+  return listDir(dir).flatMap((e) => {
+    const rel = `${dir}/${e.name}`;
+    if (e.isDirectory()) {
+      return e.name === "node_modules" ? [] : lintableFiles(rel);
+    }
+    return e.isFile() && LINTABLE_RE.test(e.name) ? [rel] : [];
+  });
+}
+
+/** @param {string} name @param {string} file */
+const spikeHas = (name, file) => existsSync(path.join(root, "spikes", name, file));
+
+const spikeNames = listDir("spikes")
+  .filter((e) => e.isDirectory())
+  .map((e) => e.name);
+
+/**
+ * Spike test files are committed before their spike has a package.json/tsconfig (M0 §2 step 4).
+ * Until then their existing files are left out of the root lint, like the typecheck and vitest
+ * guards. Only files on disk are listed, so virtual paths such as `spikes/editor-text/src/x.ts`
+ * (tests/lint/fs-write-ban.test.ts) are still linted and still hit the fs-write ban.
+ */
+const pendingSpikeFiles = spikeNames
+  .filter((name) => !spikeHas(name, "package.json"))
+  .flatMap((name) => lintableFiles(`spikes/${name}`));
 
 /** @param {string[]} names */
 function anyExcept(names) {
@@ -22,7 +60,7 @@ function anyExcept(names) {
 }
 
 /**
- * `<dir>/<glob>.ts(x)` matching only files that a tsconfig cannot claim.
+ * `<dir>/<glob>.<ts ext>` matching only files that a tsconfig cannot claim.
  * The TypeScript project service claims only files that exist on disk, so when the package
  * has a tsconfig.json its existing files are excluded; without one, every file matches.
  * @param {string} dir
@@ -31,11 +69,11 @@ function anyExcept(names) {
 function unclaimedGlobs(dir, hasTsconfig) {
   const existing = hasTsconfig
     ? listDir(dir)
-        .filter((e) => e.isFile() && /\.tsx?$/.test(e.name))
-        .map((e) => e.name.replace(/\.tsx?$/, ""))
+        .filter((e) => e.isFile() && TS_EXT_RE.test(e.name))
+        .map((e) => e.name.replace(TS_EXT_RE, ""))
     : [];
-  const name = anyExcept(existing);
-  return [`${dir}/${name}.ts`, `${dir}/${name}.tsx`];
+  const name = anyExcept([...new Set(existing)]);
+  return TS_EXTS.map((ext) => `${dir}/${name}.${ext}`);
 }
 
 /**
@@ -49,21 +87,19 @@ function unclaimedGlobs(dir, hasTsconfig) {
  * @returns {string[]}
  */
 function defaultProjectGlobs() {
-  const spikes = listDir("spikes")
-    .filter((e) => e.isDirectory() && existsSync(path.join(root, "spikes", e.name, "src")))
-    .map((e) => e.name);
+  const withSrc = spikeNames.filter((name) => spikeHas(name, "src"));
   return [
     ...unclaimedGlobs("src", true),
-    ...spikes.flatMap((name) =>
-      unclaimedGlobs(
-        `spikes/${name}/src`,
-        existsSync(path.join(root, "spikes", name, "tsconfig.json")),
-      ),
+    ...withSrc.flatMap((name) =>
+      unclaimedGlobs(`spikes/${name}/src`, spikeHas(name, "tsconfig.json")),
     ),
     // Spikes that do not exist yet.
-    ...unclaimedGlobs(`spikes/${anyExcept(spikes)}/src`, false),
+    ...unclaimedGlobs(`spikes/${anyExcept(withSrc)}/src`, false),
   ];
 }
+
+const FS_MODULE = "^(node:)?(fs|module)(\\/|$)";
+const FS_ANY = `${FS_MODULE}|^@tauri-apps\\/(plugin-fs|api\\/fs)`;
 
 export default defineConfig([
   globalIgnores([
@@ -77,18 +113,23 @@ export default defineConfig([
     "**/playwright-report/**",
     "**/test-results/**",
     "**/coverage/**",
+    ...pendingSpikeFiles,
   ]),
+
+  {
+    linterOptions: { reportUnusedDisableDirectives: "error" },
+  },
 
   // Plain JavaScript (config files): recommended rules, no type information.
   {
-    files: ["**/*.{js,mjs,cjs}"],
+    files: [`**/*.{${JS_EXTS.join(",")}}`],
     extends: [js.configs.recommended],
     languageOptions: { globals: { ...globals.node } },
   },
 
   // TypeScript: typescript-eslint strict + stylistic, type-checked (M0 §3.5).
   {
-    files: ["**/*.{ts,tsx,mts,cts}"],
+    files: [`**/*.{${TS_EXTS.join(",")}}`],
     extends: [
       js.configs.recommended,
       tseslint.configs.strictTypeChecked,
@@ -134,14 +175,23 @@ export default defineConfig([
 
   // React hooks for the app and the spikes' browser code.
   {
-    files: ["src/**/*.{ts,tsx}", "spikes/*/src/**/*.{ts,tsx}"],
+    files: BANNED_DIRS.map((dir) => `${dir}/**/*.{ts,tsx,js,jsx}`),
     extends: [reactHooks.configs.flat.recommended],
     languageOptions: { globals: { ...globals.browser } },
   },
 
-  // Single write path: no filesystem writes from frontend code (AC-4).
+  // Frontend JavaScript is parsed with the TypeScript parser (no type information), so a stray
+  // annotation cannot turn into a fatal parse error that would hide the fs-write ban.
   {
-    files: ["src/**/*.{ts,tsx,js,jsx}", "spikes/*/src/**/*.{ts,tsx,js,jsx}"],
+    files: BANNED_DIRS.map((dir) => `${dir}/**/*.{${JS_EXTS.join(",")}}`),
+    languageOptions: { parser: tseslint.parser },
+  },
+
+  // Single write path: no filesystem access from frontend code (AC-4). Inline eslint comments
+  // are ignored here, so the ban cannot be silenced with `eslint-disable`.
+  {
+    files: BANNED_FILES,
+    linterOptions: { noInlineConfig: true },
     rules: {
       "no-restricted-imports": [
         "error",
@@ -153,6 +203,9 @@ export default defineConfig([
             "node:fs/promises",
             "@tauri-apps/plugin-fs",
             "@tauri-apps/api/fs",
+            // createRequire() would load fs behind the ban.
+            "module",
+            "node:module",
           ].map((name) => ({ name, message: FS_WRITE_MESSAGE })),
           patterns: [
             {
@@ -165,12 +218,19 @@ export default defineConfig([
       "no-restricted-syntax": [
         "error",
         {
-          selector:
-            "ImportExpression[source.value=/^(node:)?fs(\\/|$)|^@tauri-apps\\/(plugin-fs|api\\/fs)/]",
+          selector: `ImportExpression[source.value=/${FS_ANY}/]`,
           message: FS_WRITE_MESSAGE,
         },
         {
-          selector: "CallExpression[callee.name='require'][arguments.0.value=/^(node:)?fs/]",
+          selector: `ImportExpression[source.type='TemplateLiteral'][source.quasis.0.value.cooked=/${FS_ANY}/]`,
+          message: FS_WRITE_MESSAGE,
+        },
+        {
+          selector: `CallExpression[callee.name='require'][arguments.0.value=/${FS_ANY}/]`,
+          message: FS_WRITE_MESSAGE,
+        },
+        {
+          selector: `CallExpression[callee.name='require'][arguments.0.type='TemplateLiteral'][arguments.0.quasis.0.value.cooked=/${FS_ANY}/]`,
           message: FS_WRITE_MESSAGE,
         },
       ],
