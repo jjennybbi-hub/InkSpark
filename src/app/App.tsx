@@ -224,7 +224,7 @@ export function App(): JSX.Element {
       setPrompt("You have seen every prompt this app has to offer.");
       return;
     }
-    setPrompt(next);
+    setPrompt(next.text);
     await commands.markPromptSeen(project, promptHash(next));
   };
 

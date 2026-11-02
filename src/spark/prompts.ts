@@ -1,9 +1,23 @@
+/** Where a prompt came from. The two sources are stored apart and never mixed in one list. */
+export type PromptSource = "ai-drafted" | "human";
+
+export interface Prompt {
+  readonly text: string;
+  readonly source: PromptSource;
+}
+
 /**
- * Writing prompts. These 200 were drafted by an AI (Claude) and hand-edited into a varied set;
- * the project discloses AI authorship as a whole, not per prompt. They are prompts, not quotes:
- * nothing here is attributed to a human author. Keep every entry unique.
+ * Human-written prompts. Empty for now; add them here, never to `AI_DRAFTED`, and cite any
+ * quoted text (author, work, location, link).
  */
-export const PROMPTS: readonly string[] = [
+export const HUMAN_PROMPTS: readonly Prompt[] = [];
+
+/**
+ * The 200 prompts below were drafted by an AI (Claude) and hand-edited. The UI shows no label;
+ * the project discloses AI authorship as a whole. They are prompts, not quotes: nothing here is
+ * attributed to a human author. Keep every entry unique.
+ */
+const AI_DRAFTED: readonly string[] = [
   // Scenes
   "A power cut hits a crowded apartment building at dinnertime. Write the next ten minutes on one staircase.",
   "Two strangers share an umbrella for exactly one block. Neither says a word. Write it.",
@@ -220,3 +234,11 @@ export const PROMPTS: readonly string[] = [
   "What if a single word disappeared from your language tomorrow? Which would you miss?",
   "Where does a story go when the person who knew it dies?",
 ];
+
+export const AI_DRAFTED_PROMPTS: readonly Prompt[] = AI_DRAFTED.map((text) => ({
+  text,
+  source: "ai-drafted",
+}));
+
+/** Everything the dealer may deal, with each prompt's source kept on it. */
+export const PROMPTS: readonly Prompt[] = [...HUMAN_PROMPTS, ...AI_DRAFTED_PROMPTS];
