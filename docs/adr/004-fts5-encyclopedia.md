@@ -1,6 +1,6 @@
 # 004 — FTS5 encyclopedia packs
 
-Status: Proposed · Date: 2026-11-02 · Track: M0-C
+Status: Accepted (No-go) · Date: 2026-11-02 · Track: M0-C
 
 ## Context
 InkSpark ships offline reference packs that writers search without a network (PLAN.md
@@ -90,16 +90,30 @@ and sub-50 ms search for Lite (5k) and mid-size (50k) packs.
   - The decision is made on macos-15 in the `spike-fts` job, which builds on the runner's disk.
 
 ## Criteria and results
-Gates, chosen variant unicode61/full (`gate_*` in the results JSON):
+Gates, chosen variant unicode61/full (`gate_*` in the results JSON). CI columns are from the
+`spike-fts` job of Spikes run 41407643939 on `d75546e` (ubuntu-24.04 x86_64, macos-15 aarch64,
+SQLite 3.54.1), building on the runner's disk; macos-15 decides.
 
 | Metric | Threshold | ubuntu (local container, tmpfs) | ubuntu-24.04 CI | macos-15 CI | Pass |
 |---|---|---|---|---|---|
-| 50k file / raw text | ≤ 1.5× | **1.749×** (532.0 / 304.1 MB) | pending CI | pending CI | **local no** |
-| 5k Lite file | ≤ 75 MB | 53.6 MB | pending CI | pending CI | local yes |
-| Term-query p95, corpus-weighted (50k) | ≤ 30 ms | **86.4 ms** (5k: 10.3 ms) | pending CI | pending CI | **local no** |
-| Prefix `ab*` p95 (50k) | ≤ 80 ms | **2 873 ms** (5k: 325 ms) | pending CI | pending CI | **local no** |
-| Open-to-first-result (50k) | ≤ 150 ms | 0.55 ms (tmpfs, warm) | pending CI | pending CI | local yes |
-| 50k build | ≤ 180 s | 18.0 s | pending CI | pending CI | local yes |
+| 50k file / raw text | ≤ 1.5× | **1.749×** (532.0 / 304.1 MB) | **1.749×** (532.0 / 304.1 MB) | **1.749×** (532.0 / 304.1 MB) | **no** |
+| 5k Lite file | ≤ 75 MB | 53.6 MB | 53.6 MB | 53.6 MB | yes |
+| Term-query p95, corpus-weighted (50k) | ≤ 30 ms | **86.4 ms** (5k: 10.3 ms) | **100.7 ms** (5k: 11.6 ms) | **87.2 ms** (5k: 9.6 ms) | **no** (5k yes) |
+| Prefix `ab*` p95 (50k) | ≤ 80 ms | **2 873 ms** (5k: 325 ms) | **2 805 ms** (5k: **323 ms**) | **2 594 ms** (5k: **300 ms**) | **no** (5k also no) |
+| Open-to-first-result (50k) | ≤ 150 ms | 0.55 ms (tmpfs, warm) | 0.45 ms | 0.42 ms | yes |
+| 50k build | ≤ 180 s | 18.0 s | 21.6 s | 15.5 s | yes |
+
+CI open-to-first-result ran right after the build on the same runner, so the page cache was
+warm; a cold-disk open is not measured. Sizes are identical on all three machines (the corpus
+and build are deterministic).
+
+CI context for the alternatives (p95, ubuntu-24.04 / macos-15):
+- titles table, 50k: title `ab*` 8.7 / 8.2 ms, title `abc*` 0.99 / 0.84 ms, file 534.8 MB
+  (1.758×);
+- body `prefix='2 3'`, 50k: `ab*` 325 / 291 ms, file 749.1 MB (2.463×); at 5k the file is
+  75.4 MB, over the Lite limit;
+- unicode61/column, 50k: 1.370×, but term p95 1 273 / 1 244 ms;
+- 3-character body prefix `abc*`, 50k: 631 / 603 ms.
 
 All variants, local Linux, as context. p95 values in ms; size is file/raw. Results JSON metric
 names are `n<articles>_<variant>_<metric>`. "—" means not measured for that variant.
@@ -141,10 +155,11 @@ What the numbers say:
   characters) and is 3.5× raw. Its size is recorded for future CJK packs.
 
 ## Decision
-**No-go for the design as measured.** It fails three gates:
-- the size ratio (1.749× vs 1.5×);
-- prefix p95 (2 873 ms vs 80 ms);
-- corpus-weighted term p95 (86 ms vs 30 ms at 50k).
+**No-go for the design as measured**, confirmed in CI on both OSes. It fails three gates:
+- the 50k size ratio: 1.75× vs 1.5× (1.749× on every machine);
+- corpus-weighted term p95 at 50k: 87 ms (macos-15) / 101 ms (ubuntu-24.04) vs 30 ms;
+- prefix `ab*` p95 at 50k: 2.6 s (macos-15) / 2.8 s (ubuntu-24.04) vs 80 ms. Even the 5k Lite
+  pack fails it: 300 ms / 323 ms.
 
 The tokenizer and detail choice still stands: unicode61 `remove_diacritics 2`, `detail=full`.
 - porter brings no size or speed benefit and stems proper nouns;
@@ -160,7 +175,7 @@ against the same thresholds before it counts:
      (MIT/Zlib/Apache).
    - Expected ≈ 0.75× index + ~0.35–0.45× compressed text ≈ 1.1–1.2×, not yet measured.
 2. **Prefix**: type-ahead goes to the separate prefix-indexed titles table, which is measured:
-   7.4 ms p95 at 50k. Body prefix search requires ≥ 3 characters and is not part of type-ahead.
+   7.4 ms p95 at 50k locally, 8.2 ms (macos-15) and 8.7 ms (ubuntu-24.04) in CI. Body prefix search requires ≥ 3 characters and is not part of type-ahead.
    This changes the meaning of the prefix gate from "body `ab*`" to "title type-ahead `ab*`",
    which is a decision for the Orchestrator/user, not this spike.
 3. **Common-term queries**: bound bm25-over-everything. Options:
@@ -173,6 +188,8 @@ against the same thresholds before it counts:
    (M7-B). The synthetic vocabulary, word lengths and Zipf tail only approximate English.
 
 ## Consequences
+- M7-B (encyclopedia packs) cannot start on this design. It is blocked on the decision about
+  the proposed path, and then on the re-measure gate.
 - Pack format v1 (M7-B contract, if the path above is accepted):
   - a single read-only `.sqlite`, journal_mode DELETE, with a `meta` table (`schema_version`,
     `tokenizer`, `detail`, `external_content`, `prefix_index`, `title_index`);
@@ -203,8 +220,9 @@ against the same thresholds before it counts:
 No license exceptions are needed; `cargo deny check` passes.
 
 ## Follow-ups
-- M0: fill in the ubuntu-24.04 and macos-15 columns from the `spike-fts` job, then decide on the
-  proposed path (Orchestrator/user).
+- Orchestrator/user, before M7-B: decide whether to take the proposed path to
+  Go-with-conditions (including the change of the prefix gate to title type-ahead and a
+  compression dependency). Until then the encyclopedia feature has no approved design.
 - Before M7-B (re-measure gate): implement conditions 1–3 in the spike and re-run `fts-bench`.
 - M7-B:
   - a real-data run on Wikipedia text in CI (blocked locally: dumps.wikimedia.org);
@@ -214,7 +232,7 @@ No license exceptions are needed; `cargo deny check` passes.
 - CJK packs: trigram (or an ICU tokenizer) sizing on real CJK text.
 
 ## Links
-- CI: `spike-fts (ubuntu-24.04)`, `spike-fts (macos-15)` in `.github/workflows/spikes.yml`.
-  Artifacts `spike-fts-ubuntu-24.04` and `spike-fts-macos-15` (`results/<os>.json`). Run URLs
-  pending CI.
+- CI run (Spikes, jobs `spike-fts (ubuntu-24.04)` and `spike-fts (macos-15)`, code at
+  `d75546e`): https://github.com/jjennybbi-hub/InkSpark/actions/runs/41407643939
+- Artifacts: `spike-fts-ubuntu-24.04`, `spike-fts-macos-15` (`results/<os>.json`).
 - Local results file: `spikes/fts5-encyclopedia/results/linux-local.json` (not committed).

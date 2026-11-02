@@ -20,12 +20,12 @@
 | Saving | Autosave plus ⌘S, atomic writes, crash journal, version history, local backups. |
 | Prompts | Randomizer over word/phrase banks and templates (AI-drafted and labeled), with a never-repeat ledger. Quotes and passages are real, cited human text only. |
 | Previews | Scrivener-level accuracy: the real compiled PDF and EPUB, plus a flat cover preview. |
-| Writing direction | LTR, RTL, vertical-RL and vertical-LR (vertical depends on the M0 spike). |
+| Writing direction | LTR and RTL for editing. Vertical-RL/LR only in preview and EPUB export: the M0 spike was a No-go for editable vertical text on WebKit (ADR 001). |
 | Name | InkSpark: no conflicting writing app found. A trademark check is due before selling (§9). |
 
 ## 2. Release 1 scope
 **In:**
-- **Write & save**: the save stack; calm editor with focus modes; free pages and scenes; split view; back/forward trail; LTR/RTL (vertical if the spike passes); multilingual fonts.
+- **Write & save**: the save stack; calm editor with focus modes; free pages and scenes; split view; back/forward trail; LTR/RTL (vertical editing was a No-go in M0, ADR 001); multilingual fonts.
 - **Ideas**: Idea Shelf, quick capture (⌘I), night notes, scraps from highlights, voice notes (macOS), "Save to Ideas" on every spark.
 - **Personal space**: themes, fonts, places, your own music and generated ambience.
 - **Sparks**: prompt randomizer, offline quotes/passages/images with source picker, Walk Break, Craft Library core.
@@ -131,6 +131,15 @@ Each milestone ends with a usable app and a macOS CI artifact. Tracks within a m
 - D: macOS Speech plugin (dictation and read-aloud), `.scriv` parser prototype.
 - Accept: CI green on 3 OSes; downloadable Mac app opens; one ADR per spike with a go/no-go.
 
+- **M0 status: done** (report: `docs/milestones/M0-report.md`). Spike verdicts:
+  - vertical editing on WebKit: **No-go** (ADR 001);
+  - Typst PDF: **Go-with-conditions**; the app-size cost needs a user decision (ADR 002);
+  - foliate-js: **Go-with-conditions** (ADR 003);
+  - FTS5 encyclopedia: **No-go as designed**; a revised path needs a decision before M7-B (ADR 004);
+  - macOS speech: **pending the user's Mac test** (ADR 005);
+  - `.scriv` parser: **Go** (ADR 006);
+  - toolchain/CI: **Go** (ADR 007).
+
 **M1: Write & save (first usable app)**
 - A (`storage/`): atomic writes, journal and recovery, snapshots and retention, local backups with test-restore, file watcher with external-change "both versions" prompt.
 - B (`contracts`, data layer): project folder schema, migrations, autosave/⌘S orchestration, status dot.
@@ -202,7 +211,7 @@ Each milestone ends with a usable app and a macOS CI artifact. Tracks within a m
   - deleting a pack leaves projects intact.
 
 **M8: Hardening & Release 1**
-- A: vertical writing (if the spike passed), plus language font packs completed.
+- A: vertical writing in preview/export (editing was a No-go in M0, ADR 001; it can be reopened only with a custom caret layer and a new spike), plus language font packs completed.
 - B: accessibility pass (VoiceOver, keyboard, contrast) and performance pass.
 - C: full E2E journey (idea → plan → draft → marks → EPUB/PDF), macOS `.dmg` artifact, user guide.
 - Accept: all gates green on 3 OSes; the user signs off after testing the Mac build.

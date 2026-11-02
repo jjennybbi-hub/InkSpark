@@ -1,6 +1,6 @@
 # 007 — Toolchain, CI and E2E
 
-Status: Proposed · Date: 2026-11-02 · Track: M0-A
+Status: Accepted · Date: 2026-11-02 · Track: M0-A
 
 ## Context
 Every later milestone builds on the M0 scaffold: one Cargo workspace, one npm workspace root,
@@ -25,14 +25,28 @@ fallback versions are needed.
   by the Orchestrator.
 
 ## Criteria and results
+CI: the scaffold run 41390828138 (ci.yml, all jobs green on ubuntu, macOS and Windows), and the
+latest run 41407643715 on `d75546e` (after the spikes were merged).
+
 | Metric | Threshold | ubuntu | macos | Pass |
 |---|---|---|---|---|
-| Pinned versions resolve and compile together | yes | yes (local) | CI | local yes |
-| Local gate (all commands above) | green | green (local) | CI | local yes |
-| `check` job | green ×3 | CI | CI | pending CI |
-| `build-macos` smoke (alive 15 s) | yes | — | CI | pending CI |
-| `e2e-linux` | green | CI | — | pending CI |
-| `audit` | green | green (local) | — | local yes |
+| Pinned versions resolve and compile together | yes | yes (local, CI) | yes (CI) | yes |
+| Local gate (all commands above) | green | green (local) | green (CI `check`) | yes |
+| `check` job | green ×3 | green in 41390828138; **failed** in 41407643715 (runner disk full) | green in both runs | yes (scaffold); latest run fixed in `9aadafe`, see below |
+| `check (windows-2022)` | green | green in 41390828138; **failed** in 41407643715 (fts temp-dir name with `:`) | — | as above |
+| `build-macos` smoke (alive 15 s) | yes | — | yes: universal `.app` and `.dmg` built and smoke-launched in 41390828138; in 41407643715 the `.dmg` (4.61 MiB) built on the first attempt | yes |
+| `e2e-linux` | green | green in both runs (`smoke.e2e.ts` 1/1) | — | yes |
+| `audit` | green | green (local, CI) | — | yes |
+
+**Infrastructure failures in run 41407643715**, both fixed in `9aadafe` (not code regressions):
+- ubuntu `check`: the runner disk filled while building the workspace with the spike crates
+  (its log could not be retrieved). Fix: free runner disk before the build and set
+  `CARGO_PROFILE_*_DEBUG=0` to shrink debug artifacts.
+- Windows `check`: two `inkspark-spike-fts` unit tests (`a_failed_build_leaves_no_file_behind`,
+  `title_index_serves_prefix_type_ahead`) panicked because a temp-dir name contained `:`, which
+  Windows paths do not allow. Fix: Windows-safe temp-dir names.
+
+The final green run after `9aadafe` is linked in the M0 report.
 
 ### Versions (resolved, from the lockfiles)
 | Rust crate | Version | | npm package | Version |
@@ -55,7 +69,11 @@ specta-typescript 0.0.13 is the last release on rc.26 (0.0.14 moves to rc.27). N
 (Vite 7 / plugin-react 5) was needed.
 
 ## Decision
-**Go** with the §3.2 set, pending green CI.
+**Go** with the §3.2 set. The scaffold CI was green on all 3 OSes (run 41390828138): `check` ×3,
+`audit`, the E2E smoke on ubuntu, and the universal macOS `.app` plus `.dmg` built and
+smoke-launched for 15 s. The two failures in the later run 41407643715 were runner
+infrastructure (disk space) and a Windows-unsafe temp-dir name in a spike test, both fixed in
+`9aadafe`. No fallback version, E2E fallback or `hdiutil` fallback was needed.
 
 ### E2E: included, required, ubuntu only
 - WebdriverIO 10 + `tauri-driver` 2.1.0 + WebKitWebDriver (`webkit2gtk-driver`) under
@@ -160,6 +178,13 @@ MIT/GPL-3.0, MIT elected), `pako` (MIT AND Zlib), CC-BY-3.0 (`spdx-exceptions`) 
 - After A is integrated, the root config files listed under A in M0.md §2.1 are
   Orchestrator-owned.
 - M1's "write → crash → reopen" E2E reuses `e2e/wdio.conf.ts`.
+- The ubuntu `check` job runs close to the runner's disk limit once all spike crates build. It
+  now frees disk first and builds without debug info; new heavy crates (typst in `src-tauri`,
+  for example) must be checked against this.
+- Test temp-dir names must be valid on Windows (no `:` and no other reserved characters).
+- **Branch protection on `main` is not yet enabled.** The required checks (`check` ×3,
+  `build-macos`, `e2e-linux`, `audit`) are not enforced until the user enables it in the GitHub
+  repository settings; Claude cannot do this.
 
 ## Dependencies added
 | Name | Version | License | Reason |
@@ -175,14 +200,20 @@ MIT/GPL-3.0, MIT elected), `pako` (MIT AND Zlib), CC-BY-3.0 (`spdx-exceptions`) 
 | @tauri-apps/cli | 2 | MIT OR Apache-2.0 | Build tooling |
 
 ## Follow-ups
-- Fill in CI run links and flip to Accepted once `check` ×3, `build-macos`, `e2e-linux` and
-  `audit` are green (Orchestrator, M0).
+- User: enable branch protection on `main` with `check` ×3, `build-macos`, `e2e-linux` and
+  `audit` as required status checks (GitHub → Settings → Branches).
+- Orchestrator (M0): confirm the final green CI run after `9aadafe` and link it in the M0
+  report.
 - Remove the `tests/config/strictness.test.ts` Prettier ignore after reformatting (M0).
 - Revisit the two advisory exceptions (M2).
 - Replace the placeholder ink-drop icon with a designed one (before Release 1).
 
 ## Links
-- CI run: _to be added by the Orchestrator_
+- Scaffold CI run, green on all 3 OSes:
+  https://github.com/jjennybbi-hub/InkSpark/actions/runs/41390828138
+- Latest CI run before the fixes (code at `d75546e`; ubuntu and Windows `check` failed on
+  infrastructure): https://github.com/jjennybbi-hub/InkSpark/actions/runs/41407643715
+- Final green run: see M0 report.
 - Artifact: `InkSpark-macos-universal-unsigned` (`InkSpark-macos-universal.app.zip`, `.dmg`)
 
 ## Integration fixes (Orchestrator, first CI run)

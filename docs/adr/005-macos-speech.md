@@ -62,21 +62,33 @@ module and every block/run-loop callback bounded by a timeout.
 - Manual: the user runs the artifact on their Mac (below).
 
 ## Criteria and results
+CI: `ci_` tests from the `spike-speech` job (macos-15) of Spikes run 41407643939 on `d75546e`;
+clippy and `unsafe_audit` from the `check (macos-15)` job of CI run 41407643715.
+
 | Metric | Threshold | ubuntu | macos | Pass |
 |---|---|---|---|---|
-| Stub: every function `Err(Unsupported)` | yes | 9/9 tests (local) | — | local yes |
-| `unsafe` only in `src/macos/`, each with `// SAFETY:` | yes | 7/7 tests (local) | same test in CI | local yes |
-| macOS code type-checks, clippy `-D warnings` (aarch64-apple-darwin) | clean | clean (local cross-check) | pending CI (spike-speech job on macos-15) | local yes |
-| `ci_list_voices_includes_english` | non-empty, has `en*` | — | pending CI (spike-speech job on macos-15) | pending |
-| `ci_synthesize_to_pcm_produces_audio` | `frames > 0`, `duration_ms ≥ 1000` | — | pending CI (spike-speech job on macos-15) | pending |
-| `ci_supported_locales_contains_en_us` | contains `en-US` | — | pending CI (spike-speech job on macos-15) | pending |
-| `ci_recognizer_status_returns_without_prompting` | `Ok`, no hang | — | pending CI (spike-speech job on macos-15) | pending |
+| Stub: every function `Err(Unsupported)` | yes | 9/9 tests (local); CI not measured in this run (ubuntu `check` ran out of disk, Windows `check` stopped at the fts failure) | — | local yes |
+| `unsafe` only in `src/macos/`, each with `// SAFETY:` | yes | 7/7 tests (local) | pass (`check (macos-15)`) | yes |
+| macOS code type-checks, clippy `-D warnings` | clean | clean (local aarch64-apple-darwin cross-check) | clean (`cargo clippy --workspace --all-targets -- -D warnings`, `check (macos-15)`) | yes |
+| `ci_list_voices_includes_english` | non-empty, has `en*` | — | pass | yes |
+| `ci_synthesize_to_pcm_produces_audio` | `frames > 0`, `duration_ms ≥ 1000` | — | **fail**: `Failed("buffer callback never fired (main thread: false)")` | **no** (R5, see below) |
+| `ci_supported_locales_contains_en_us` | contains `en-US` | — | pass | yes |
+| `ci_recognizer_status_returns_without_prompting` | `Ok`, no hang | — | pass | yes |
 | Manual: `status en-US` | `supports_on_device: true` | — | pending (user's Mac) | pending |
 | Manual: `dictate en-US 15`, 3 read sentences | WER ≤ 15 %, on-device | — | pending (user's Mac) | pending |
 | Manual: `speak "Hello"` | audible | — | pending (user's Mac) | pending |
 
-A CI runner may have no voices installed or no on-device model. If a `ci_` test fails only for
-that reason, the result is reported here and the decision relies on the manual run (R5).
+The job ran without `--nocapture`, so the voice count, locale count and recognizer status values
+were not printed: not measured. A CI runner may have no voices installed or no on-device model.
+If a `ci_` test fails only for that reason, the result is reported here and the decision relies
+on the manual run (R5).
+
+**CI result: 3 of 4 `ci_` tests pass.** Voices, locales and recognizer status work through objc2
+from a test thread without prompting or hanging. `ci_synthesize_to_pcm_produces_audio` fails with
+exactly the predicted R5 message below: the buffer callback needs the main run loop, and the
+libtest worker thread is not the main thread, while libtest blocks the main thread. This does
+not show that the API fails; it shows that synthesis must be driven from the main run loop. The
+CLI runs on the main thread, so the manual `speak`/`synth` run decides read-aloud.
 
 **Risk: the synthesizer's buffer-callback queue is undocumented.** Apple does not say on which
 queue `writeUtterance:toBufferCallback:` calls back. The `ci_` tests call it from a spawned
@@ -96,9 +108,9 @@ network".
 The tool is one small program that runs in Terminal. It works on both Apple Silicon and
 Intel Macs (it is a universal binary).
 
-1. Open the latest CI run of this branch on GitHub, scroll to **Artifacts**, and download
-   `speech-spike-macos`. You must be signed in to GitHub to download artifacts. Unzip it;
-   you get a file called `speech-spike`.
+1. Open the latest green **Spikes** run of this branch on GitHub (Actions → Spikes), scroll to
+   **Artifacts**, and download `speech-spike-macos`. You must be signed in to GitHub to
+   download artifacts. Unzip it; you get a file called `speech-spike`.
 2. Open Terminal (in Applications → Utilities) and go to that folder, for example
    `cd ~/Downloads/speech-spike-macos`.
 3. Make the file runnable. The zip download loses the "this is a program" mark, so type
@@ -134,10 +146,20 @@ turn Dictation on for English (US) so the on-device model downloads, and try aga
 Speech Recognition and → Microphone.
 
 ## Decision
-**Pending** (Proposed). The go/no-go rule:
+**Pending the user's manual test** (Status stays Proposed). CI has done what it can: 3 of 4 `ci_`
+tests pass, and the synthesis failure is the predicted main-run-loop limitation of the test
+harness (R5), not an API failure. What remains:
+- **Read-aloud** is decided by the manual `speak "Hello"` (audible) and `synth` run, which run on
+  the main thread and pump its run loop. If they work, read-aloud is Go; if the callback still
+  never fires there, the swift-rs fallback below applies.
+- **Dictation** is Go only if the manual `status en-US` shows `supports_on_device: true` and
+  `dictate en-US 15` works on-device (WER ≤ 15 %). Otherwise dictation is No-go.
+
+The go/no-go rule, fixed before the results:
 - **Go** needs both: CI green (macOS compiles clippy-clean, the `ci_` tests pass, the stub passes
   on Linux and Windows) **and** the manual run passes (`supports_on_device: true`, dictation
-  WER ≤ 15 % with on-device recognition, `speak` audible).
+  WER ≤ 15 % with on-device recognition, `speak` audible). As the R5 note above allows, the
+  failing synthesis `ci_` test is replaced by the manual CLI synthesis run.
 - **Dictation is No-go if on-device recognition is unavailable.** Network-based recognition
   sends the writer's audio to Apple's servers, which breaks local-first (and Detox mode); it is
   never used as a fallback. Read-aloud is then assessed on its own and can still be Go.
@@ -147,6 +169,12 @@ Speech Recognition and → Microphone.
 
 ## Consequences
 - The dictation and read-aloud features stay behind their flags until this ADR is Accepted.
+- Synthesis (and, to be safe, every Speech/AVFAudio callback) must be driven from the main run
+  loop, or from a thread that runs its own run loop and is confirmed to receive callbacks. In a
+  Tauri app the main thread runs the AppKit run loop, so the production plugin must dispatch
+  these calls to the main thread rather than block a worker waiting for them.
+- CI cannot test synthesis under libtest. A future CI check must run the CLI binary (main
+  thread) instead, for example `speech-spike synth "…"` as a separate step.
 - The production version becomes a Tauri plugin crate that keeps the same `unsafe` rules and
   audit test. It must run synthesis and recognition off the UI thread and stream partial
   results through a typed event contract (Orchestrator request when that milestone starts).
@@ -180,14 +208,23 @@ Default features of the three framework crates are off; only the classes used ar
 objc2-core-video and objc2-audio-toolbox from the build.
 
 ## Follow-ups
-- M0 (Orchestrator): fill in the macos-15 `spike-speech` run link and results; record the
-  user's manual results and set the verdict.
+- User (M0): run the four manual commands above and send back the output plus the three
+  sentences read. Orchestrator: record the results and WER here, set the verdicts for
+  read-aloud and dictation, and set Status to Accepted.
+- CI: replace the libtest synthesis check with a step that runs the `speech-spike` CLI on the
+  main thread, and add `--nocapture` (or a CLI `voices`/`status` step) so voice and locale
+  counts are visible.
+- Stub tests on Linux and Windows CI: confirm in the final green CI run (see M0 report).
 - Dictation milestone: WER measured on a fixed passage set, partial results in the editor,
   punctuation (`addsPunctuation`), and a record-permission check before listening.
 - Read-aloud milestone: voice picker from `list_voices`, rate/pitch, highlighting via
   `willSpeakRangeOfSpeechString` (needs an objc2 `define_class!` delegate).
-- If the CI runner has no voices, add a CI step that lists voices so the cause is visible.
 
 ## Links
-- CI run: pending CI (spike-speech job on macos-15).
-- Artifact: `speech-spike-macos`.
+- CI run (Spikes, job `spike-speech`, macos-15, code at `d75546e`):
+  https://github.com/jjennybbi-hub/InkSpark/actions/runs/41407643939
+- Clippy and `unsafe_audit` on macOS (`check (macos-15)`):
+  https://github.com/jjennybbi-hub/InkSpark/actions/runs/41407643715
+- Artifact: `speech-spike-macos` from the latest green Spikes run (the follow-up run on
+  `9aadafe`, which keeps the job going past the recorded synthesis failure so the CLI is built
+  and uploaded).

@@ -1,6 +1,6 @@
 # 001 — Vertical and RTL text in TipTap on WebKit
 
-Status: Proposed · Date: 2026-11-02 · Track: M0-B
+Status: Accepted · Date: 2026-11-02 · Track: M0-B
 
 ## Context
 PLAN §1 promises writing in any direction: left-to-right, right-to-left (Hebrew, Arabic) and
@@ -59,45 +59,66 @@ the horizontal baseline.
 - **Commit**: functional results and the latency numbers from the five-run check are from
   `006dc72`; the first amended-latency runs are from `9764091`; the superseded rAF-based latency
   numbers are from `65dc6e4`.
+- **CI**: Spikes run 41407643939 on `d75546e` (see Links).
 - **Decides**: WebKit on macos-15 (closest to WKWebView). Ubuntu WebKit is a second data point;
   local Chromium is a sanity check only and does not count toward the verdict.
 
 ## Criteria and results
-Functional tests: ✓ pass, ✗ fail. WebKit columns are filled in by the Orchestrator from the
-`spike-editor` CI job.
+Functional tests: ✓ pass, ✗ fail. CI numbers are from the `spike-editor` job of Spikes run
+41407643939 on `d75546e`: Playwright WebKit 26.6 and Chromium 153.0.8010.12, on ubuntu-24.04
+(x86_64) and macos-15 (aarch64). For vertical rows the cell is `vertical-rl / vertical-lr`. The
+Pass column is macos-15 WebKit, which decides (for vertical rows, `vertical-rl` decides).
 
-| Test | Threshold | Chromium (local, Linux) | ubuntu WebKit | macos WebKit | Pass |
-|---|---|---|---|---|---|
-| ltr: typing inserts | pass | ✓ | pending CI | pending CI | pending CI |
-| ltr: Ctrl/Cmd+Z undoes typing | pass | ✓ | pending CI | pending CI | pending CI |
-| ltr: Shift+ArrowLeft ×5 selects 5 | pass | ✓ | pending CI | pending CI | pending CI |
-| ltr: Enter creates a paragraph | pass | ✓ | pending CI | pending CI | pending CI |
-| ltr: paste event inserts at caret | pass | ✓ | pending CI | pending CI | pending CI |
-| rtl he/ar: typing inserts at caret | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| rtl he/ar: ArrowLeft is logical +1 | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| rtl he/ar: line start/end keys | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| rtl he/ar: mixed number run order | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| vertical-rl / lr: insertText Japanese (P0 typing) | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| vertical-rl / lr: ArrowDown +1, ArrowUp −1 (P0 arrows) | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| vertical-rl / lr: next-line arrow (P0 arrows) | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| vertical-rl / lr: previous-line arrow (P0 arrows) | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| vertical-rl / lr: click centre of `coordsAtPos(k)`, 20 k (P0 click-to-caret) | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| vertical-rl / lr: Shift+ArrowDown selects 1 (P0 selection) | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| vertical-rl / lr: Backspace deletes 1 (P0) | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| vertical-rl / lr: Enter splits (P0) | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| vertical-rl / lr: 20,000 chars, end of doc, caret in viewport (P0 caret visible) | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| vertical-rl / lr: undo restores (P0 undo) | pass | ✓ / ✓ | pending CI | pending CI | pending CI |
-| harness unit tests (vitest, jsdom; 38 tests) | pass | ✓ (Node) | — | — | ✓ |
+| Test | Threshold | Chromium local | Chromium ubuntu | Chromium macos | WebKit ubuntu | WebKit macos | Pass |
+|---|---|---|---|---|---|---|---|
+| ltr: typing inserts | pass | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| ltr: Ctrl/Cmd+Z undoes typing | pass | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| ltr: Shift+ArrowLeft ×5 selects 5 | pass | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| ltr: Enter creates a paragraph | pass | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| ltr: paste event inserts at caret | pass | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| rtl he/ar: typing inserts at caret | pass | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ |
+| rtl he/ar: ArrowLeft is logical +1 | pass | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ |
+| rtl he/ar: line start/end keys | pass | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ |
+| rtl he/ar: mixed number run order | pass | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ |
+| vertical: insertText Japanese (P0 typing) | pass | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ |
+| vertical: ArrowDown +1, ArrowUp −1 (P0 arrows) | pass | ✓ / ✓ | ✓ / ✓ | ✗ / ✗ | ✗ / ✗ | ✗ / ✗ | ✗ |
+| vertical: next-line arrow (P0 arrows) | pass | ✓ / ✓ | ✓ / ✓ | ✗ / ✓ | ✗ / ✓ | ✗ / ✓ | ✗ |
+| vertical: previous-line arrow (P0 arrows) | pass | ✓ / ✓ | ✓ / ✓ | ✗ / ✓ | ✗ / ✓ | ✗ / ✓ | ✗ |
+| vertical: click centre of `coordsAtPos(k)`, 20 k (P0 click-to-caret) | pass | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✗ (20/20 missed) / ✗ (17/20) | ✗ (19/20 missed) / ✗ (17/20) | ✗ |
+| vertical: Shift+ArrowDown selects 1 (P0 selection) | pass | ✓ / ✓ | ✓ / ✓ | ✗ / ✗ | ✗ / ✗ | ✗ / ✗ | ✗ |
+| vertical: Backspace deletes 1 (P0) | pass | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ |
+| vertical: Enter splits (P0) | pass | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ |
+| vertical: 20,000 chars, end of doc, caret in viewport (P0 caret visible) | pass | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✗ / ✗ | ✗ / ✗ | ✗ |
+| vertical: undo restores (P0 undo) | pass | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ / ✓ | ✓ |
+| harness unit tests (vitest, jsdom; 38 tests) | pass | ✓ (Node) | — | — | — | — | ✓ |
 
-Input latency (amended definition), 50,000-character doc, 200 samples (ms). The first two runs
-(`9764091`) give p50 / p95; the five-run check (`006dc72`) gives p95 for each run:
+Totals (74 Playwright tests per OS, 37 per engine): ubuntu-24.04 64 pass / 10 fail (all WebKit);
+macos-15 58 pass / 16 fail (10 WebKit, 6 Chromium). The 10 WebKit failures are the same tests on
+both runners: 6 in `vertical-rl`, 4 in `vertical-lr`.
 
-| Mode | Threshold (p95) | Chromium (local) | ubuntu WebKit | macos WebKit | Pass |
-|---|---|---|---|---|---|
-| ltr | ≤ 16 | 0.6 / 1.4; 0.7 / 2.1. p95 ×5: 1.9, 1.5, 1.5, 1.1, 1.6 | pending CI | pending CI | pending CI |
-| rtl | ≤ 16 | 0.8 / 1.7; 0.7 / 2.0. p95 ×5: 1.8, 1.6, 1.7, 1.4, 1.9 | pending CI | pending CI | pending CI |
-| vertical-rl | ≤ 16 | 0.9 / 2.3; 0.9 / 2.2. p95 ×5: 1.7, 1.4, 1.3, 1.5, 1.9 | pending CI | pending CI | pending CI |
-| vertical-lr | ≤ 16 | 0.9 / 2.1; 0.9 / 2.6. p95 ×5: 1.8, 1.2, 0.9, 1.0, 1.8 | pending CI | pending CI | pending CI |
+Input latency (amended definition), 50,000-character doc, 200 samples, p50 / p95 in ms. Local
+Chromium: the first two runs (`9764091`) give p50 / p95, and the five-run check (`006dc72`) gives
+p95 for each run. WebKit values are quantized to 1 ms (see Method).
+
+| Mode | Threshold (p95) | Chromium local | Chromium CI ubuntu / macos | WebKit ubuntu | WebKit macos | Pass |
+|---|---|---|---|---|---|---|
+| ltr | ≤ 16 | 0.6 / 1.4; 0.7 / 2.1. p95 ×5: 1.9, 1.5, 1.5, 1.1, 1.6 | 0.9 / 1.2; 0.6 / 1.4 | 2 / 4 | 1 / 2 | ✓ |
+| rtl | ≤ 16 | 0.8 / 1.7; 0.7 / 2.0. p95 ×5: 1.8, 1.6, 1.7, 1.4, 1.9 | 1.0 / 1.4; 0.9 / 1.8 | 2 / 5 | 1 / 2 | ✓ |
+| vertical-rl | ≤ 16 | 0.9 / 2.3; 0.9 / 2.2. p95 ×5: 1.7, 1.4, 1.3, 1.5, 1.9 | 1.2 / 1.6; 0.7 / 1.7 | 3 / 6 | 2 / 2 | ✓ |
+| vertical-lr | ≤ 16 | 0.9 / 2.1; 0.9 / 2.6. p95 ×5: 1.8, 1.2, 0.9, 1.0, 1.8 | 1.1 / 1.6; 0.8 / 1.8 | 3 / 5 | 1 / 3 | ✓ |
+
+**What fails, and how.** On WebKit the vertical arrow keys move the caret physically rather than
+logically: in `vertical-rl` the next-line and previous-line keys move the wrong way (the tests
+got −1 where they expected ≥ +1), and ArrowDown/ArrowUp within a line and Shift+ArrowDown do not
+give ±1 (for example, the caret ended at 11 where 4 was expected). Clicking the centre of
+`coordsAtPos(k)` lands away from `k` for 17–20 of 20 positions. Every logged miss is 17–21
+positions off, about one vertical line (a 304 px line holds about 19 characters at 16 px), so
+the click lands on the neighbouring line: ProseMirror's `coordsAtPos` and WebKit's hit testing
+disagree in vertical text. After a
+20,000-character document and End-of-doc, the caret is not scrolled into the viewport. macOS
+Chromium also fails 6 vertical arrow/selection tests (within-line arrows in both modes, next- and
+previous-line in `vertical-rl`, Shift+ArrowDown in both modes), so the arrow problem is not
+WebKit-only; ubuntu Chromium passes everything.
 
 **Stability.** The Test-author's first full run (before the 2×2 layout and the readiness wait,
 with other agents compiling at the same time) had 7 failures: perf vertical-rl and vertical-lr;
@@ -124,8 +145,10 @@ plus a forced layout. These old numbers are kept for the record only and do not 
 verdict.
 
 ## Decision
-**Pending CI.** The rule below is fixed before the WebKit numbers are known (M0.md §4.3); macos-15
-WebKit decides.
+**No-go for editable vertical writing on WebKit. Go for LTR and RTL.**
+
+The rule below was fixed before the WebKit numbers were known (M0.md §4.3); macos-15 WebKit
+decides.
 
 - **Go** if all of:
   - every baseline and RTL test passes on both WebKit runners (ubuntu-24.04 and macos-15);
@@ -140,17 +163,36 @@ WebKit decides.
   becomes preview/export-only (EPUB CSS) and PLAN §1's writing-direction line is updated.
 - `vertical-lr` results are recorded but do not decide the verdict.
 
+Measured: `vertical-rl` has 6 P0 failures on macos-15 WebKit (within-line arrows, next-line
+arrow, previous-line arrow, click-to-caret, Shift+ArrowDown, caret in viewport), and the same 6
+on ubuntu WebKit; `vertical-lr` adds 4 more on each runner (within-line arrows, click-to-caret,
+Shift+ArrowDown, caret in viewport). That is 10 P0 failures per WebKit runner, and click-to-caret
+is broken, so both No-go conditions hold. Typing, Backspace, Enter and undo work in vertical
+text; navigation and hit testing do not. All baseline (LTR) and RTL tests pass on every engine
+and OS, and p95 input latency passes everywhere (WebKit ≤ 6 ms, Chromium ≤ 1.8 ms), so LTR/RTL
+editing is Go.
+
 Local Chromium: all 37 browser tests and all 38 harness unit tests pass in every run; it is a
 sanity check that the harness and tests are correct, not evidence for WebKit.
 
 ## Consequences
-- If Go: M1 builds the editor on TipTap 3 with `writing-mode` set on the editor host, the same
-  way as this harness. Vertical writing stays behind the `verticalWriting` flag until it is
-  re-checked in the real app on the user's Mac (risk R4: Playwright WebKit is not exactly
-  WKWebView).
+- M1 builds the editor on TipTap 3 for LTR and RTL, with `dir` set on the editor host the same
+  way as this harness.
+- Per M0.md §4.3, vertical writing becomes preview/export-only: vertical text is shown in
+  preview and written to EPUB with CSS `writing-mode`, but is not edited in vertical layout.
+  PLAN §1's writing-direction line must be updated to say so.
+- The `verticalWriting` flag stays off. M8-A may reopen editable vertical writing only with a
+  custom caret/keymap layer (logical arrow mapping, own hit testing, own scroll-into-view) and a
+  new spike that passes this ADR's P0 tests on macos-15 WebKit.
+- Because macOS Chromium also fails 6 vertical arrow tests, browser-native vertical caret
+  movement cannot be relied on in any engine; a future custom layer should not assume Chromium
+  behaviour as the reference.
 - Vertical PDF is out of scope here: Typst has no vertical layout (see ADR 002).
 - No contract changes are needed for M1 from this spike. The spike package is never a
   dependency of `src` or `src-tauri`.
+- From `9aadafe`, the CI `npm run spike:editor` step is `continue-on-error`: the vertical
+  failures are this spike's recorded finding, and the results JSON and Playwright report are
+  still uploaded. The step stays visibly failed in the log.
 
 ## Dependencies added
 All in `spikes/editor-text/package.json`; none reach the shipped app in M0.
@@ -165,13 +207,19 @@ All in `spikes/editor-text/package.json`; none reach the shipped app in M0.
 | vite, vitest, jsdom | ^8.3.5, ^5.0.5, ^30.1.3 | MIT | Spike page build and unit tests (same versions as the root, ADR 007) |
 
 ## Follow-ups
-- Orchestrator (M0): fill in the WebKit columns and the CI run link, record the verdict, and flip
-  the status to Accepted.
-- M1/M8-A: re-check vertical typing, IME composition (not covered here; `insertText` bypasses
-  the IME) and click-to-caret in the real WKWebView app on the user's Mac.
-- If Go-with-conditions: list each failing P0 with its plugin/keymap fix and estimate here.
+- Orchestrator/PLAN: update PLAN §1's writing-direction line to "LTR and RTL editing; vertical
+  text in preview and EPUB export".
+- M1: re-check RTL typing and IME composition (not covered here; `insertText` bypasses the IME)
+  in the real WKWebView app on the user's Mac (risk R4: Playwright WebKit is not exactly
+  WKWebView).
+- M5/EPUB: vertical-rl preview and EPUB CSS export need their own acceptance tests.
+- M8-A (optional): a new spike for a custom vertical caret/keymap layer, judged by the P0 tests
+  in `spikes/editor-text/tests/vertical.spec.ts`.
+- M1: re-check the Chromium `coordsAtPos` end-of-paragraph quirk only if caret UI is built on
+  `coordsAtPos` in vertical text.
 
 ## Links
-- CI run: _to be added by the Orchestrator_ (`spikes.yml`, job `spike-editor`)
+- CI run (Spikes, job `spike-editor`, code at `d75546e`):
+  https://github.com/jjennybbi-hub/InkSpark/actions/runs/41407643939
 - Artifacts: `spike-editor-ubuntu-24.04`, `spike-editor-macos-15` (results JSON and Playwright
   report)

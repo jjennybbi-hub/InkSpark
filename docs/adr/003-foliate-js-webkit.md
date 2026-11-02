@@ -1,6 +1,6 @@
 # 003 — foliate-js EPUB view on WebKit under the Tauri CSP
 
-Status: Proposed · Date: 2026-11-02 · Track: M0-C
+Status: Accepted · Date: 2026-11-02 · Track: M0-C
 
 ## Context
 InkSpark's Reader View (PLAN.md §3, M5 `compile/epub`) shows the writer's own EPUB export, and
@@ -42,33 +42,35 @@ the §5.2 performance thresholds.
   and macos-15). Local numbers are the range over 5 runs (4 at `86ea923`, 1 after the review fixes).
 
 ## Criteria and results
-Thresholds are from M0.md §5.2. WebKit columns are filled in from the `spike-foliate` CI job
-logs.
+Thresholds are from M0.md §5.2. CI columns are from the `spike-foliate` job of Spikes run
+41407643939 on `d75546e`: Playwright WebKit 26.6 and Chromium 153.0.8010.12, ubuntu-24.04
+(x86_64) and macos-15 (aarch64). macos-15 WebKit decides.
 
-| Metric | Threshold | ubuntu WebKit | macos WebKit | Local Chromium (reference) | Pass |
-|---|---|---|---|---|---|
-| Functional tests (`reader.spec.ts`, 7 tests) | all pass | pending CI | pending CI | 7/7 pass (with CSS inlining) | pending CI |
-| Default fixture open (median of 3) | ≤ 1,500 ms | pending CI | pending CI | 38–78 ms | pending CI |
-| Large fixture open, 100 × 3,000 words (median of 3) | ≤ 3,000 ms | pending CI | pending CI | 46–76 ms | pending CI |
-| Page turn p95 (50 turns, `next()` + 1 frame) | ≤ 150 ms | pending CI | pending CI | 133–148 ms (p50 ≈ 101 ms) | pending CI |
-| CSP relaxation beyond `blob:`/`data:` in img/font/frame | none | pending CI | pending CI | none needed with inlining; see CSP findings | pending CI |
+| Metric | Threshold | ubuntu WebKit | macos WebKit | Chromium CI ubuntu / macos (reference) | Local Chromium (reference) | Pass |
+|---|---|---|---|---|---|---|
+| Functional tests (`reader.spec.ts`, 7 tests) | all pass | 7/7 | 7/7 | 7/7; 7/7 | 7/7 pass (with CSS inlining) | yes |
+| Default fixture open (median of 3) | ≤ 1,500 ms | 97 ms | 34 ms | 43.2; 17.9 ms | 38–78 ms | yes |
+| Large fixture open, 100 × 3,000 words (median of 3) | ≤ 3,000 ms | 191 ms | 132 ms | 53; 23.2 ms | 46–76 ms | yes |
+| Page turn p95 (50 turns, `next()` + 1 frame) | ≤ 150 ms | **181 ms** (p50 113) | 129 ms (p50 103) | 133.6 (p50 101.3); **274.1** (p50 186.2) ms | 133–148 ms (p50 ≈ 101 ms) | macOS yes; ubuntu no |
+| CSP relaxation beyond `blob:`/`data:` in img/font/frame | none | none (0 violations) | none (0 violations) | none | none needed with inlining; see CSP findings | yes |
 
 The large fixture opens almost as fast as the default one because `open()` loads only the
 first section. Parsing the OPF and building section sizes scales with the book, but section
 documents load on navigation. So open time here measures container and package parsing,
 not the whole book's layout.
 
-Functional tests, locally on Chromium:
+Functional tests per engine (CI: 20/20 Playwright tests passed on each OS, including the 3 perf
+tests, whose thresholds are recorded rather than asserted):
 
-| Test | Result |
-|---|---|
-| opening the default fixture resolves with 5 TOC items | pass |
-| `next()` three times increases the fraction each time | pass |
-| `goToTocItem(2)` moves to section 2 | pass |
-| the RTL chapter renders with `dir=rtl` and `next()` still advances | pass |
-| the vertical chapter's body has `writing-mode: vertical-rl` | pass |
-| the fixture image loads with `naturalWidth > 0` | pass |
-| a full tour causes no CSP violations or console errors | pass |
+| Test | Chromium local | Chromium ubuntu | Chromium macos | WebKit ubuntu | WebKit macos |
+|---|---|---|---|---|---|
+| opening the default fixture resolves with 5 TOC items | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `next()` three times increases the fraction each time | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `goToTocItem(2)` moves to section 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the RTL chapter renders with `dir=rtl` and `next()` still advances | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the vertical chapter's body has `writing-mode: vertical-rl` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the fixture image loads with `naturalWidth > 0` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a full tour causes no CSP violations or console errors | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ### Page-turn timing
 The p50 of about 101 ms is almost all foliate's own lock. When the paginator is not
@@ -77,6 +79,11 @@ itself moves well before that. So the measured p95 (133–148 ms on Chromium) si
 2–17 ms under the 150 ms threshold, and slower runners may cross it without any visible lag.
 If WebKit misses the threshold, check whether the gap is this fixed lock before calling it a
 renderer problem. A follow-up below measures time to the `relocate` event instead.
+
+In CI, ubuntu WebKit gave p50 113 ms and p95 181 ms: about 100 ms of each turn is the fixed lock,
+so the real work is about 13 ms at p50 and the p95 tail is runner jitter on top of the lock.
+macOS Chromium (p95 274 ms) is a reference only and was not investigated; macOS WebKit, which
+decides, gave p95 129 ms.
 
 ### CSP findings
 1. **Linked book CSS is blocked (the one real finding).** foliate's loader turns every EPUB
@@ -123,17 +130,23 @@ renderer problem. A follow-up below measures time to the `relocate` event instea
    yet (follow-up below).
 
 ## Decision
-**Pending CI (WebKit decides).** Proposed verdict if the WebKit jobs match Chromium:
-**Go-with-conditions**.
+**Go-with-conditions.** All 7 functional tests pass on both WebKit runners with zero CSP
+violations, console errors or page errors. macos-15 WebKit meets every threshold (open 34 ms and
+132 ms, page-turn p95 129 ms). ubuntu-24.04 WebKit meets the open thresholds but its page-turn
+p95 is 181 ms against 150 ms; the cause is mostly foliate's fixed 100 ms wait (p50 113 ms), not
+rendering.
+
+Conditions:
 1. CSP unchanged; book CSS inlined via `transformTarget` (M0.md §11). The Reader View
    inlines linked book CSS exactly as the harness does. Adding `blob:` to `style-src` was
    considered and rejected (CSP finding 3).
-2. foliate-js stays vendored unmodified at a pinned commit, without pdf.js.
-3. Vertical-rl and foliate are re-checked in the real app (WKWebView/WebKitGTK) behind the
+2. M5 measures page turns to the `relocate` event (as well as to `next()` resolving), and the
+   Linux page-turn target is re-checked then.
+3. epubcheck validation of the fixture (and of InkSpark's own EPUB export) is added as a
+   follow-up.
+4. foliate-js stays vendored unmodified at a pinned commit, without pdf.js.
+5. Vertical-rl and foliate are re-checked in the real app (WKWebView/WebKitGTK) behind the
    `readerView` flag (M0.md R4).
-
-If WebKit fails a functional test or misses the open thresholds, the verdict becomes No-go
-and the Reader View needs another renderer.
 
 ## Consequences
 - PLAN.md: the Reader View (M5) keeps foliate-js, with a "book CSS inlining" step
@@ -141,8 +154,12 @@ and the Reader View needs another renderer.
 - The Tauri CSP stays as it is (M0.md §11); no contract change is needed.
 - PDF input is out of scope for foliate in InkSpark. Vendoring pdf.js would need its own ADR,
   covering size, licenses, worker-src and fetches of cmaps and fonts.
-- Playwright WebKit is not WKWebView or WebKitGTK (M0.md R4). The ADR verdict is provisional
-  until the in-app check.
+- Playwright WebKit is not WKWebView or WebKitGTK (M0.md R4). The in-app check in M5 confirms
+  the verdict.
+- The Linux page-turn number is a known miss until M5 re-measures it; it is not a release gate
+  for M1–M4, which do not use the Reader View.
+- The Reader View is also the editable-vertical substitute: with ADR 001 No-go, vertical text
+  is read in preview/EPUB, and foliate renders vertical-rl correctly on both WebKit runners.
 
 ## Dependencies added
 | Name | Version | License | Reason |
@@ -154,8 +171,6 @@ and the Reader View needs another renderer.
 | @playwright/test (npm, spike dev) | 1.63.0 | Apache-2.0 | browser tests on Chromium and WebKit |
 
 ## Follow-ups
-- **CI (M0):** fill in the WebKit columns from the `spike-foliate` job logs on ubuntu-24.04
-  and macos-15, then set the decision and Status.
 - **CI (M0/M5):** validate the generated fixture with epubcheck in CI. Maven was blocked
   locally, so this did not run here.
 - **M5:** test a book with a `<script>`, and confirm it is blocked in the section iframe and
@@ -164,11 +179,14 @@ and the Reader View needs another renderer.
   `XMLSerializer`) and escape `</style` in inlined CSS, so `<`, `>` and `&` survive.
 - **M5:** test `@import` in book CSS, and either inline it recursively or document the gap.
 - **M5:** measure page turns to the `relocate` event as well as to `next()` resolving,
-  because foliate's fixed 100 ms lock inflates the current metric.
+  because foliate's fixed 100 ms lock inflates the current metric, and re-check the Linux
+  target (ubuntu WebKit p95 was 181 ms against 150 ms).
 - **M5:** run real EPUBs (Gutenberg or Standard Ebooks samples) in CI. Real data is blocked
   locally (M0.md R12).
 
 ## Links
-- CI run: pending (`spikes.yml` → `spike-foliate`, artifacts `spike-foliate-ubuntu-24.04`,
-  `spike-foliate-macos-15`).
+- CI run (Spikes, job `spike-foliate`, code at `d75546e`):
+  https://github.com/jjennybbi-hub/InkSpark/actions/runs/41407643939
+- Artifacts: `spike-foliate-ubuntu-24.04`, `spike-foliate-macos-15` (results JSON and
+  Playwright report).
 - Local results file: `spikes/foliate-view/results/linux-chromium.json` (not committed).

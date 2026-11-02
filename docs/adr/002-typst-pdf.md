@@ -1,6 +1,6 @@
 # 002 — Typst PDF export and preview
 
-Status: Proposed · Date: 2026-11-02 · Track: M0-C
+Status: Accepted (verdict conditional) · Date: 2026-11-02 · Track: M0-C
 
 ## Context
 InkSpark exports manuscripts to print-ready PDF and wants a live, paginated preview while the
@@ -58,15 +58,25 @@ live preview and export, with an acceptable binary-size cost.
 
 ## Criteria and results
 Re-measured locally with the current bench. "opt-s" is the Orchestrator's opt-level override,
-now in the root `Cargo.toml`, so it is what CI measures.
+now in the root `Cargo.toml`, so it is what CI measures. CI columns are from the `spike-typst`
+job of Spikes run 41407643939 on `d75546e` (ubuntu-24.04 x86_64, macos-15 aarch64); macos-15
+decides.
 
 | Metric | Threshold | ubuntu local, no override | ubuntu local, opt-s (current) | ubuntu-24.04 CI | macos-15 CI | Pass |
 |---|---|---|---|---|---|---|
-| Cold 300-page compile (`cold_compile_ms`) | ≤ 4 000 ms | 368 ms | 393 / 397 ms | pending CI | pending CI | local yes |
-| Warm recompile after a one-paragraph edit (`warm_recompile_ms`) | ≤ 600 ms | 169 ms | 165 / 162 ms | pending CI | pending CI | local yes |
-| PDF export, warm median (`export_ms`) | ≤ 1 000 ms | 104 ms | 105 / 105 ms | pending CI | pending CI | local yes |
-| **Size delta (`size_delta_mb`)** | ≤ 30 MB | **45.3 MB** (45 637 200 − 380 344 B) | **42.8 MB** (43 188 160 − 380 328 B) | pending CI | pending CI | **local no** |
-| Size delta without embedded fonts (context) | (30 MB) | 35.6 MB | 33.1 MB | pending CI | pending CI | still over |
+| Cold 300-page compile (`cold_compile_ms`) | ≤ 4 000 ms | 368 ms | 393 / 397 ms | 1 697 ms | 281 ms | yes |
+| Warm recompile after a one-paragraph edit (`warm_recompile_ms`) | ≤ 600 ms | 169 ms | 165 / 162 ms | 245 ms | 77 ms | yes |
+| PDF export, warm median (`export_ms`) | ≤ 1 000 ms | 104 ms | 105 / 105 ms | 149 ms | 54 ms | yes |
+| **Size delta (`size_delta_mb`)** | ≤ 30 MB | **45.3 MB** (45 637 200 − 380 344 B) | **42.8 MB** (43 188 160 − 380 328 B) | **42.8 MB** (43 196 192 − 380 328 B) | **40.16 MB** (40 535 664 − 373 376 B) | **no** |
+| Size delta without embedded fonts (context) | (30 MB) | 35.6 MB | 33.1 MB | 33.1 MB | 30.5 MB | still over |
+
+CI context: 326 pages and a 1 593 971-byte PDF on both runners (byte-identical sizes). macos-15
+cold total (world + compile + export) 362.6 ms, cold export 60.0 ms, warm compile-only median
+24.1 ms; the release `bench_300_pages` test gave cold 216.5 ms and warm 71.8 ms. ubuntu-24.04
+cold total 1 928.4 ms and peak RSS 611.6 MiB; the ubuntu runner was much slower than the local
+container on the cold compile but still 2.4× under budget. Peak RSS on macOS: not measured. The
+12 functional tests in `tests/compile.rs` passed in the macos-15 `check` job of CI run
+41407643715.
 
 The first local run (before the export-median change) gave cold 445 ms, warm 163 ms, cold
 export 110 ms, and a 45.3 MB delta. The release `bench_300_pages` test gave cold 380 ms and
@@ -108,47 +118,46 @@ Feature findings:
   recompiles of the same world and across fresh worlds.
 
 ## Decision
-**Speed: pass.** Locally, cold compile is ~10× under budget and warm recompile ~3.5× under.
-Whole-book live preview is viable, and the chapter-only fallback in M0.md §5.1 is not needed
-unless macOS disagrees.
+**Go-with-conditions; the size condition awaits a user decision.** Typst stays the planned PDF
+engine, but it may not enter `src-tauri` until every condition below is met.
 
-**Size: fail.**
-- The delta is 45.3 MB, and 42.8 MB with opt-s, against a 30 MB budget.
-- Without embedded fonts it is still about 35.6 MB (33.1 MB with opt-s).
-- The universal macOS build ships two architectures, so the delta in the .app roughly doubles.
+**Speed: pass, widely.** On macos-15: cold compile 281 ms (14× under the 4 000 ms budget), warm
+recompile 77 ms (8× under 600 ms), export 54 ms (18× under 1 000 ms). Whole-book live preview is
+viable, and the chapter-only fallback in M0.md §5.1 is not needed.
 
-**Go-with-conditions is only possible after an Orchestrator budget decision.** Dropping the
-embedded fonts and applying opt-s still leaves ~33 MB on Linux. Either:
-- the Orchestrator raises the size budget explicitly in this ADR (with the measured macos-15
-  number, opt-s applied); or
-- the Orchestrator rejects typst for M-export.
+**Size: fail.** The delta is 40.16 MB on macos-15 and 42.8 MB on ubuntu-24.04 (opt-s applied),
+against a 30 MB budget. Without the embedded fonts it is still 30.5 MB on macOS. The macos-15
+figure is for one architecture (aarch64); the universal .app carries two, so its growth is
+likely larger (not measured). There is no further cheap lever: the remaining weight is ICU,
+syntect and hayagriva data, which typst-library depends on unconditionally.
 
-There is no further cheap lever. The remaining weight is ICU, syntect and hayagriva data, which
-typst-library depends on unconditionally (there are no features to drop them). If the budget is
-raised, these conditions apply before typst enters `src-tauri`:
-1. **Fonts**: do not embed `typst_kit::fonts::embedded()`. Ship Libertinus Serif (OFL-1.1) as a
-   bundled resource with `OFL.txt`, and add any other font only after its own license review
+Conditions:
+1. **Size (user decision)**: the user accepts about 40 MB of app-size growth for real print
+   PDF, or a later spike finds a smaller path (for example a sidecar or a slimmer typst build).
+   Until then the 30 MB budget stands and typst does not enter `src-tauri`. Keep opt-s for the
+   typst crates.
+2. **Fonts**: do not embed `typst_kit::fonts::embedded()`. Bundle only Libertinus Serif
+   (OFL-1.1) as a resource with `OFL.txt`; add any other font only after its own license review
    (see Dependencies).
-2. **Advisories**: typst 0.15.1 brings in RUSTSEC advisories with no fixed version (see below).
-   They are ignored in `deny.toml` only because the spike crate is never a dependency of the
-   app. **typst cannot enter `src-tauri` while any of these ignores is needed for the app's
-   graph.** In particular, the quick-xml 0.38 DoS advisories must be fixed upstream, or proven
-   unreachable from the app's entry points with a written justification. Re-check at each typst
-   release and before M-export work starts.
-3. **Size**: keep opt-s for the typst crates.
-4. **Vertical writing** must use a different export path. That decision belongs to the
-   vertical-writing work (ADR 001 / PLAN), not to Typst.
+3. **Advisories**: resolve the 7 advisory ignores in `deny.toml` (below) before typst enters
+   `src-tauri`. In particular the quick-xml 0.38 DoS advisories (via hayagriva → citationberg)
+   must be fixed upstream, or proven unreachable from the app's entry points with a written
+   justification. Re-check at each typst release and before M-export work starts.
+
+**Vertical PDF is unsupported**: `#set text(dir: ttb)` fails to compile on both runners. Vertical
+text is preview/EPUB-only (ADR 001), so this does not block the verdict.
 
 ## Consequences
-- PLAN: if accepted, Typst stays the PDF engine. Vertical-writing export needs a non-Typst
-  path, or it is out of scope for PDF.
+- PLAN: Typst stays the planned PDF engine, subject to the conditions above. Vertical text has
+  no PDF path; with ADR 001 it is preview/EPUB-only.
+- App size: accepting typst means about 40 MB more per architecture (macos-15 measurement).
 - Next-milestone contracts: an `export_pdf` command that takes manuscript markup plus a font
   list and returns bytes or a typed error (`Compile` / `Export` / `Font`). It needs a long-lived
   `World` per open project, so warm recompiles keep the comemo cache.
 - Memory: ~610 MiB peak RSS for a 300-page cold compile. Preview should keep one world per
   project and cap the comemo cache (`comemo::evict`) between compiles.
 - Requests to the Orchestrator:
-  - the size-budget decision above;
+  - the user's size decision above (condition 1);
   - a `deny.toml` license clarification for typst-assets (below);
   - keeping the advisory ignores scoped to the spike.
 
@@ -204,19 +213,22 @@ not just maintenance notices. They block typst from entering `src-tauri` until e
 - the app proves it can never feed user XML into hayagriva.
 
 ## Follow-ups
-- M0: fill in the ubuntu-24.04 and macos-15 columns from the `spike-typst` job (opt-s applied),
-  then make the size-budget decision and record the final verdict. Owner: Orchestrator.
-- If accepted, before typst enters `src-tauri` (export milestone):
-  - bundle the fonts as resources;
-  - re-check the advisories against the then-current typst;
-  - add the deny.toml license clarification;
+- User (via the Orchestrator), before M-export: accept about 40 MB of app-size growth, or ask
+  for a spike on a smaller path. Record the answer here.
+- Before typst enters `src-tauri` (export milestone):
+  - bundle Libertinus Serif only, as a resource with `OFL.txt`;
+  - resolve the 7 advisory ignores against the then-current typst;
+  - add the `deny.toml` `[[licenses.clarify]]` for typst-assets;
   - add a font-license review per bundled font.
-- Export milestone: peak-memory measurement on macOS (getrusage via a safe wrapper crate, if one
-  is approved), and a comemo eviction policy for long sessions.
-- Vertical writing: choose a non-Typst export path (ADR 001 follow-up).
+- Export milestone: measure the size growth of the universal macOS .app (not measured here);
+  peak-memory measurement on macOS (getrusage via a safe wrapper crate, if one is approved); a
+  comemo eviction policy for long sessions.
+- Vertical writing: no PDF path; preview/EPUB only (ADR 001).
 
 ## Links
-- CI: `spike-typst (ubuntu-24.04)`, `spike-typst (macos-15)` in `.github/workflows/spikes.yml`.
-  Artifacts `spike-typst-ubuntu-24.04` and `spike-typst-macos-15` (`results/<os>.json`). Run
-  URLs pending CI.
+- CI run (Spikes, jobs `spike-typst (ubuntu-24.04)` and `spike-typst (macos-15)`, code at
+  `d75546e`): https://github.com/jjennybbi-hub/InkSpark/actions/runs/41407643939
+- Functional tests: `check (macos-15)` job of CI run
+  https://github.com/jjennybbi-hub/InkSpark/actions/runs/41407643715
+- Artifacts: `spike-typst-ubuntu-24.04`, `spike-typst-macos-15` (`results/<os>.json`).
 - Local results file: `spikes/typst-pdf/results/linux-local.json` (not committed).

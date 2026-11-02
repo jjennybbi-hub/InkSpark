@@ -1,6 +1,6 @@
 # 006 — Scrivener 3 (.scriv) parser
 
-Status: Proposed · Date: 2026-11-02 · Track: M0-D
+Status: Accepted · Date: 2026-11-02 · Track: M0-D
 
 ## Context
 InkSpark imports Scrivener 3 projects (PLAN.md importer milestone, M6). A `.scriv` package is a
@@ -45,15 +45,21 @@ better than `rtf-parser 0.4` (MIT) for this job.
   - `cargo test --release -p inkspark-spike-scriv -- --ignored perf` (5 runs)
 
 ## Criteria and results
+CI sources, code at `d75546e`: functional and property tests from the `check (macos-15)` job of
+CI run 41407643715; the 1,000-document timing from the `spike-scriv` job of Spikes run
+41407643939 on both OSes. The ubuntu `check` job of that CI run ran out of disk (fixed in
+`9aadafe`, ADR 007), so ubuntu functional results in CI are from the final green run (see M0
+report), not from this run.
+
 | Metric | Threshold | ubuntu | macos | Pass |
 |---|---|---|---|---|
-| Goldens exact (5 fixtures) | all equal | 5/5 (local) | pending CI (`check`) | local yes |
-| `malformed` → `Err(Xml)`; non-package → `Err(NotAScrivPackage)` | yes | yes (local) | pending CI (`check`) | local yes |
-| RTF unit cases (`rtf.rs` + in-crate test) | all pass | 48/48 + 1/1 (local) | pending CI (`check`) | local yes |
-| Panics in proptest, 2,000 cases × 8 properties (+256 fs cases) | 0 | 0, 0.74 s (local, release) | pending CI (`check`, props step) | local yes |
-| 50,000 nested RTF groups (closed, unclosed, inside a destination) | no stack overflow | ok (local) | pending CI (`check`) | local yes |
-| Sources untouched (bytes, len, permissions, mtimes) | equal | equal (local) | pending CI (`check`) | local yes |
-| `read_project`, 1,000 docs, release | < 2,000 ms | 50–52 ms, median 51 ms (local) | pending CI (`spike-scriv`) | local yes |
+| Goldens exact (5 fixtures) | all equal | 5/5 (local) | 5/5 (CI `check`) | yes |
+| `malformed` → `Err(Xml)`; non-package → `Err(NotAScrivPackage)` | yes | yes (local) | yes (CI `check`) | yes |
+| RTF unit cases (`rtf.rs` + in-crate test) | all pass | 48/48 + 1/1 (local) | 48/48 + 1/1 (CI `check`) | yes |
+| Panics in proptest, 2,000 cases × 8 properties (+256 fs cases) | 0 | 0, 0.74 s (local, release) | 0; 9/9 property tests, 10.4 s (CI `check`, props step, `PROPTEST_CASES=2000`, debug) | yes |
+| 50,000 nested RTF groups (closed, unclosed, inside a destination) | no stack overflow | ok (local) | ok (CI `check`) | yes |
+| Sources untouched (bytes, len, permissions, mtimes) | equal | equal (local) | equal (CI `check`) | yes |
+| `read_project`, 1,000 docs, release | < 2,000 ms | 50–52 ms, median 51 ms (local); **52 ms** (CI `spike-scriv`) | **65 ms** (CI `spike-scriv`) | yes |
 
 ### rtf-parser 0.4 evaluation (not adopted)
 `rtf-parser 0.4.3` (MIT) was built in a throwaway crate outside the repo and run on the same
@@ -76,10 +82,14 @@ fixtures and edge cases:
 It is worse on every Scrivener-relevant case, so the in-house tokenizer stays.
 
 ## Decision
-**Go-with-conditions** (pending the macos-15 `check` and `spike-scriv` runs):
-1. The parser is used as the M6 importer's base, behind the importer's feature flag.
-2. Before the importer is accepted, it is run against real Scrivener 3 projects (see
-   follow-ups); the synthetic fixtures alone are not enough to claim compatibility.
+**Go.** quick-xml plus the in-house RTF tokenizer meets every criterion. In CI,
+`read_project` reads 1,000 documents in 65 ms on macos-15 and 52 ms on ubuntu-24.04 (about 30×
+under the 2 s budget). The goldens, malformed-input, RTF, source-untouched and 2,000-case
+property tests pass, with no panics and no stack overflow. `rtf-parser 0.4` is not adopted.
+
+Caveat: all fixtures are synthetic, because real Scrivener samples could not be downloaded
+(R12). The parser is the M6 importer's base, behind the importer's feature flag, and M6 must
+run it against real Scrivener 3 projects before the importer is called compatible.
 
 ## Consequences
 - Unsupported, by design for M0, and listed for M6:
@@ -124,14 +134,17 @@ It is worse on every Scrivener-relevant case, so the in-house tokenizer stays.
 `rtf-parser` was evaluated outside the workspace and not added.
 
 ## Follow-ups
-- M6: real Scrivener 3 samples through a CI-side fixture fetch (Literature & Latte sample
+- M6 (before the importer ships): real Scrivener 3 samples through a CI-side fixture fetch (Literature & Latte sample
   projects, user-provided test projects), with goldens reviewed by hand. Local downloads are
   blocked (R12); no workaround was attempted.
-- M6: cargo-fuzz targets for `rtf_to_doc` and `parse_scrivx` (the proptest soups are the seed
+- M6: fuzzing: cargo-fuzz targets for `rtf_to_doc` and `parse_scrivx` (the proptest soups are the seed
   corpus), plus a fuzz target for `read_project` on generated packages.
 - M6: comments/annotations, inline images and tables as structured content; detection of
   older (Scrivener 2) packages with a clear "unsupported" error instead of an empty binder.
 
 ## Links
-- CI runs: pending (Orchestrator adds the ci.yml `check` and spikes.yml `spike-scriv` links).
+- CI run (ci.yml, `check (macos-15)`, functional and 2,000-case property tests, code at
+  `d75546e`): https://github.com/jjennybbi-hub/InkSpark/actions/runs/41407643715
+- Spikes run (`spike-scriv`, 1,000-document timing on ubuntu-24.04 and macos-15):
+  https://github.com/jjennybbi-hub/InkSpark/actions/runs/41407643939
 - Artifacts: none (the numbers are read from the job logs).
