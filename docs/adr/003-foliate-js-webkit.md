@@ -39,7 +39,7 @@ the §5.2 performance thresholds.
   `vite preview` (Vite 8.3.5), viewport 1280×720 (Desktop Chrome).
 - **Local run** (Linux container, Node 22.23, x86_64): Chromium 153.0.8010.12 only. This is a
   sanity check: WebKit decides, and runs only in CI (`spikes.yml`, `PW_WEBKIT=1`, ubuntu-24.04
-  and macos-15). Local numbers are the range over 4 runs of the harness at commit `86ea923`.
+  and macos-15). Local numbers are the range over 5 runs (4 at `86ea923`, 1 after the review fixes).
 
 ## Criteria and results
 Thresholds are from M0.md §5.2. WebKit columns are filled in from the `spike-foliate` CI job
@@ -48,10 +48,15 @@ logs.
 | Metric | Threshold | ubuntu WebKit | macos WebKit | Local Chromium (reference) | Pass |
 |---|---|---|---|---|---|
 | Functional tests (`reader.spec.ts`, 7 tests) | all pass | pending CI | pending CI | 7/7 pass (with CSS inlining) | pending CI |
-| Default fixture open (median of 3) | ≤ 1,500 ms | pending CI | pending CI | 38–76 ms | pending CI |
+| Default fixture open (median of 3) | ≤ 1,500 ms | pending CI | pending CI | 38–78 ms | pending CI |
 | Large fixture open, 100 × 3,000 words (median of 3) | ≤ 3,000 ms | pending CI | pending CI | 46–76 ms | pending CI |
 | Page turn p95 (50 turns, `next()` + 1 frame) | ≤ 150 ms | pending CI | pending CI | 133–148 ms (p50 ≈ 101 ms) | pending CI |
 | CSP relaxation beyond `blob:`/`data:` in img/font/frame | none | pending CI | pending CI | none needed with inlining; see CSP findings | pending CI |
+
+The large fixture opens almost as fast as the default one because `open()` loads only the
+first section. Parsing the OPF and building section sizes scales with the book, but section
+documents load on navigation. So open time here measures container and package parsing,
+not the whole book's layout.
 
 Functional tests, locally on Chromium:
 
@@ -68,10 +73,10 @@ Functional tests, locally on Chromium:
 ### Page-turn timing
 The p50 of about 101 ms is almost all foliate's own lock. When the paginator is not
 `animated`, `#turnPage` waits a fixed `wait(100)` before it resolves (paginator.js). The page
-itself moves well before that. So the measured p95 sits only 2–17 ms under the 150 ms
-threshold on Chromium (p95 133–148 ms), and slower runners may cross it without any visible lag. If WebKit
-misses the threshold, check whether the gap is this fixed lock before calling it a renderer
-problem. A follow-up below measures time to the `relocate` event instead.
+itself moves well before that. So the measured p95 (133–148 ms on Chromium) sits only
+2–17 ms under the 150 ms threshold, and slower runners may cross it without any visible lag.
+If WebKit misses the threshold, check whether the gap is this fixed lock before calling it a
+renderer problem. A follow-up below measures time to the `relocate` event instead.
 
 ### CSP findings
 1. **Linked book CSS is blocked (the one real finding).** foliate's loader turns every EPUB
@@ -90,13 +95,21 @@ problem. A follow-up below measures time to the `relocate` event instead.
    this, all tests pass with zero violations.
    - Known gap: `@import` inside book CSS still points at a blob: stylesheet and stays
      blocked.
-   - Known gap: CSS in a `text/html` (non-XHTML) section is serialized as XML and could
-     mis-escape a `<` inside the CSS. The fixture does not exercise this.
-3. **Alternative: add `blob:` to style-src.** As a local experiment only, `blob:` was added
-   to style-src in `csp.ts`; the change was not committed and the Tauri config was not
-   touched. With it and no inlining, all 10 tests passed on Chromium (default open 59 ms,
+   - Known gap: foliate demotes a section that is not valid XHTML to `text/html`
+     (epub.js:821-826). The harness serializes those with `XMLSerializer`, so `<`, `>` and
+     `&` in the inlined CSS arrive escaped as `&lt;`, `&gt;` and `&amp;` inside a raw-text
+     `<style>`. This breaks child combinators (`a > b`) and similar rules. Upstream damages
+     a section's own inline `<style>` blocks in the same way, because it also serializes
+     with `XMLSerializer`. The fixture is valid XHTML, so it does not hit this. M5 follow-up
+     below.
+   - Alternate stylesheets (`rel="alternate stylesheet"`) are not inlined.
+   - If inlining throws, the section loads unmodified (its CSS is then blocked, as upstream).
+3. **Considered and rejected: add `blob:` to style-src.** As a local experiment only,
+   `blob:` was added to style-src in `csp.ts`; the change was not committed and the Tauri
+   config was not touched. With it and no inlining, all 10 tests passed on Chromium (default open 59 ms,
    large 136 ms, p95 131 ms). This keeps foliate's behaviour unchanged, including
-   `@import`. But it is a style-src relaxation, which is outside the §5.2 allowance.
+   `@import`. But it is a style-src relaxation outside the §5.2 allowance, and the
+   Orchestrator rejected it (M0.md §11).
 4. **What already works.**
    - `frame-src 'self' blob:` covers the section iframes. foliate sandboxes them with
      `allow-same-origin allow-scripts`.
@@ -112,10 +125,9 @@ problem. A follow-up below measures time to the `relocate` event instead.
 ## Decision
 **Pending CI (WebKit decides).** Proposed verdict if the WebKit jobs match Chromium:
 **Go-with-conditions**.
-1. The Reader View inlines linked book CSS through `transformTarget`, as the harness does,
-   so the Tauri CSP stays unchanged. The alternative is an Orchestrator-approved
-   `style-src … blob:` change: a narrow relaxation, but beyond §5.2's img/font/frame
-   allowance.
+1. CSP unchanged; book CSS inlined via `transformTarget` (M0.md §11). The Reader View
+   inlines linked book CSS exactly as the harness does. Adding `blob:` to `style-src` was
+   considered and rejected (CSP finding 3).
 2. foliate-js stays vendored unmodified at a pinned commit, without pdf.js.
 3. Vertical-rl and foliate are re-checked in the real app (WKWebView/WebKitGTK) behind the
    `readerView` flag (M0.md R4).
@@ -124,10 +136,9 @@ If WebKit fails a functional test or misses the open thresholds, the verdict bec
 and the Reader View needs another renderer.
 
 ## Consequences
-- PLAN.md: the Reader View (M5) keeps foliate-js. It gets a "book CSS inlining" step and, if
-  chosen, the CSP change.
-- Contract request (Orchestrator): choose between keeping the CSP and inlining (no change),
-  or adding `blob:` to `style-src` in `src-tauri/tauri.conf.json` (and `csp.ts`).
+- PLAN.md: the Reader View (M5) keeps foliate-js, with a "book CSS inlining" step
+  (`spikes/foliate-view/src/inline-styles.ts` is the reference).
+- The Tauri CSP stays as it is (M0.md §11); no contract change is needed.
 - PDF input is out of scope for foliate in InkSpark. Vendoring pdf.js would need its own ADR,
   covering size, licenses, worker-src and fetches of cmaps and fonts.
 - Playwright WebKit is not WKWebView or WebKitGTK (M0.md R4). The ADR verdict is provisional
@@ -149,6 +160,8 @@ and the Reader View needs another renderer.
   locally, so this did not run here.
 - **M5:** test a book with a `<script>`, and confirm it is blocked in the section iframe and
   causes no console error the Reader View cannot handle.
+- **M5:** for sections foliate demotes to `text/html`, serialize with `outerHTML` (not
+  `XMLSerializer`) and escape `</style` in inlined CSS, so `<`, `>` and `&` survive.
 - **M5:** test `@import` in book CSS, and either inline it recursively or document the gap.
 - **M5:** measure page turns to the `relocate` event as well as to `next()` resolving,
   because foliate's fixed 100 ms lock inflates the current metric.
