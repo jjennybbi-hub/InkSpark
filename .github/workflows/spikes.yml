@@ -5,10 +5,7 @@
 name: Spikes
 
 on:
-  push:
-    branches: [main, "claude/**"]
-  pull_request:
-    branches: [main]
+  # M0 spikes are finished; run only on demand from the Actions tab.
   workflow_dispatch:
 
 concurrency:
