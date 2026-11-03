@@ -1,10 +1,11 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type JSX, useCallback, useEffect, useRef, useState } from "react";
-import { type Idea, type PageSummary, commands } from "../contracts";
+import { type AppInfo, type Idea, type PageSummary, commands } from "../contracts";
 import { pickPrompt, promptHash } from "../spark/dealer";
 import "@fontsource/atkinson-hyperlegible/400.css";
 import "@fontsource/atkinson-hyperlegible/700.css";
+import { loadAppInfo } from "./appInfo";
 import { AppearanceMenu } from "./AppearanceMenu";
 import { applyAppearance, loadAppearance, saveAppearance, type Appearance } from "./appearance";
 import "./shell.css";
@@ -63,6 +64,13 @@ export function App(): JSX.Element {
   const [prompt, setPrompt] = useState("");
   const [appearance, setAppearance] = useState<Appearance>(loadAppearance);
   const [focusMode, setFocusMode] = useState(false);
+  const [info, setInfo] = useState<AppInfo | null>(null);
+
+  useEffect(() => {
+    loadAppInfo().then(setInfo, () => {
+      setInfo(null);
+    });
+  }, []);
   const quickCapture = useRef<HTMLTextAreaElement>(null);
   const session = useRef<Session | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());
@@ -304,6 +312,7 @@ export function App(): JSX.Element {
     <main
       className="app-shell"
       data-testid="app-shell"
+      data-app-version={info?.version ?? ""}
       aria-label="InkSpark"
       data-focus={focusMode}
     >
