@@ -1,14 +1,5 @@
 QUEUE: do only the FIRST step below. When it's done, delete it from this file so the next step moves to the top.
 
-STEP 3: real quotes and first lines
-   Read PLAN-LITE.md and follow its token rules (no subagents, read only what you need). Web access is allowed only to download Project Gutenberg plain-text files.
-   
-   Feature: real quotes and first lines in the prompt button.
-   1. Add ~100 real opening lines and ~50 short passages (one to three sentences) from public-domain books on Project Gutenberg. Mix eras, genres and authors, including non-Western works in public-domain translations. Store them in src/spark/excerpts.ts with: text, author, work, year, gutenbergId, and a link.
-   2. Never write or paraphrase excerpt text yourself. Add scripts/verify-excerpts.ts, which downloads each book's Gutenberg .txt and checks that the excerpt appears word for word (ignoring line breaks and whitespace). Delete any excerpt that fails. Keep the downloaded files out of git.
-   3. The prompt button mixes app prompts and excerpts, and still never repeats. Show an excerpt as the text plus a quiet "— Author, Work" line. Keep app prompts unlabeled, as they are now.
-   4. Run the verify script and the tests. Commit, push main, tell me in plain words how to try it, then remove this step from the queue and stop.
-
 STEP 4: export
 - Export one page or all pages to Markdown and Word (.docx), from a quiet export icon (an overlay menu, following the UI rule).
 - The user picks where to save. Writes go through the Rust storage module.

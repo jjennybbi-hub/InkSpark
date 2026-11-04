@@ -29,3 +29,4 @@ Thumbs.db
 
 # Subagent git worktrees
 .claude/worktrees/
+.gutenberg-cache/

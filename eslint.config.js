@@ -103,6 +103,7 @@ const FS_ANY = `${FS_MODULE}|^@tauri-apps\\/(plugin-fs|api\\/fs)`;
 
 export default defineConfig([
   globalIgnores([
+    "scripts/**",
     "**/dist/**",
     "**/target/**",
     "**/node_modules/**",

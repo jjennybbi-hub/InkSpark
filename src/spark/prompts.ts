@@ -4,6 +4,8 @@ export type PromptSource = "ai-drafted" | "human";
 export interface Prompt {
   readonly text: string;
   readonly source: PromptSource;
+  /** Set only for real quoted text: "Author, Work". App prompts have none. */
+  readonly credit?: string;
 }
 
 /**

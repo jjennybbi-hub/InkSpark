@@ -562,3 +562,11 @@ select:focus-visible {
 .fmt-tooltip {
   transform: translate(-50%, 0);
 }
+
+/* The quiet credit under a quoted excerpt. */
+.prompt-credit {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8em;
+  opacity: 0.6;
+}

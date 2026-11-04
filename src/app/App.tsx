@@ -72,6 +72,7 @@ export function App(): JSX.Element {
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [shelfOpen, setShelfOpen] = useState(true);
   const [prompt, setPrompt] = useState("");
+  const [credit, setCredit] = useState("");
   const [appearance, setAppearance] = useState<Appearance>(loadAppearance);
   const [customThemes, setCustomThemes] = useState<ThemeDef[]>(loadCustomThemes);
   const [focusMode, setFocusMode] = useState(false);
@@ -157,6 +158,7 @@ export function App(): JSX.Element {
       setProject(path);
       setPages(result.data);
       setPrompt("");
+      setCredit("");
       const shelf = await commands.listIdeas(path);
       setIdeas(shelf.status === "ok" ? shelf.data : []);
       const first = result.data[0];
@@ -330,9 +332,11 @@ export function App(): JSX.Element {
     const next = pickPrompt(new Set(seen.status === "ok" ? seen.data : []));
     if (next === null) {
       setPrompt("You have seen every prompt this app has to offer.");
+      setCredit("");
       return;
     }
     setPrompt(next.text);
+    setCredit(next.credit ?? "");
     await commands.markPromptSeen(project, promptHash(next));
   };
 
@@ -401,7 +405,12 @@ export function App(): JSX.Element {
               <button type="button" onClick={() => void dealPrompt()}>
                 Prompt
               </button>
-              {prompt !== "" && <p>{prompt}</p>}
+              {prompt !== "" && (
+                <p>
+                  {prompt}
+                  {credit !== "" && <span className="prompt-credit"> — {credit}</span>}
+                </p>
+              )}
             </div>
             <span
               className="save-dot"

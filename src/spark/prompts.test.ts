@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickPrompt, promptHash } from "./dealer";
+import { EXCERPT_PROMPTS, pickPrompt, promptHash } from "./dealer";
 import { AI_DRAFTED_PROMPTS, HUMAN_PROMPTS, PROMPTS } from "./prompts";
 
 describe("PROMPTS", () => {
@@ -29,7 +29,7 @@ describe("pickPrompt", () => {
     const seen = new Set<string>();
     const dealt = new Set<string>();
     PROMPTS.forEach(() => {
-      const p = pickPrompt(seen);
+      const p = pickPrompt(seen, Math.random, PROMPTS, []);
       expect(p).not.toBeNull();
       if (p === null) {
         return;
@@ -38,6 +38,31 @@ describe("pickPrompt", () => {
       dealt.add(p.text);
       seen.add(promptHash(p));
     });
+    expect(pickPrompt(seen, Math.random, PROMPTS, [])).toBeNull();
+  });
+});
+
+describe("excerpts", () => {
+  const excerpts = EXCERPT_PROMPTS;
+
+  it("are all cited, unique and distinct from app prompts", () => {
+    expect(excerpts.length).toBeGreaterThan(50);
+    expect(excerpts.every((p) => (p.credit ?? "") !== "" && p.source === "human")).toBe(true);
+    expect(new Set(excerpts.map(promptHash)).size).toBe(excerpts.length);
+  });
+
+  it("are dealt without repeats until everything has been seen", () => {
+    const seen = new Set<string>();
+    let kinds = 0;
+    for (let i = 0; i < PROMPTS.length + excerpts.length; i++) {
+      const p = pickPrompt(seen);
+      expect(p).not.toBeNull();
+      if (p === null) return;
+      expect(seen.has(promptHash(p))).toBe(false);
+      seen.add(promptHash(p));
+      if (p.credit !== undefined) kinds += 1;
+    }
+    expect(kinds).toBe(excerpts.length);
     expect(pickPrompt(seen)).toBeNull();
   });
 });
