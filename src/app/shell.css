@@ -522,3 +522,21 @@ select:focus-visible {
   border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
   border-radius: 50%;
 }
+
+/* Fit any window: the side columns shrink a little, and the middle gives up the rest. */
+.workspace {
+  grid-template-columns: clamp(9rem, 16vw, 15rem) minmax(0, 1fr) auto;
+}
+
+.editor,
+.rich {
+  min-width: 0;
+}
+
+.shelf[data-open="true"] {
+  width: clamp(11rem, 20vw, 16rem);
+}
+
+.page .ProseMirror {
+  padding: 2rem clamp(1rem, 3vw, 2rem);
+}
