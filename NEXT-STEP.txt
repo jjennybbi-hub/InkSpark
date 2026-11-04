@@ -1,9 +1,5 @@
 QUEUE: do only the FIRST step below. When it's done, delete it from this file so the next step moves to the top.
 
-STEP 2: more themes
-- Raise the themes in src/app/themes.ts to 24 or more. Add seasonal and mood themes such as Autumn, Winter, Spring, Summer, Dusk, Dawn, Midnight Blue, Parchment, Terminal Green, Cherry Blossom, Coffeehouse and Library. Keep "+ New theme".
-- Typecheck, lint and test. Rebuild the clickable app, then commit and push.
-
 STEP 3: real quotes and first lines
    Read PLAN-LITE.md and follow its token rules (no subagents, read only what you need). Web access is allowed only to download Project Gutenberg plain-text files.
    
