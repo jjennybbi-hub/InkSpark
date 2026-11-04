@@ -1,5 +1,5 @@
 import { type Editor, useEditorState } from "@tiptap/react";
-import type { JSX, ReactNode } from "react";
+import { type JSX, type ReactNode, useState } from "react";
 
 const FONT_FAMILIES: readonly { label: string; value: string }[] = [
   { label: "Page font", value: "" },
@@ -18,26 +18,65 @@ interface BtnProps {
 }
 
 function Btn({ label, active, disabled, onClick, children }: BtnProps): JSX.Element {
+  // The wrapper carries the tooltip, so it still shows while the button is disabled.
   return (
-    <button
-      type="button"
-      className="fmt-btn"
-      aria-label={label}
-      title={label}
-      aria-pressed={active}
-      disabled={disabled}
-      onMouseDown={(e) => {
-        e.preventDefault();
-      }}
-      onClick={onClick}
-    >
-      {children}
-    </button>
+    <span className="fmt-tip-target" data-tip={label}>
+      <button
+        type="button"
+        className="fmt-btn"
+        aria-label={label}
+        aria-pressed={active}
+        disabled={disabled}
+        onMouseDown={(e) => {
+          e.preventDefault();
+        }}
+        onClick={onClick}
+      >
+        {children}
+      </button>
+    </span>
   );
+}
+
+const ICON = {
+  width: 16,
+  height: 16,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+  "aria-hidden": true,
+} as const;
+
+function UndoIcon(): JSX.Element {
+  return (
+    <svg {...ICON}>
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+    </svg>
+  );
+}
+
+function RedoIcon(): JSX.Element {
+  return (
+    <svg {...ICON}>
+      <path d="m15 14 5-5-5-5" />
+      <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
+    </svg>
+  );
+}
+
+interface Tip {
+  text: string;
+  x: number;
+  y: number;
 }
 
 /** Text formatting only. App appearance lives in the settings popover. */
 export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
+  const [tip, setTip] = useState<Tip | null>(null);
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) => {
@@ -89,17 +128,34 @@ export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
   const off = editor === null;
 
   return (
-    <div className="format-bar" role="toolbar" aria-label="Text formatting">
-      <Btn label="Undo" disabled={off || !s.canUndo} onClick={() => chain()?.undo().run()}>
-        ↶
+    <div
+      className="format-bar"
+      role="toolbar"
+      aria-label="Text formatting"
+      onPointerOver={(e) => {
+        const target = (e.target as Element).closest("[data-tip]");
+        const text = target?.getAttribute("data-tip") ?? "";
+        if (target === null || text === "") {
+          setTip(null);
+          return;
+        }
+        const box = target.getBoundingClientRect();
+        setTip({ text, x: box.left + box.width / 2, y: box.bottom + 6 });
+      }}
+      onPointerLeave={() => {
+        setTip(null);
+      }}
+    >
+      <Btn label="Undo (⌘Z)" disabled={off || !s.canUndo} onClick={() => chain()?.undo().run()}>
+        <UndoIcon />
       </Btn>
-      <Btn label="Redo" disabled={off || !s.canRedo} onClick={() => chain()?.redo().run()}>
-        ↷
+      <Btn label="Redo (⌘⇧Z)" disabled={off || !s.canRedo} onClick={() => chain()?.redo().run()}>
+        <RedoIcon />
       </Btn>
       <span className="fmt-sep" aria-hidden="true" />
       <select
         aria-label="Heading level"
-        title="Heading level"
+        data-tip="Heading level"
         value={heading}
         disabled={off}
         onChange={(e) => {
@@ -118,7 +174,7 @@ export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
       </select>
       <select
         aria-label="Font family"
-        title="Font family"
+        data-tip="Font family"
         value={s.family}
         disabled={off}
         onChange={(e) => {
@@ -140,7 +196,7 @@ export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
       </select>
       <select
         aria-label="Font size"
-        title="Font size"
+        data-tip="Font size"
         value={s.size}
         disabled={off}
         onChange={(e) => {
@@ -192,7 +248,7 @@ export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
       >
         <s>S</s>
       </Btn>
-      <label className="fmt-color" title="Text color">
+      <label className="fmt-color" data-tip="Text color">
         <span aria-hidden="true">A</span>
         <input
           type="color"
@@ -202,7 +258,7 @@ export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
           onChange={(e) => chain()?.setColor(e.target.value).run()}
         />
       </label>
-      <label className="fmt-color" title="Highlight color">
+      <label className="fmt-color" data-tip="Highlight color">
         <span aria-hidden="true">▮</span>
         <input
           type="color"
@@ -269,6 +325,11 @@ export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
       >
         ⇥
       </Btn>
+      {tip !== null && (
+        <span className="fmt-tooltip" role="tooltip" style={{ left: tip.x, top: tip.y }}>
+          {tip.text}
+        </span>
+      )}
     </div>
   );
 }

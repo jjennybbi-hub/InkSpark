@@ -471,3 +471,31 @@ select:focus-visible {
 .fmt-btn[aria-pressed="true"] {
   background: color-mix(in srgb, var(--ink) 18%, transparent);
 }
+
+/* Toolbar tooltips float below the control (fixed, so the scrolling bar never clips them). */
+.fmt-tip-target {
+  display: inline-flex;
+  flex: none;
+}
+
+.fmt-btn {
+  display: inline-grid;
+  place-items: center;
+}
+
+.fmt-btn:disabled {
+  pointer-events: none;
+}
+
+.fmt-tooltip {
+  position: fixed;
+  z-index: 30;
+  transform: translateX(-50%);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
