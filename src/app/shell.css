@@ -445,3 +445,29 @@ select:focus-visible {
 .app-shell[data-focus="true"] .workspace {
   grid-template-columns: 1fr;
 }
+
+/* The top bar is borderless: no outlines on the bar, its buttons, selects or the gear. */
+.format-bar {
+  border-bottom: 0;
+  scrollbar-width: none;
+}
+
+.format-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.format-bar button,
+.format-bar select,
+.settings > .icon-btn {
+  border-color: transparent;
+}
+
+.format-bar button:hover:not(:disabled),
+.format-bar select:hover:not(:disabled),
+.settings > .icon-btn:hover {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+.fmt-btn[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+}
