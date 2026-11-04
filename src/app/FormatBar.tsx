@@ -59,6 +59,27 @@ function UndoIcon(): JSX.Element {
   );
 }
 
+function ClearFormatIcon(): JSX.Element {
+  return (
+    <svg {...ICON}>
+      <path d="M4 7V4h16v3" />
+      <path d="M5 20h6" />
+      <path d="M13 4 8 20" />
+      <path d="m15 15 5 5" />
+      <path d="m20 15-5 5" />
+    </svg>
+  );
+}
+
+function HighlighterIcon(): JSX.Element {
+  return (
+    <svg {...ICON}>
+      <path d="m9 11-6 6v3h9l3-3" />
+      <path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
+    </svg>
+  );
+}
+
 function RedoIcon(): JSX.Element {
   return (
     <svg {...ICON}>
@@ -259,7 +280,7 @@ export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
         />
       </label>
       <label className="fmt-color" data-tip="Highlight color">
-        <span aria-hidden="true">▮</span>
+        <HighlighterIcon />
         <input
           type="color"
           aria-label="Highlight color"
@@ -273,7 +294,7 @@ export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
         disabled={off}
         onClick={() => chain()?.unsetColor().unsetHighlight().run()}
       >
-        ⌫
+        <ClearFormatIcon />
       </Btn>
       <span className="fmt-sep" aria-hidden="true" />
       <Btn

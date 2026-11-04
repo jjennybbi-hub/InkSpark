@@ -499,3 +499,26 @@ select:focus-visible {
   white-space: nowrap;
   pointer-events: none;
 }
+
+/* Colour pickers show as round swatches. */
+.fmt-color input {
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.fmt-color input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.fmt-color input::-webkit-color-swatch {
+  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  border-radius: 50%;
+}
+
+.fmt-color input::-moz-color-swatch {
+  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  border-radius: 50%;
+}
