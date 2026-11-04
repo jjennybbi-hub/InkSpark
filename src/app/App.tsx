@@ -6,8 +6,17 @@ import { pickPrompt, promptHash } from "../spark/dealer";
 import "@fontsource/atkinson-hyperlegible/400.css";
 import "@fontsource/atkinson-hyperlegible/700.css";
 import { loadAppInfo } from "./appInfo";
-import { AppearanceMenu } from "./AppearanceMenu";
-import { applyAppearance, loadAppearance, saveAppearance, type Appearance } from "./appearance";
+import { RichEditor } from "./RichEditor";
+import { SettingsPopover } from "./SettingsPopover";
+import {
+  applyAppearance,
+  loadAppearance,
+  loadCustomThemes,
+  saveAppearance,
+  saveCustomThemes,
+  type Appearance,
+} from "./appearance";
+import type { ThemeDef } from "./themes";
 import "./shell.css";
 
 const AUTOSAVE_MS = 1000;
@@ -28,6 +37,7 @@ function firstLine(text: string): string {
   const line = text.split("\n").find((l) => l.trim() !== "") ?? "";
   return line
     .trim()
+    .replace(/<[^>]*>/g, "")
     .replace(/^#+\s*/, "")
     .slice(0, 80);
 }
@@ -63,6 +73,7 @@ export function App(): JSX.Element {
   const [shelfOpen, setShelfOpen] = useState(true);
   const [prompt, setPrompt] = useState("");
   const [appearance, setAppearance] = useState<Appearance>(loadAppearance);
+  const [customThemes, setCustomThemes] = useState<ThemeDef[]>(loadCustomThemes);
   const [focusMode, setFocusMode] = useState(false);
   const [info, setInfo] = useState<AppInfo | null>(null);
 
@@ -196,9 +207,25 @@ export function App(): JSX.Element {
   }, [openFolder]);
 
   useEffect(() => {
-    applyAppearance(appearance);
+    applyAppearance(appearance, customThemes);
     saveAppearance(appearance);
-  }, [appearance]);
+    saveCustomThemes(customThemes);
+  }, [appearance, customThemes]);
+
+  // "Follow system" tracks the operating system while the app is open.
+  useEffect(() => {
+    const query =
+      typeof window.matchMedia === "function"
+        ? window.matchMedia("(prefers-color-scheme: dark)")
+        : null;
+    const redo = (): void => {
+      applyAppearance(appearance, customThemes);
+    };
+    query?.addEventListener("change", redo);
+    return () => {
+      query?.removeEventListener("change", redo);
+    };
+  }, [appearance, customThemes]);
 
   // ⌘S / Ctrl+S saves now; hiding the window or closing it saves too.
   useEffect(() => {
@@ -211,7 +238,11 @@ export function App(): JSX.Element {
       } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
         void flush();
-      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "i") {
+      } else if (
+        (event.metaKey || event.ctrlKey) &&
+        event.shiftKey &&
+        event.key.toLowerCase() === "i"
+      ) {
         event.preventDefault();
         setShelfOpen(true);
         window.setTimeout(() => quickCapture.current?.focus(), 0);
@@ -327,6 +358,17 @@ export function App(): JSX.Element {
       ) : (
         <div className="workspace">
           <nav className="pages" aria-label="Pages">
+            <div className="pages-actions">
+              <button
+                type="button"
+                className="icon-btn"
+                aria-label="New page"
+                title="New page"
+                onClick={() => void addPage()}
+              >
+                +
+              </button>
+            </div>
             <ul>
               {pages.map((page) => (
                 <li key={page.id}>
@@ -342,26 +384,19 @@ export function App(): JSX.Element {
               ))}
             </ul>
             <div className="pages-actions">
-              <button type="button" onClick={() => void addPage()}>
-                New page
-              </button>
               <button type="button" onClick={() => void chooseFolder()}>
                 Change folder
               </button>
             </div>
-            <AppearanceMenu value={appearance} onChange={setAppearance} />
           </nav>
           <section className="editor" aria-label="Editor">
-            <textarea
-              aria-label="Page text"
-              value={text}
-              spellCheck
-              autoFocus
-              disabled={currentId === null}
-              onChange={(event) => {
-                onChange(event.target.value);
-              }}
+            <SettingsPopover
+              value={appearance}
+              customThemes={customThemes}
+              onChange={setAppearance}
+              onCustomThemes={setCustomThemes}
             />
+            <RichEditor pageKey={currentId} markdown={text} onChange={onChange} />
             <div className="prompt-bar">
               <button type="button" onClick={() => void dealPrompt()}>
                 Prompt
@@ -392,7 +427,7 @@ export function App(): JSX.Element {
                 <textarea
                   ref={quickCapture}
                   aria-label="Quick capture"
-                  placeholder="Jot an idea, then ⌘↵"
+                  placeholder="Jot an idea, then ⌘↵ (⌘⇧I to focus)"
                   rows={3}
                   onKeyDown={(event) => {
                     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {

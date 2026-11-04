@@ -1,5 +1,5 @@
 import { mockIPC } from "@tauri-apps/api/mocks";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { expectNoAxeViolations } from "../test/axe";
 import { App } from "./App";
@@ -31,6 +31,22 @@ function mockProject(calls: Call[]): void {
   });
 }
 
+/** Types into the page the way a browser reports it: the text node changes and ProseMirror reads it. */
+async function typeInto(editor: HTMLElement, suffix: string): Promise<void> {
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+  let last: Node | null = null;
+  for (let n = walker.nextNode(); n !== null; n = walker.nextNode()) {
+    last = n;
+  }
+  if (last === null) {
+    throw new Error("no text in the editor");
+  }
+  last.textContent = `${last.textContent ?? ""}${suffix}`;
+  await waitFor(() => {
+    expect(screen.getByRole("status")).toHaveAttribute("aria-label", "Saving");
+  });
+}
+
 beforeEach(() => {
   localStorage.clear();
 });
@@ -52,7 +68,7 @@ describe("App", () => {
     render(<App />);
     const editor = await screen.findByRole("textbox", { name: "Page text" });
     await waitFor(() => {
-      expect(editor).toHaveValue("Chapter one\nIt began.");
+      expect(editor).toHaveTextContent("Chapter oneIt began.");
     });
     expect(screen.getByRole("button", { name: "Chapter one" })).toHaveAttribute(
       "aria-current",
@@ -66,21 +82,21 @@ describe("App", () => {
     render(<App />);
     const editor = await screen.findByRole("textbox", { name: "Page text" });
     await waitFor(() => {
-      expect(editor).toHaveValue("Chapter one\nIt began.");
+      expect(editor).toHaveTextContent("Chapter oneIt began.");
     });
-    vi.useFakeTimers();
-    fireEvent.change(editor, { target: { value: "Chapter one\nIt began slowly." } });
-    expect(screen.getByRole("status")).toHaveAttribute("aria-label", "Saving");
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(900);
-    });
+    await typeInto(editor, " slowly.");
     expect(calls.some((c) => c.cmd === "save_page")).toBe(false);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(200);
-    });
+    await waitFor(
+      () => {
+        expect(calls.some((c) => c.cmd === "save_page")).toBe(true);
+      },
+      { timeout: 2500 },
+    );
     const save = calls.find((c) => c.cmd === "save_page");
-    expect(save?.args).toMatchObject({ id: "p1", content: "Chapter one\nIt began slowly." });
-    expect(screen.getByRole("status")).toHaveAttribute("aria-label", "Saved");
+    expect(save?.args).toMatchObject({ id: "p1", content: "Chapter one\nIt began. slowly." });
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveAttribute("aria-label", "Saved");
+    });
   });
 
   it("saves at once on Cmd+S", async () => {
@@ -89,9 +105,9 @@ describe("App", () => {
     render(<App />);
     const editor = await screen.findByRole("textbox", { name: "Page text" });
     await waitFor(() => {
-      expect(editor).toHaveValue("Chapter one\nIt began.");
+      expect(editor).toHaveTextContent("Chapter oneIt began.");
     });
-    fireEvent.change(editor, { target: { value: "changed" } });
+    await typeInto(editor, " more");
     fireEvent.keyDown(window, { key: "s", metaKey: true });
     await waitFor(() => {
       expect(calls.some((c) => c.cmd === "save_page")).toBe(true);
