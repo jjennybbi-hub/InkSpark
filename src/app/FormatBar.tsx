@@ -1,4 +1,5 @@
 import { type Editor, useEditorState } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import { type JSX, type ReactNode, useState } from "react";
 
 const FONT_FAMILIES: readonly { label: string; value: string }[] = [
@@ -50,15 +51,6 @@ const ICON = {
   "aria-hidden": true,
 } as const;
 
-function UndoIcon(): JSX.Element {
-  return (
-    <svg {...ICON}>
-      <path d="M9 14 4 9l5-5" />
-      <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
-    </svg>
-  );
-}
-
 function ClearFormatIcon(): JSX.Element {
   return (
     <svg {...ICON}>
@@ -76,15 +68,6 @@ function HighlighterIcon(): JSX.Element {
     <svg {...ICON}>
       <path d="m9 11-6 6v3h9l3-3" />
       <path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
-    </svg>
-  );
-}
-
-function RedoIcon(): JSX.Element {
-  return (
-    <svg {...ICON}>
-      <path d="m15 14 5-5-5-5" />
-      <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
     </svg>
   );
 }
@@ -116,8 +99,6 @@ export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
         left: e?.isActive({ textAlign: "left" }) ?? false,
         center: e?.isActive({ textAlign: "center" }) ?? false,
         right: e?.isActive({ textAlign: "right" }) ?? false,
-        canUndo: e?.can().undo() ?? false,
-        canRedo: e?.can().redo() ?? false,
         family: typeof attrs.fontFamily === "string" ? attrs.fontFamily : "",
         size: typeof attrs.fontSize === "string" ? attrs.fontSize.replace("px", "") : "",
         color: typeof attrs.color === "string" ? attrs.color : "",
@@ -138,8 +119,6 @@ export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
     left: false,
     center: false,
     right: false,
-    canUndo: false,
-    canRedo: false,
     family: "",
     size: "",
     color: "",
@@ -148,209 +127,212 @@ export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
   const heading = s.h1 ? "1" : s.h2 ? "2" : s.h3 ? "3" : "0";
   const off = editor === null;
 
+  if (editor === null) {
+    return <></>;
+  }
+
   return (
-    <div
-      className="format-bar"
-      role="toolbar"
-      aria-label="Text formatting"
-      onPointerOver={(e) => {
-        const target = (e.target as Element).closest("[data-tip]");
-        const text = target?.getAttribute("data-tip") ?? "";
-        if (target === null || text === "") {
-          setTip(null);
-          return;
-        }
-        const box = target.getBoundingClientRect();
-        setTip({ text, x: box.left + box.width / 2, y: box.bottom + 6 });
-      }}
-      onPointerLeave={() => {
-        setTip(null);
-      }}
+    <BubbleMenu
+      editor={editor}
+      options={{ placement: "top", offset: 8 }}
+      shouldShow={({ editor: e, state: st }) => e.isEditable && !st.selection.empty}
     >
-      <Btn label="Undo (⌘Z)" disabled={off || !s.canUndo} onClick={() => chain()?.undo().run()}>
-        <UndoIcon />
-      </Btn>
-      <Btn label="Redo (⌘⇧Z)" disabled={off || !s.canRedo} onClick={() => chain()?.redo().run()}>
-        <RedoIcon />
-      </Btn>
-      <span className="fmt-sep" aria-hidden="true" />
-      <select
-        aria-label="Heading level"
-        data-tip="Heading level"
-        value={heading}
-        disabled={off}
-        onChange={(e) => {
-          const level = Number(e.target.value);
-          if (level === 1 || level === 2 || level === 3) {
-            chain()?.setHeading({ level }).run();
-          } else {
-            chain()?.setParagraph().run();
+      <div
+        className="format-bar"
+        role="toolbar"
+        aria-label="Text formatting"
+        onPointerOver={(e) => {
+          const target = (e.target as Element).closest("[data-tip]");
+          const text = target?.getAttribute("data-tip") ?? "";
+          if (target === null || text === "") {
+            setTip(null);
+            return;
           }
+          const box = target.getBoundingClientRect();
+          setTip({ text, x: box.left + box.width / 2, y: box.bottom + 6 });
+        }}
+        onPointerLeave={() => {
+          setTip(null);
         }}
       >
-        <option value="0">Text</option>
-        <option value="1">Heading 1</option>
-        <option value="2">Heading 2</option>
-        <option value="3">Heading 3</option>
-      </select>
-      <select
-        aria-label="Font family"
-        data-tip="Font family"
-        value={s.family}
-        disabled={off}
-        onChange={(e) => {
-          if (e.target.value === "") {
-            chain()?.unsetFontFamily().run();
-          } else {
-            chain()?.setFontFamily(e.target.value).run();
-          }
-        }}
-      >
-        {FONT_FAMILIES.map((f) => (
-          <option key={f.label} value={f.value}>
-            {f.label}
-          </option>
-        ))}
-        {s.family !== "" && !FONT_FAMILIES.some((f) => f.value === s.family) && (
-          <option value={s.family}>Custom</option>
+        <select
+          aria-label="Heading level"
+          data-tip="Heading level"
+          value={heading}
+          disabled={off}
+          onChange={(e) => {
+            const level = Number(e.target.value);
+            if (level === 1 || level === 2 || level === 3) {
+              chain()?.setHeading({ level }).run();
+            } else {
+              chain()?.setParagraph().run();
+            }
+          }}
+        >
+          <option value="0">Text</option>
+          <option value="1">Heading 1</option>
+          <option value="2">Heading 2</option>
+          <option value="3">Heading 3</option>
+        </select>
+        <select
+          aria-label="Font family"
+          data-tip="Font family"
+          value={s.family}
+          disabled={off}
+          onChange={(e) => {
+            if (e.target.value === "") {
+              chain()?.unsetFontFamily().run();
+            } else {
+              chain()?.setFontFamily(e.target.value).run();
+            }
+          }}
+        >
+          {FONT_FAMILIES.map((f) => (
+            <option key={f.label} value={f.value}>
+              {f.label}
+            </option>
+          ))}
+          {s.family !== "" && !FONT_FAMILIES.some((f) => f.value === s.family) && (
+            <option value={s.family}>Custom</option>
+          )}
+        </select>
+        <select
+          aria-label="Font size"
+          data-tip="Font size"
+          value={s.size}
+          disabled={off}
+          onChange={(e) => {
+            if (e.target.value === "") {
+              chain()?.unsetFontSize().run();
+            } else {
+              chain()?.setFontSize(`${e.target.value}px`).run();
+            }
+          }}
+        >
+          <option value="">Size</option>
+          {SIZES.map((z) => (
+            <option key={z} value={z}>
+              {z}
+            </option>
+          ))}
+          {s.size !== "" && !SIZES.includes(s.size) && <option value={s.size}>{s.size}</option>}
+        </select>
+        <span className="fmt-sep" aria-hidden="true" />
+        <Btn
+          label="Bold (⌘B)"
+          active={s.bold}
+          disabled={off}
+          onClick={() => chain()?.toggleBold().run()}
+        >
+          <b>B</b>
+        </Btn>
+        <Btn
+          label="Italic (⌘I)"
+          active={s.italic}
+          disabled={off}
+          onClick={() => chain()?.toggleItalic().run()}
+        >
+          <i>I</i>
+        </Btn>
+        <Btn
+          label="Underline (⌘U)"
+          active={s.underline}
+          disabled={off}
+          onClick={() => chain()?.toggleUnderline().run()}
+        >
+          <u>U</u>
+        </Btn>
+        <Btn
+          label="Strikethrough"
+          active={s.strike}
+          disabled={off}
+          onClick={() => chain()?.toggleStrike().run()}
+        >
+          <s>S</s>
+        </Btn>
+        <label className="fmt-color" data-tip="Text color">
+          <span aria-hidden="true">A</span>
+          <input
+            type="color"
+            aria-label="Text color"
+            value={/^#[0-9a-f]{6}$/i.test(s.color) ? s.color : "#000000"}
+            disabled={off}
+            onChange={(e) => chain()?.setColor(e.target.value).run()}
+          />
+        </label>
+        <label className="fmt-color" data-tip="Highlight color">
+          <HighlighterIcon />
+          <input
+            type="color"
+            aria-label="Highlight color"
+            defaultValue="#fff176"
+            disabled={off}
+            onChange={(e) => chain()?.setHighlight({ color: e.target.value }).run()}
+          />
+        </label>
+        <Btn
+          label="Clear text color and highlight"
+          disabled={off}
+          onClick={() => chain()?.unsetColor().unsetHighlight().run()}
+        >
+          <ClearFormatIcon />
+        </Btn>
+        <span className="fmt-sep" aria-hidden="true" />
+        <Btn
+          label="Bulleted list"
+          active={s.bullet}
+          disabled={off}
+          onClick={() => chain()?.toggleBulletList().run()}
+        >
+          •≡
+        </Btn>
+        <Btn
+          label="Numbered list"
+          active={s.ordered}
+          disabled={off}
+          onClick={() => chain()?.toggleOrderedList().run()}
+        >
+          1.
+        </Btn>
+        <Btn
+          label="Quote"
+          active={s.quote}
+          disabled={off}
+          onClick={() => chain()?.toggleBlockquote().run()}
+        >
+          ❝
+        </Btn>
+        <span className="fmt-sep" aria-hidden="true" />
+        <Btn
+          label="Align left"
+          active={s.left}
+          disabled={off}
+          onClick={() => chain()?.setTextAlign("left").run()}
+        >
+          ⇤
+        </Btn>
+        <Btn
+          label="Align center"
+          active={s.center}
+          disabled={off}
+          onClick={() => chain()?.setTextAlign("center").run()}
+        >
+          ↔
+        </Btn>
+        <Btn
+          label="Align right"
+          active={s.right}
+          disabled={off}
+          onClick={() => chain()?.setTextAlign("right").run()}
+        >
+          ⇥
+        </Btn>
+        {tip !== null && (
+          <span className="fmt-tooltip" role="tooltip" style={{ left: tip.x, top: tip.y }}>
+            {tip.text}
+          </span>
         )}
-      </select>
-      <select
-        aria-label="Font size"
-        data-tip="Font size"
-        value={s.size}
-        disabled={off}
-        onChange={(e) => {
-          if (e.target.value === "") {
-            chain()?.unsetFontSize().run();
-          } else {
-            chain()?.setFontSize(`${e.target.value}px`).run();
-          }
-        }}
-      >
-        <option value="">Size</option>
-        {SIZES.map((z) => (
-          <option key={z} value={z}>
-            {z}
-          </option>
-        ))}
-        {s.size !== "" && !SIZES.includes(s.size) && <option value={s.size}>{s.size}</option>}
-      </select>
-      <span className="fmt-sep" aria-hidden="true" />
-      <Btn
-        label="Bold (⌘B)"
-        active={s.bold}
-        disabled={off}
-        onClick={() => chain()?.toggleBold().run()}
-      >
-        <b>B</b>
-      </Btn>
-      <Btn
-        label="Italic (⌘I)"
-        active={s.italic}
-        disabled={off}
-        onClick={() => chain()?.toggleItalic().run()}
-      >
-        <i>I</i>
-      </Btn>
-      <Btn
-        label="Underline (⌘U)"
-        active={s.underline}
-        disabled={off}
-        onClick={() => chain()?.toggleUnderline().run()}
-      >
-        <u>U</u>
-      </Btn>
-      <Btn
-        label="Strikethrough"
-        active={s.strike}
-        disabled={off}
-        onClick={() => chain()?.toggleStrike().run()}
-      >
-        <s>S</s>
-      </Btn>
-      <label className="fmt-color" data-tip="Text color">
-        <span aria-hidden="true">A</span>
-        <input
-          type="color"
-          aria-label="Text color"
-          value={/^#[0-9a-f]{6}$/i.test(s.color) ? s.color : "#000000"}
-          disabled={off}
-          onChange={(e) => chain()?.setColor(e.target.value).run()}
-        />
-      </label>
-      <label className="fmt-color" data-tip="Highlight color">
-        <HighlighterIcon />
-        <input
-          type="color"
-          aria-label="Highlight color"
-          defaultValue="#fff176"
-          disabled={off}
-          onChange={(e) => chain()?.setHighlight({ color: e.target.value }).run()}
-        />
-      </label>
-      <Btn
-        label="Clear text color and highlight"
-        disabled={off}
-        onClick={() => chain()?.unsetColor().unsetHighlight().run()}
-      >
-        <ClearFormatIcon />
-      </Btn>
-      <span className="fmt-sep" aria-hidden="true" />
-      <Btn
-        label="Bulleted list"
-        active={s.bullet}
-        disabled={off}
-        onClick={() => chain()?.toggleBulletList().run()}
-      >
-        •≡
-      </Btn>
-      <Btn
-        label="Numbered list"
-        active={s.ordered}
-        disabled={off}
-        onClick={() => chain()?.toggleOrderedList().run()}
-      >
-        1.
-      </Btn>
-      <Btn
-        label="Quote"
-        active={s.quote}
-        disabled={off}
-        onClick={() => chain()?.toggleBlockquote().run()}
-      >
-        ❝
-      </Btn>
-      <span className="fmt-sep" aria-hidden="true" />
-      <Btn
-        label="Align left"
-        active={s.left}
-        disabled={off}
-        onClick={() => chain()?.setTextAlign("left").run()}
-      >
-        ⇤
-      </Btn>
-      <Btn
-        label="Align center"
-        active={s.center}
-        disabled={off}
-        onClick={() => chain()?.setTextAlign("center").run()}
-      >
-        ↔
-      </Btn>
-      <Btn
-        label="Align right"
-        active={s.right}
-        disabled={off}
-        onClick={() => chain()?.setTextAlign("right").run()}
-      >
-        ⇥
-      </Btn>
-      {tip !== null && (
-        <span className="fmt-tooltip" role="tooltip" style={{ left: tip.x, top: tip.y }}>
-          {tip.text}
-        </span>
-      )}
-    </div>
+      </div>
+    </BubbleMenu>
   );
 }

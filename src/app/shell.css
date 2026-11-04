@@ -540,3 +540,25 @@ select:focus-visible {
 .page .ProseMirror {
   padding: 2rem clamp(1rem, 3vw, 2rem);
 }
+
+/* Formatting popup: floats over the selection (an overlay), two compact rows, never moves the page. */
+.format-bar {
+  position: relative;
+  z-index: 20;
+  height: auto;
+  flex-wrap: wrap;
+  width: max-content;
+  max-width: min(26rem, 92vw);
+  padding: 0.3rem 0.4rem;
+  overflow: visible;
+  gap: 0.2rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--ink) 20%, transparent);
+}
+
+.fmt-tooltip {
+  transform: translate(-50%, 0);
+}

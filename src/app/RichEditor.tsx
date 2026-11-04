@@ -150,9 +150,9 @@ export function RichEditor({ pageKey, markdown, onChange }: Props): JSX.Element 
 
   return (
     <div className="rich">
-      <FormatBar editor={editor} />
       <div className="page-scroll">
         <EditorContent editor={editor} className="page" />
+        <FormatBar editor={editor} />
       </div>
     </div>
   );
