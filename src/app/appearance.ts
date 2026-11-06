@@ -1,4 +1,11 @@
-import { PRESET_THEMES, SYSTEM_THEME_ID, type ThemeDef, findTheme, parseTheme } from "./themes";
+import {
+  PRESET_THEMES,
+  SYSTEM_THEME_ID,
+  type ThemeDef,
+  findTheme,
+  isDarkColor,
+  parseTheme,
+} from "./themes";
 
 export type FontChoice = "serif" | "sans" | "mono" | "dyslexia";
 export type EditorWidth = "narrow" | "medium" | "wide";
@@ -113,6 +120,7 @@ export function applyAppearance(a: Appearance, custom: readonly ThemeDef[]): voi
   root.style.setProperty("--paper", theme.bg);
   root.style.setProperty("--ink", theme.text);
   root.style.setProperty("--accent", theme.accent);
+  root.style.setProperty("--on-accent", isDarkColor(theme.accent) ? "#ffffff" : "#000000");
   root.style.setProperty("--text-size", `${String(a.size)}px`);
   root.style.setProperty("--page-width", WIDTH_REM[a.width]);
 }
