@@ -23,6 +23,13 @@ describe("export", () => {
     });
   });
 
+  it("gives Word a real font name, not a system keyword", () => {
+    const [block] = pageToBlocks(
+      '<p><span style="font-family: ui-monospace, Menlo, monospace">Hi</span></p>',
+    );
+    expect(block?.runs[0]?.font).toBe("Menlo");
+  });
+
   it("keeps single line breaks", () => {
     const [block] = pageToBlocks("one\ntwo");
     expect(block?.runs.map((r) => r.text)).toEqual(["one", "\n", "two"]);

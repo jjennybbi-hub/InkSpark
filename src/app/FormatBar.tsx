@@ -3,10 +3,21 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import { type JSX, type ReactNode, useState } from "react";
 
 const FONT_FAMILIES: readonly { label: string; value: string }[] = [
-  { label: "Page font", value: "" },
-  { label: "Serif", value: "Georgia, 'Times New Roman', serif" },
-  { label: "Sans", value: "system-ui, -apple-system, Helvetica, Arial, sans-serif" },
-  { label: "Mono", value: "ui-monospace, Menlo, Consolas, monospace" },
+  { label: "Font: default", value: "" },
+  { label: "Georgia", value: "Georgia, 'Times New Roman', serif" },
+  { label: "Times New Roman", value: "'Times New Roman', Times, serif" },
+  { label: "Palatino", value: "Palatino, 'Palatino Linotype', serif" },
+  { label: "Baskerville", value: "Baskerville, 'Baskerville Old Face', serif" },
+  { label: "Garamond", value: "Garamond, 'EB Garamond', serif" },
+  { label: "System sans", value: "system-ui, -apple-system, Helvetica, Arial, sans-serif" },
+  { label: "Arial", value: "Arial, Helvetica, sans-serif" },
+  { label: "Helvetica", value: "Helvetica, Arial, sans-serif" },
+  { label: "Verdana", value: "Verdana, Geneva, sans-serif" },
+  { label: "Trebuchet", value: "'Trebuchet MS', Helvetica, sans-serif" },
+  { label: "Avenir", value: "Avenir, 'Avenir Next', Helvetica, sans-serif" },
+  { label: "Atkinson Hyperlegible", value: "'Atkinson Hyperlegible', system-ui, sans-serif" },
+  { label: "Menlo", value: "ui-monospace, Menlo, Consolas, monospace" },
+  { label: "Courier New", value: "'Courier New', Courier, monospace" },
 ];
 const SIZES = ["12", "14", "16", "18", "20", "24", "28", "32", "40"];
 
@@ -99,7 +110,8 @@ export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
         left: e?.isActive({ textAlign: "left" }) ?? false,
         center: e?.isActive({ textAlign: "center" }) ?? false,
         right: e?.isActive({ textAlign: "right" }) ?? false,
-        family: typeof attrs.fontFamily === "string" ? attrs.fontFamily : "",
+        // Browsers may rewrite the quotes in a font name; the menu values use single quotes.
+        family: typeof attrs.fontFamily === "string" ? attrs.fontFamily.replace(/"/g, "'") : "",
         size: typeof attrs.fontSize === "string" ? attrs.fontSize.replace("px", "") : "",
         color: typeof attrs.color === "string" ? attrs.color : "",
       };

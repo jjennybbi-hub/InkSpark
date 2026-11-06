@@ -420,10 +420,24 @@ export function App(): JSX.Element {
                 Prompt
               </button>
               {prompt !== "" && (
-                <p>
-                  {prompt}
-                  {credit !== "" && <span className="prompt-credit"> — {credit}</span>}
-                </p>
+                <div className="prompt-card">
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    aria-label="Close prompt"
+                    title="Close prompt"
+                    onClick={() => {
+                      setPrompt("");
+                      setCredit("");
+                    }}
+                  >
+                    ×
+                  </button>
+                  <p>
+                    {prompt}
+                    {credit !== "" && <span className="prompt-credit"> — {credit}</span>}
+                  </p>
+                </div>
               )}
             </div>
             <span

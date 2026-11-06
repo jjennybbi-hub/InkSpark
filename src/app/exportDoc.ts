@@ -25,8 +25,12 @@ function fontOf(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
   }
-  const first = (value.split(",")[0] ?? "").trim().replace(/^["']|["']$/g, "");
-  return first === "" ? null : first;
+  // System font keywords mean nothing to Word, so use the first real font name in the list.
+  const first = value
+    .split(",")
+    .map((name) => name.trim().replace(/^["']|["']$/g, ""))
+    .find((name) => name !== "" && !/^(system-ui|-apple-system|ui-)/.test(name));
+  return first ?? null;
 }
 
 /** Returns six hex digits for #rgb, #rrggbb or rgb(), and null for anything else. */
