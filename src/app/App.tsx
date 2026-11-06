@@ -7,7 +7,6 @@ import "@fontsource/atkinson-hyperlegible/400.css";
 import "@fontsource/atkinson-hyperlegible/700.css";
 import { loadAppInfo } from "./appInfo";
 import { ExportMenu } from "./ExportMenu";
-import { ReadAloud } from "./ReadAloud";
 import { RichEditor } from "./RichEditor";
 import { SettingsPopover } from "./SettingsPopover";
 import {
@@ -402,7 +401,6 @@ export function App(): JSX.Element {
             </div>
           </nav>
           <section className="editor" aria-label="Editor">
-            <ReadAloud pageKey={currentId} />
             <ExportMenu
               project={project}
               pages={pages}

@@ -61,7 +61,7 @@ export function RichEditor({ pageKey, markdown, onChange, textFont }: Props): JS
     <div className="rich">
       <div className="page-scroll">
         <EditorContent editor={editor} className="page" />
-        <FormatBar editor={editor} textFont={textFont} />
+        <FormatBar editor={editor} textFont={textFont} pageKey={pageKey} />
       </div>
     </div>
   );

@@ -115,12 +115,11 @@ export function ReadAloud({ pageKey }: { pageKey: string | null }): JSX.Element 
 
   const label = speaking ? "Stop reading" : "Read aloud";
   return (
-    <div className="read-aloud">
+    <span className="fmt-tip-target" data-tip={speaking ? "Stop reading (Esc)" : "Read aloud"}>
       <button
         type="button"
-        className="icon-btn"
+        className="fmt-btn"
         aria-label={label}
-        title={speaking ? "Stop reading (Esc)" : "Read aloud: the selected text, or the whole page"}
         aria-pressed={speaking}
         // Keeps the text selection when the button is clicked.
         onMouseDown={(e) => {
@@ -153,6 +152,6 @@ export function ReadAloud({ pageKey }: { pageKey: string | null }): JSX.Element 
           {note}
         </p>
       )}
-    </div>
+    </span>
   );
 }
