@@ -29,6 +29,16 @@ export const commands = {
 	exportDocx: (path: string, dest: string, doc: DocxDocument_Deserialize) => typedError<string, AppError>(__TAURI_INVOKE("export_docx", { path, dest, doc })),
 	/**  Writes a theme file to `dest` (chosen by the user); returns the path written. */
 	exportTheme: (path: string, dest: string, content: string) => typedError<string, AppError>(__TAURI_INVOKE("export_theme", { path, dest, content })),
+	/**  Names a page in the list without changing its text; an empty name clears it. */
+	renamePage: (path: string, id: string, name: string) => typedError<PageSummary, AppError>(__TAURI_INVOKE("rename_page", { path, id, name })),
+	/**  Moves a page to Recently Deleted; returns the pages still in the list. */
+	deletePage: (path: string, id: string) => typedError<PageSummary[], AppError>(__TAURI_INVOKE("delete_page", { path, id })),
+	/**  Lists Recently Deleted, newest first. */
+	listDeleted: (path: string) => typedError<DeletedPage[], AppError>(__TAURI_INVOKE("list_deleted", { path })),
+	/**  Puts a deleted page back; returns the pages in the list. */
+	restorePage: (path: string, id: string) => typedError<PageSummary[], AppError>(__TAURI_INVOKE("restore_page", { path, id })),
+	/**  Permanently erases a page that is already in Recently Deleted. */
+	erasePage: (path: string, id: string) => typedError<null, AppError>(__TAURI_INVOKE("erase_page", { path, id })),
 };
 
 /* Types */
@@ -53,6 +63,14 @@ export type AppInfo = {
 	arch: string,
 	/**  The Tauri runtime version. */
 	tauriVersion: string,
+};
+
+/**  A page in the Recently Deleted list. */
+export type DeletedPage = {
+	/**  File stem of `pages/<id>.md`; the file stays there until it is erased. */
+	id: string,
+	/**  Same as [`PageSummary::title`]. */
+	title: string,
 };
 
 /**  One paragraph. */
@@ -169,8 +187,10 @@ export type OsKind = "macos" | "linux" | "windows" | "other";
 export type PageSummary = {
 	/**  File stem of `pages/<id>.md`. */
 	id: string,
-	/**  The first non-empty line of the page, or an empty string for a blank page. */
+	/**  The name the writer gave the page, else its first non-empty line, else an empty string. */
 	title: string,
+	/**  Whether `title` is a name the writer gave, so typing does not change it. */
+	named: boolean,
 };
 
 /* Tauri Specta runtime */

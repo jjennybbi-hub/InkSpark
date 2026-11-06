@@ -6,7 +6,7 @@ use std::path::Path;
 use crate::error::AppError;
 use crate::export::{self, DocxDocument};
 use crate::ideas::{self, Idea};
-use crate::project::{self, PageSummary};
+use crate::project::{self, DeletedPage, PageSummary};
 
 /// Basic facts about the running build of the app.
 #[derive(Debug, Clone, serde::Serialize, specta::Type)]
@@ -90,6 +90,41 @@ pub fn read_page(path: String, id: String) -> Result<String, AppError> {
 #[specta::specta]
 pub fn save_page(path: String, id: String, content: String) -> Result<(), AppError> {
     project::save_page(Path::new(&path), &id, &content)
+}
+
+/// Names a page in the list without changing its text; an empty name clears it.
+#[tauri::command]
+#[specta::specta]
+pub fn rename_page(path: String, id: String, name: String) -> Result<PageSummary, AppError> {
+    project::rename_page(Path::new(&path), &id, &name)
+}
+
+/// Moves a page to Recently Deleted; returns the pages still in the list.
+#[tauri::command]
+#[specta::specta]
+pub fn delete_page(path: String, id: String) -> Result<Vec<PageSummary>, AppError> {
+    project::delete_page(Path::new(&path), &id)
+}
+
+/// Lists Recently Deleted, newest first.
+#[tauri::command]
+#[specta::specta]
+pub fn list_deleted(path: String) -> Result<Vec<DeletedPage>, AppError> {
+    project::list_deleted(Path::new(&path))
+}
+
+/// Puts a deleted page back; returns the pages in the list.
+#[tauri::command]
+#[specta::specta]
+pub fn restore_page(path: String, id: String) -> Result<Vec<PageSummary>, AppError> {
+    project::restore_page(Path::new(&path), &id)
+}
+
+/// Permanently erases a page that is already in Recently Deleted.
+#[tauri::command]
+#[specta::specta]
+pub fn erase_page(path: String, id: String) -> Result<(), AppError> {
+    project::erase_page(Path::new(&path), &id)
 }
 
 /// Lists the Idea Shelf, newest first.

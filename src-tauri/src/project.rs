@@ -3,6 +3,7 @@
 //!
 //! Every write goes through [`atomic_write`] in the `storage` module.
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -24,14 +25,39 @@ const PROJECT_FILE: &str = "project.json";
 pub struct PageSummary {
     /// File stem of `pages/<id>.md`.
     pub id: String,
-    /// The first non-empty line of the page, or an empty string for a blank page.
+    /// The name the writer gave the page, else its first non-empty line, else an empty string.
     pub title: String,
+    /// Whether `title` is a name the writer gave, so typing does not change it.
+    pub named: bool,
+}
+
+/// A page in the Recently Deleted list.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct DeletedPage {
+    /// File stem of `pages/<id>.md`; the file stays there until it is erased.
+    pub id: String,
+    /// Same as [`PageSummary::title`].
+    pub title: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct DeletedEntry {
+    id: String,
+    /// Where the page was in the order, so restoring puts it back.
+    position: usize,
 }
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 struct ProjectFile {
     #[serde(default)]
     pages: Vec<String>,
+    /// Names given by the writer, by page id. The page text is never changed by a rename.
+    #[serde(default)]
+    names: BTreeMap<String, String>,
+    /// Deleted pages, oldest first.
+    #[serde(default)]
+    deleted: Vec<DeletedEntry>,
 }
 
 fn check_id(id: &str) -> Result<(), AppError> {
@@ -78,13 +104,21 @@ fn title_of(root: &Path, id: &str) -> String {
         .unwrap_or_default()
 }
 
-fn summaries(root: &Path, ids: &[String]) -> Vec<PageSummary> {
-    ids.iter()
+fn summary(root: &Path, project: &ProjectFile, id: &str) -> PageSummary {
+    let name = project.names.get(id);
+    PageSummary {
+        id: id.to_owned(),
+        title: name.cloned().unwrap_or_else(|| title_of(root, id)),
+        named: name.is_some(),
+    }
+}
+
+fn summaries(root: &Path, project: &ProjectFile) -> Vec<PageSummary> {
+    project
+        .pages
+        .iter()
         .filter(|id| page_path(root, id).is_file())
-        .map(|id| PageSummary {
-            id: id.clone(),
-            title: title_of(root, id),
-        })
+        .map(|id| summary(root, project, id))
         .collect()
 }
 
@@ -114,7 +148,7 @@ pub fn open_project(root: &Path) -> Result<Vec<PageSummary>, AppError> {
         create_page(root)?;
         project = read_project_file(root)?;
     }
-    Ok(summaries(root, &project.pages))
+    Ok(summaries(root, &project))
 }
 
 /// Adds a blank page at the end of the order.
@@ -139,7 +173,139 @@ pub fn create_page(root: &Path) -> Result<PageSummary, AppError> {
     Ok(PageSummary {
         id,
         title: String::new(),
+        named: false,
     })
+}
+
+fn lock_project() -> std::sync::MutexGuard<'static, ()> {
+    SAVE_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
+/// Names a page in the list without touching its text. An empty name goes back to the first line.
+///
+/// # Errors
+///
+/// `NotFound` when the page is not in the project; otherwise the write error.
+pub fn rename_page(root: &Path, id: &str, name: &str) -> Result<PageSummary, AppError> {
+    check_id(id)?;
+    let _guard = lock_project();
+    let mut project = read_project_file(root)?;
+    if !project.pages.iter().any(|p| p == id) {
+        return Err(AppError::NotFound(id.to_owned()));
+    }
+    let clean: String = name
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .chars()
+        .take(80)
+        .collect();
+    if clean.is_empty() {
+        project.names.remove(id);
+    } else {
+        project.names.insert(id.to_owned(), clean);
+    }
+    write_project_file(root, &project)?;
+    Ok(summary(root, &project, id))
+}
+
+/// Moves a page to Recently Deleted; its file and history stay on disk. A project always keeps
+/// one page, so deleting the last one adds a blank page. Returns the pages still in the list.
+///
+/// # Errors
+///
+/// `NotFound` when the page is not in the list; otherwise the write error.
+pub fn delete_page(root: &Path, id: &str) -> Result<Vec<PageSummary>, AppError> {
+    check_id(id)?;
+    let _guard = lock_project();
+    let mut project = read_project_file(root)?;
+    let position = project
+        .pages
+        .iter()
+        .position(|p| p == id)
+        .ok_or_else(|| AppError::NotFound(id.to_owned()))?;
+    project.pages.remove(position);
+    project.deleted.push(DeletedEntry {
+        id: id.to_owned(),
+        position,
+    });
+    write_project_file(root, &project)?;
+    if project.pages.is_empty() {
+        create_page(root)?;
+        project = read_project_file(root)?;
+    }
+    Ok(summaries(root, &project))
+}
+
+/// Lists Recently Deleted, newest first.
+///
+/// # Errors
+///
+/// Fails when `project.json` cannot be read.
+pub fn list_deleted(root: &Path) -> Result<Vec<DeletedPage>, AppError> {
+    let project = read_project_file(root)?;
+    Ok(project
+        .deleted
+        .iter()
+        .rev()
+        .filter(|entry| page_path(root, &entry.id).is_file())
+        .map(|entry| {
+            let shown = summary(root, &project, &entry.id);
+            DeletedPage {
+                id: shown.id,
+                title: shown.title,
+            }
+        })
+        .collect())
+}
+
+/// Puts a deleted page back where it was. Returns the pages in the list.
+///
+/// # Errors
+///
+/// `NotFound` when the page is not in Recently Deleted; otherwise the write error.
+pub fn restore_page(root: &Path, id: &str) -> Result<Vec<PageSummary>, AppError> {
+    check_id(id)?;
+    let _guard = lock_project();
+    let mut project = read_project_file(root)?;
+    let index = project
+        .deleted
+        .iter()
+        .position(|entry| entry.id == id)
+        .ok_or_else(|| AppError::NotFound(id.to_owned()))?;
+    let entry = project.deleted.remove(index);
+    let position = entry.position.min(project.pages.len());
+    project.pages.insert(position, entry.id);
+    write_project_file(root, &project)?;
+    Ok(summaries(root, &project))
+}
+
+/// Permanently erases a page and its history. Only a page already in Recently Deleted can be erased.
+///
+/// # Errors
+///
+/// `NotFound` when the page is not in Recently Deleted; otherwise the I/O error.
+pub fn erase_page(root: &Path, id: &str) -> Result<(), AppError> {
+    check_id(id)?;
+    let _guard = lock_project();
+    let mut project = read_project_file(root)?;
+    let index = project
+        .deleted
+        .iter()
+        .position(|entry| entry.id == id)
+        .ok_or_else(|| AppError::NotFound(id.to_owned()))?;
+    project.deleted.remove(index);
+    project.names.remove(id);
+    write_project_file(root, &project)?;
+    let ignore_missing = |result: std::io::Result<()>| match result {
+        Err(err) if err.kind() != std::io::ErrorKind::NotFound => Err(err),
+        _ => Ok(()),
+    };
+    ignore_missing(fs::remove_file(page_path(root, id)))?;
+    ignore_missing(fs::remove_dir_all(root.join(".history").join(id)))?;
+    Ok(())
 }
 
 /// Reads one page's text.

@@ -35,7 +35,12 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::mark_prompt_seen,
             commands::export_markdown,
             commands::export_docx,
-            commands::export_theme
+            commands::export_theme,
+            commands::rename_page,
+            commands::delete_page,
+            commands::list_deleted,
+            commands::restore_page,
+            commands::erase_page
         ])
         .typ::<AppError>()
 }

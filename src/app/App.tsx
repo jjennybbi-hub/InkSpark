@@ -4,6 +4,7 @@ import { type JSX, useCallback, useEffect, useRef, useState } from "react";
 import { type AppInfo, type Idea, type PageSummary, commands } from "../contracts";
 import { pickPrompt, promptHash } from "../spark/dealer";
 import { restoreCustomFonts } from "./customFonts";
+import { PageList, RecentlyDeleted } from "./PageList";
 import { PromptCard } from "./PromptCard";
 import "@fontsource/atkinson-hyperlegible/400.css";
 import "@fontsource/atkinson-hyperlegible/700.css";
@@ -207,6 +208,42 @@ export function App(): JSX.Element {
     await showPage(project, result.data.id);
   }, [flush, project, showPage]);
 
+  const renamePage = async (id: string, name: string): Promise<void> => {
+    if (project === null) {
+      return;
+    }
+    const result = await commands.renamePage(project, id, name);
+    if (result.status === "error") {
+      setMessage(`Could not rename that page: ${result.error.message}`);
+      return;
+    }
+    setPages((prev) => prev.map((p) => (p.id === id ? result.data : p)));
+  };
+
+  const deletePage = async (id: string): Promise<void> => {
+    if (project === null) {
+      return;
+    }
+    await flush();
+    if (session.current?.dirty === true) {
+      setMessage(UNSAVED_NOTE);
+      return;
+    }
+    const result = await commands.deletePage(project, id);
+    if (result.status === "error") {
+      setMessage(`Could not delete that page: ${result.error.message}`);
+      return;
+    }
+    const index = pages.findIndex((p) => p.id === id);
+    setPages(result.data);
+    if (id === currentId) {
+      const next = result.data[Math.max(0, index)] ?? result.data[result.data.length - 1];
+      if (next !== undefined) {
+        await showPage(project, next.id);
+      }
+    }
+  };
+
   // Reopen the last project so the app opens straight to writing.
   useEffect(() => {
     const last = rememberedProject();
@@ -317,7 +354,9 @@ export function App(): JSX.Element {
     s.dirty = true;
     setText(value);
     setSaveState("saving");
-    setPages((prev) => prev.map((p) => (p.id === s.id ? { ...p, title: firstLine(value) } : p)));
+    setPages((prev) =>
+      prev.map((p) => (p.id === s.id && !p.named ? { ...p, title: firstLine(value) } : p)),
+    );
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       void flush();
@@ -386,24 +425,25 @@ export function App(): JSX.Element {
                 +
               </button>
             </div>
-            <ul>
-              {pages.map((page) => (
-                <li key={page.id}>
-                  <button
-                    type="button"
-                    className="page-link"
-                    aria-current={page.id === currentId ? "page" : undefined}
-                    onClick={() => void showPage(project, page.id)}
-                  >
-                    {page.title === "" ? "Untitled" : page.title}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <PageList
+              pages={pages}
+              currentId={currentId}
+              onOpen={(id) => void showPage(project, id)}
+              onRename={(id, name) => void renamePage(id, name)}
+              onDelete={(id) => void deletePage(id)}
+            />
             <div className="pages-actions">
               <button type="button" onClick={() => void chooseFolder()}>
                 Change folder
               </button>
+              <RecentlyDeleted
+                project={project}
+                onRestored={(restored, id) => {
+                  setPages(restored);
+                  void showPage(project, id);
+                }}
+                onProblem={setMessage}
+              />
             </div>
           </nav>
           <section className="editor" aria-label="Editor">

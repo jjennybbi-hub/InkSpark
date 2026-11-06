@@ -220,3 +220,85 @@ fn a_read_only_folder_fails_cleanly_and_keeps_the_old_text() {
         "safe"
     );
 }
+
+fn ok<T>(result: Result<T, AppError>) -> T {
+    result.unwrap_or_else(|err| panic!("{err}"))
+}
+
+fn three_pages(tag: &str) -> (PathBuf, Vec<String>) {
+    let root = temp_root(tag);
+    let first = ok(open_project(&root)).remove(0).id;
+    let second = ok(create_page(&root)).id;
+    let third = ok(create_page(&root)).id;
+    (root, vec![first, second, third])
+}
+
+#[test]
+fn rename_changes_the_list_but_never_the_text() {
+    let (root, ids) = three_pages("rename");
+    ok(save_page(&root, &ids[0], "First line\nmore"));
+    let renamed = ok(rename_page(&root, &ids[0], "  My   chapter "));
+    assert_eq!(renamed.title, "My chapter");
+    assert!(renamed.named);
+    assert_eq!(ok(read_page(&root, &ids[0])), "First line\nmore");
+    assert_eq!(ok(open_project(&root))[0].title, "My chapter");
+    let cleared = ok(rename_page(&root, &ids[0], "   "));
+    assert_eq!(cleared.title, "First line");
+    assert!(!cleared.named);
+}
+
+#[test]
+fn delete_keeps_the_words_and_restore_puts_the_page_back_in_place() {
+    let (root, ids) = three_pages("delete");
+    ok(save_page(&root, &ids[1], "Keep me"));
+    let left = ok(delete_page(&root, &ids[1]));
+    assert_eq!(left.len(), 2);
+    assert_eq!(ok(read_page(&root, &ids[1])), "Keep me");
+    assert_eq!(ok(list_deleted(&root))[0].title, "Keep me");
+    let back = ok(restore_page(&root, &ids[1]));
+    let order: Vec<_> = back.into_iter().map(|p| p.id).collect();
+    assert_eq!(order, ids);
+    assert!(ok(list_deleted(&root)).is_empty());
+}
+
+#[test]
+fn deleting_the_last_page_leaves_a_blank_one_and_stays_restorable() {
+    let root = temp_root("last");
+    let only = ok(open_project(&root)).remove(0).id;
+    ok(save_page(&root, &only, "Words"));
+    let left = ok(delete_page(&root, &only));
+    assert_eq!(left.len(), 1);
+    assert_ne!(left[0].id, only);
+    assert_eq!(ok(restore_page(&root, &only)).len(), 2);
+}
+
+#[test]
+fn erase_only_works_on_a_deleted_page_and_removes_its_history() {
+    let (root, ids) = three_pages("erase");
+    ok(save_page(&root, &ids[0], "one"));
+    ok(save_page(&root, &ids[0], "two"));
+    assert!(erase_page(&root, &ids[0]).is_err());
+    assert_eq!(ok(read_page(&root, &ids[0])), "two");
+    ok(delete_page(&root, &ids[0]));
+    ok(erase_page(&root, &ids[0]));
+    assert!(read_page(&root, &ids[0]).is_err());
+    assert!(history_files(&root, &ids[0]).is_empty());
+    assert!(restore_page(&root, &ids[0]).is_err());
+}
+
+#[test]
+fn bad_ids_cannot_reach_outside_the_project() {
+    let root = temp_root("badid");
+    ok(open_project(&root));
+    assert!(erase_page(&root, "../x").is_err());
+    assert!(delete_page(&root, "../x").is_err());
+}
+
+#[test]
+fn project_files_from_before_this_feature_still_open() {
+    let root = temp_root("oldfile");
+    ok(fs::create_dir_all(root.join("pages")).map_err(AppError::from));
+    ok(atomic_write(&root.join("pages/p1.md"), b"Old").map_err(AppError::from));
+    ok(atomic_write(&root.join("project.json"), br#"{"pages":["p1"]}"#).map_err(AppError::from));
+    assert_eq!(ok(open_project(&root))[0].title, "Old");
+}
