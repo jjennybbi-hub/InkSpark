@@ -439,8 +439,7 @@ select:focus-visible {
 .app-shell[data-focus="true"] .prompt-bar,
 .app-shell[data-focus="true"] .format-bar,
 .app-shell[data-focus="true"] .save-dot,
-.app-shell[data-focus="true"] .export-menu,
-.app-shell[data-focus="true"] .read-aloud {
+.app-shell[data-focus="true"] .export-menu {
   display: none;
 }
 
@@ -716,21 +715,10 @@ button.icon-btn {
   gap: 0.4rem;
 }
 
-/* Read aloud sits left of Export; a problem floats above it. */
-.read-aloud {
-  position: fixed;
-  right: 6.25rem;
-  bottom: 1rem;
-  z-index: 20;
-}
-
-.read-aloud > .icon-btn {
-  display: inline-grid;
-  place-items: center;
-}
-
+/* A read-aloud problem floats above the formatting popup. */
 .read-note {
   top: auto;
+  right: 0;
   bottom: 2.4rem;
   width: 15rem;
   margin: 0;

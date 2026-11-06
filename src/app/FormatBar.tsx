@@ -2,6 +2,7 @@ import { type Editor, useEditorState } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { type JSX, type ReactNode, useState } from "react";
 import { FontPicker } from "./FontPicker";
+import { ReadAloud } from "./ReadAloud";
 import { DEFAULT_TEXT_FONT, TEXT_FONTS } from "./fonts";
 
 const SIZES = ["12", "14", "16", "18", "20", "24", "28", "32", "40"];
@@ -78,10 +79,13 @@ interface Tip {
 export function FormatBar({
   editor,
   textFont = DEFAULT_TEXT_FONT,
+  pageKey = null,
 }: {
   editor: Editor | null;
   /** The page's font: what text without a font of its own appears in. */
   textFont?: string | undefined;
+  /** Reading aloud stops when the page changes. */
+  pageKey?: string | null;
 }): JSX.Element {
   const [tip, setTip] = useState<Tip | null>(null);
   const state = useEditorState({
@@ -322,6 +326,8 @@ export function FormatBar({
         >
           ⇥
         </Btn>
+        <span className="fmt-sep" aria-hidden="true" />
+        <ReadAloud pageKey={pageKey} />
         {tip !== null && (
           <span className="fmt-tooltip" role="tooltip" style={{ left: tip.x, top: tip.y }}>
             {tip.text}
