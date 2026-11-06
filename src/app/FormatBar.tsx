@@ -10,16 +10,18 @@ const SIZES = ["12", "14", "16", "18", "20", "24", "28", "32", "40"];
 
 interface BtnProps {
   label: string;
+  /** What it does, shown on hover. */
+  tip: string;
   active?: boolean;
   disabled?: boolean;
   onClick: () => void;
   children: ReactNode;
 }
 
-function Btn({ label, active, disabled, onClick, children }: BtnProps): JSX.Element {
+function Btn({ label, tip, active, disabled, onClick, children }: BtnProps): JSX.Element {
   // The wrapper carries the tooltip, so it still shows while the button is disabled.
   return (
-    <span className="fmt-tip-target" data-tip={label}>
+    <span className="fmt-tip-target" data-tip={tip}>
       <button
         type="button"
         className="fmt-btn"
@@ -167,7 +169,7 @@ export function FormatBar({
       >
         <select
           aria-label="Heading level"
-          data-tip="Heading level"
+          data-tip="Heading level: make this line a heading or plain text"
           value={heading}
           disabled={off}
           onChange={(e) => {
@@ -200,7 +202,7 @@ export function FormatBar({
         />
         <select
           aria-label="Font size"
-          data-tip="Font size"
+          data-tip="Font size: change the size of the selected text"
           value={s.size}
           disabled={off}
           onChange={(e) => {
@@ -222,6 +224,7 @@ export function FormatBar({
         <span className="fmt-sep" aria-hidden="true" />
         <Btn
           label="Bold (⌘B)"
+          tip="Bold: make text heavier (⌘B)"
           active={s.bold}
           disabled={off}
           onClick={() => chain()?.toggleBold().run()}
@@ -230,6 +233,7 @@ export function FormatBar({
         </Btn>
         <Btn
           label="Italic (⌘I)"
+          tip="Italic: slant text (⌘I)"
           active={s.italic}
           disabled={off}
           onClick={() => chain()?.toggleItalic().run()}
@@ -238,6 +242,7 @@ export function FormatBar({
         </Btn>
         <Btn
           label="Underline (⌘U)"
+          tip="Underline: draw a line under text (⌘U)"
           active={s.underline}
           disabled={off}
           onClick={() => chain()?.toggleUnderline().run()}
@@ -246,13 +251,14 @@ export function FormatBar({
         </Btn>
         <Btn
           label="Strikethrough"
+          tip="Strikethrough: cross text out"
           active={s.strike}
           disabled={off}
           onClick={() => chain()?.toggleStrike().run()}
         >
           <s>S</s>
         </Btn>
-        <label className="fmt-color" data-tip="Text color">
+        <label className="fmt-color" data-tip="Text colour: change the colour of the selected text">
           <span aria-hidden="true">A</span>
           <input
             type="color"
@@ -262,7 +268,7 @@ export function FormatBar({
             onChange={(e) => chain()?.setColor(e.target.value).run()}
           />
         </label>
-        <label className="fmt-color" data-tip="Highlight color">
+        <label className="fmt-color" data-tip="Highlight: colour behind the selected text">
           <HighlighterIcon />
           <input
             type="color"
@@ -274,6 +280,7 @@ export function FormatBar({
         </label>
         <Btn
           label="Clear text color and highlight"
+          tip="Clear: remove text colour and highlight"
           disabled={off}
           onClick={() => chain()?.unsetColor().unsetHighlight().run()}
         >
@@ -282,6 +289,7 @@ export function FormatBar({
         <span className="fmt-sep" aria-hidden="true" />
         <Btn
           label="Bulleted list"
+          tip="Bulleted list: start a list with dots"
           active={s.bullet}
           disabled={off}
           onClick={() => chain()?.toggleBulletList().run()}
@@ -290,6 +298,7 @@ export function FormatBar({
         </Btn>
         <Btn
           label="Numbered list"
+          tip="Numbered list: start a list with numbers"
           active={s.ordered}
           disabled={off}
           onClick={() => chain()?.toggleOrderedList().run()}
@@ -298,6 +307,7 @@ export function FormatBar({
         </Btn>
         <Btn
           label="Quote"
+          tip="Quote: set text apart as a quotation"
           active={s.quote}
           disabled={off}
           onClick={() => chain()?.toggleBlockquote().run()}
@@ -307,6 +317,7 @@ export function FormatBar({
         <span className="fmt-sep" aria-hidden="true" />
         <Btn
           label="Align left"
+          tip="Align left: line text up on the left"
           active={s.left}
           disabled={off}
           onClick={() => chain()?.setTextAlign("left").run()}
@@ -315,6 +326,7 @@ export function FormatBar({
         </Btn>
         <Btn
           label="Align center"
+          tip="Align center: centre text on the line"
           active={s.center}
           disabled={off}
           onClick={() => chain()?.setTextAlign("center").run()}
@@ -323,6 +335,7 @@ export function FormatBar({
         </Btn>
         <Btn
           label="Align right"
+          tip="Align right: line text up on the right"
           active={s.right}
           disabled={off}
           onClick={() => chain()?.setTextAlign("right").run()}

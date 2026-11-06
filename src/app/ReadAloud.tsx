@@ -115,7 +115,10 @@ export function ReadAloud({ pageKey }: { pageKey: string | null }): JSX.Element 
 
   const label = speaking ? "Stop reading" : "Read aloud";
   return (
-    <span className="fmt-tip-target" data-tip={speaking ? "Stop reading (Esc)" : "Read aloud"}>
+    <span
+      className="fmt-tip-target"
+      data-tip={speaking ? "Stop reading (Esc)" : "Read aloud: hear the selected text spoken"}
+    >
       <button
         type="button"
         className="fmt-btn"

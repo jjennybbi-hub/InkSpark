@@ -419,7 +419,7 @@ export function App(): JSX.Element {
                 type="button"
                 className="icon-btn"
                 aria-label="New page"
-                title="New page"
+                title="New page: add a blank page to the end of the list"
                 onClick={() => void addPage()}
               >
                 +
@@ -433,7 +433,11 @@ export function App(): JSX.Element {
               onDelete={(id) => void deletePage(id)}
             />
             <div className="pages-actions">
-              <button type="button" onClick={() => void chooseFolder()}>
+              <button
+                type="button"
+                title="Change folder: open a different folder of pages"
+                onClick={() => void chooseFolder()}
+              >
                 Change folder
               </button>
               <RecentlyDeleted
@@ -462,7 +466,11 @@ export function App(): JSX.Element {
             />
             <RichEditor pageKey={currentId} markdown={text} onChange={onChange} />
             <div className="prompt-bar">
-              <button type="button" onClick={() => void dealPrompt()}>
+              <button
+                type="button"
+                title="Prompt: show a new writing prompt or passage. It fades as you type."
+                onClick={() => void dealPrompt()}
+              >
                 Prompt
               </button>
               {prompt !== "" && (
@@ -482,7 +490,7 @@ export function App(): JSX.Element {
               data-state={saveState}
               role="status"
               aria-label={saveLabel}
-              title={saveLabel}
+              title={`${saveLabel}. Saves by itself as you write; save now with ⌘S.`}
             />
             {message !== "" && <p className="note">{message}</p>}
           </section>
@@ -490,6 +498,7 @@ export function App(): JSX.Element {
             <button
               type="button"
               aria-expanded={shelfOpen}
+              title="Idea Shelf: show or hide your quick notes. Jump to it with ⌘⇧I."
               onClick={() => {
                 setShelfOpen((v) => !v);
               }}
@@ -501,6 +510,7 @@ export function App(): JSX.Element {
                 <textarea
                   ref={quickCapture}
                   aria-label="Quick capture"
+                  title="Quick capture: jot down an idea (⌘⇧I)"
                   placeholder="Jot an idea, then ⌘↵ (⌘⇧I to focus)"
                   rows={3}
                   onKeyDown={(event) => {

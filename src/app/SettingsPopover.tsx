@@ -160,7 +160,7 @@ export function SettingsPopover({
         type="button"
         className="icon-btn"
         aria-label="Settings"
-        title="Settings"
+        title="Settings: theme, zoom, page width and interface font"
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => {
@@ -207,6 +207,7 @@ export function SettingsPopover({
                 setEditing((v) => !v);
               }}
               aria-expanded={editing}
+              title="Customize: change this theme's colours, or import or download a theme"
             >
               <span className="swatch" aria-hidden="true">
                 +
@@ -264,7 +265,7 @@ export function SettingsPopover({
                   type="button"
                   className="icon-btn"
                   aria-label="Import theme"
-                  title="Import theme"
+                  title="Import theme: load a theme file"
                   onClick={() => {
                     fileInput.current?.click();
                   }}
@@ -275,7 +276,7 @@ export function SettingsPopover({
                   type="button"
                   className="icon-btn"
                   aria-label="Download theme"
-                  title="Download theme"
+                  title="Download theme: save this theme as a file"
                   onClick={() => void downloadTheme()}
                 >
                   <DownloadIcon />
@@ -285,7 +286,7 @@ export function SettingsPopover({
                     type="button"
                     className="icon-btn"
                     aria-label="Delete this theme"
-                    title="Delete this theme"
+                    title="Delete this theme: go back to following the system"
                     onClick={() => {
                       onCustomThemes(customThemes.filter((t) => t.id !== current.id));
                       choose(SYSTEM_THEME_ID);
@@ -363,6 +364,7 @@ export function SettingsPopover({
               type="range"
               min={ZOOM_MIN}
               max={ZOOM_MAX}
+              title="Zoom: make the page look bigger on screen. Exports are not affected."
               step={10}
               value={value.zoom}
               onChange={(e) => {
@@ -410,7 +412,7 @@ export function SettingsPopover({
                 type="button"
                 className="icon-btn"
                 aria-label="Import font"
-                title="Import font"
+                title="Import font: add a font file and use it"
                 onClick={() => void importInterfaceFont()}
               >
                 <ImportIcon />

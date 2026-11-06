@@ -102,13 +102,18 @@ export function FontPicker({
   };
 
   return (
-    <span className="font-picker fmt-tip-target" ref={root} data-tip={label}>
+    <span
+      className="font-picker fmt-tip-target"
+      ref={root}
+      data-tip={`${label}: choose or import a font`}
+    >
       <button
         ref={button}
         type="button"
         className="fmt-btn font-picker-btn"
         aria-label={`${label}: ${current?.label ?? "Custom"}`}
         aria-haspopup="listbox"
+        title={`${label}: choose or import a font`}
         aria-expanded={open}
         style={{ fontFamily: value }}
         // Keeps the text selection in the writing.

@@ -105,7 +105,7 @@ export function ExportMenu({ project, pages, currentId, saveFirst }: Props): JSX
         type="button"
         className="icon-btn"
         aria-label="Export"
-        title="Export"
+        title="Export: save pages as a Word or Markdown file"
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => {

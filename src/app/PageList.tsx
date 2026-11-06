@@ -107,6 +107,7 @@ export function PageList({
                   className="page-link"
                   aria-current={page.id === currentId ? "page" : undefined}
                   aria-haspopup="menu"
+                  title="Open this page. Right-click to rename or delete."
                   onClick={() => {
                     onOpen(page.id);
                   }}
@@ -263,7 +264,7 @@ export function RecentlyDeleted({
         type="button"
         className="icon-btn"
         aria-label="Recently deleted"
-        title="Recently deleted"
+        title="Recently deleted: bring back or permanently delete pages"
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => void toggle()}
@@ -301,6 +302,7 @@ export function RecentlyDeleted({
                       <button
                         type="button"
                         aria-label={`Restore ${title}`}
+                        title="Put this page back in the list"
                         onClick={() => void restore(item.id)}
                       >
                         Restore
@@ -309,7 +311,7 @@ export function RecentlyDeleted({
                         type="button"
                         className="icon-btn"
                         aria-label={`Delete ${title} forever`}
-                        title="Delete forever"
+                        title="Delete forever: asks you first"
                         onClick={() => {
                           setConfirming(item.id);
                         }}
