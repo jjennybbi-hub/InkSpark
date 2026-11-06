@@ -14,6 +14,7 @@ import { FontPicker } from "./FontPicker";
 import { INTERFACE_FONTS, TEXT_FONTS } from "./fonts";
 import {
   PRESET_THEMES,
+  THEME_GROUPS,
   SYSTEM_THEME_ID,
   type ThemeDef,
   makeCustomTheme,
@@ -157,7 +158,7 @@ export function SettingsPopover({
               </span>
               Follow system
             </button>
-            {[...PRESET_THEMES, ...customThemes].map((t) => (
+            {customThemes.map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -184,6 +185,33 @@ export function SettingsPopover({
               New theme
             </button>
           </div>
+          {THEME_GROUPS.map((group) => (
+            <div key={group.name} className="theme-group" role="group" aria-label={group.name}>
+              <h3>{group.name}</h3>
+              <p className="hint">{group.note}</p>
+              <div className="theme-grid">
+                {group.ids
+                  .flatMap((id) => {
+                    const t = PRESET_THEMES.find((p) => p.id === id);
+                    return t === undefined ? [] : [t];
+                  })
+                  .map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className="theme-btn"
+                      aria-pressed={value.themeId === t.id}
+                      onClick={() => {
+                        choose(t.id);
+                      }}
+                    >
+                      <Swatch theme={t} />
+                      {t.name}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          ))}
           {creating && (
             <div className="new-theme">
               <label>

@@ -2,7 +2,7 @@ import { render, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { RichEditor } from "./RichEditor";
 import { DEFAULTS, LOOK_WIDTH, applyAppearance, loadAppearance } from "./appearance";
-import { PRESET_THEMES, parseThemeFile, themeToFile } from "./themes";
+import { PRESET_THEMES, THEME_GROUPS, parseThemeFile, themeToFile } from "./themes";
 
 /** Loads a page, makes a one-character edit, and returns the Markdown that would be saved. */
 async function roundTrip(source: string): Promise<string> {
@@ -85,5 +85,12 @@ describe("reading looks", () => {
   it("keeps today's look for settings saved before looks existed", () => {
     localStorage.setItem("inkspark.appearance", JSON.stringify({ themeId: "paper", size: 20 }));
     expect(loadAppearance()).toMatchObject({ look: "open", width: "medium", size: 20 });
+  });
+});
+
+describe("theme groups", () => {
+  it("places every preset theme in exactly one group", () => {
+    const grouped = THEME_GROUPS.flatMap((g) => [...g.ids]).sort();
+    expect(grouped).toEqual(PRESET_THEMES.map((t) => t.id).sort());
   });
 });

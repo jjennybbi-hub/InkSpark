@@ -102,6 +102,46 @@ export const PRESET_THEMES: readonly ThemeDef[] = [
   },
 ];
 
+export interface ThemeGroup {
+  name: string;
+  /** What the research says, stated plainly. Not every group has a proven benefit. */
+  note: string;
+  ids: readonly string[];
+}
+
+export const THEME_GROUPS: readonly ThemeGroup[] = [
+  {
+    name: "Dark text on light",
+    note: "Did better in proofreading studies, especially at small sizes.",
+    ids: ["paper", "sepia", "parchment", "lemonade"],
+  },
+  {
+    name: "Blue, for ideas",
+    note: "One study linked blue to creative tasks. A later repeat did not find it.",
+    ids: ["ocean", "winter", "slate", "storm", "midnight-blue"],
+  },
+  {
+    name: "Red tints, for detail",
+    note: "One study linked red to detail work, using stronger red. A later repeat did not find it.",
+    ids: ["rose", "cherry-blossom", "dawn"],
+  },
+  {
+    name: "Dark, for dim rooms",
+    note: "A comfort choice. May help some people with low vision.",
+    ids: ["night", "forest", "mocha", "coffeehouse", "library", "terminal-green"],
+  },
+  {
+    name: "High contrast",
+    note: "The strongest difference between text and page, for accessibility.",
+    ids: ["contrast-light", "contrast-dark"],
+  },
+  {
+    name: "Seasons and moods",
+    note: "For atmosphere. No proven benefit.",
+    ids: ["spring", "summer", "autumn", "mint", "lavender", "dusk"],
+  },
+];
+
 /** "system" is not a palette: it resolves to Paper or Night with the operating system. */
 export const SYSTEM_THEME_ID = "system";
 
