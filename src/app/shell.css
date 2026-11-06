@@ -696,3 +696,21 @@ button.icon-btn {
 .page .ProseMirror {
   padding-bottom: 50vh;
 }
+
+/* The reading look and width. The page stays centred; padding is added so width counts only text. */
+.page .ProseMirror {
+  --side-space: clamp(1rem, 3vw, 2rem);
+  box-sizing: border-box;
+  max-width: calc(var(--page-width) + 2 * var(--side-space));
+  line-height: var(--line-spacing, 1.7);
+}
+
+.page .ProseMirror p {
+  margin-bottom: var(--paragraph-spacing, 0.6em);
+}
+
+.look-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}

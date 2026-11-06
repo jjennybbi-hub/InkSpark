@@ -3,16 +3,27 @@ import { PRESET_THEMES, SYSTEM_THEME_ID, type ThemeDef, findTheme, parseTheme } 
 export type FontChoice = "serif" | "sans" | "mono" | "dyslexia";
 export type EditorWidth = "narrow" | "medium" | "wide";
 
+/** A reading look sets line spacing, paragraph spacing and page width together. */
+export type ReadingLook = "compact" | "open" | "relaxed";
+
 export interface Appearance {
   /** A preset id, a custom theme id, or "system". */
   themeId: string;
   font: FontChoice;
   size: number;
   width: EditorWidth;
+  look: ReadingLook;
 }
 
 export const FONTS: readonly FontChoice[] = ["serif", "sans", "mono", "dyslexia"];
 export const WIDTHS: readonly EditorWidth[] = ["narrow", "medium", "wide"];
+export const LOOKS: readonly ReadingLook[] = ["compact", "open", "relaxed"];
+/** Each look's starting width; the width menu can still change it afterwards. */
+export const LOOK_WIDTH: Record<ReadingLook, EditorWidth> = {
+  compact: "wide",
+  open: "medium",
+  relaxed: "narrow",
+};
 export const SIZE_MIN = 14;
 export const SIZE_MAX = 28;
 export const DEFAULTS: Appearance = {
@@ -20,6 +31,7 @@ export const DEFAULTS: Appearance = {
   font: "serif",
   size: 18,
   width: "medium",
+  look: "open",
 };
 
 const KEY = "inkspark.appearance";
@@ -44,6 +56,7 @@ export function loadAppearance(): Appearance {
           ? r.size
           : DEFAULTS.size,
       width: WIDTHS.find((w) => w === r.width) ?? DEFAULTS.width,
+      look: LOOKS.find((l) => l === r.look) ?? DEFAULTS.look,
     };
   } catch {
     return DEFAULTS;
@@ -102,7 +115,16 @@ function resolveTheme(id: string, custom: readonly ThemeDef[]): ThemeDef {
   return findTheme(id, custom) ?? fallback ?? EMERGENCY;
 }
 
-const WIDTH_REM: Record<EditorWidth, string> = { narrow: "34rem", medium: "42rem", wide: "56rem" };
+/**
+ * Measured in characters of the writing font, so a line holds about the same amount of text at
+ * any size. `ch` is the width of a zero, wider than an average letter, so lines hold a bit more.
+ */
+const WIDTH_CH: Record<EditorWidth, string> = { narrow: "50ch", medium: "62ch", wide: "78ch" };
+const LOOK_SPACING: Record<ReadingLook, { line: string; paragraph: string }> = {
+  compact: { line: "1.4", paragraph: "0.4em" },
+  open: { line: "1.7", paragraph: "0.6em" },
+  relaxed: { line: "2", paragraph: "1em" },
+};
 
 /** Applies the choice as CSS variables on <html>; the stylesheet does the rest. */
 export function applyAppearance(a: Appearance, custom: readonly ThemeDef[]): void {
@@ -114,5 +136,7 @@ export function applyAppearance(a: Appearance, custom: readonly ThemeDef[]): voi
   root.style.setProperty("--ink", theme.text);
   root.style.setProperty("--accent", theme.accent);
   root.style.setProperty("--text-size", `${String(a.size)}px`);
-  root.style.setProperty("--page-width", WIDTH_REM[a.width]);
+  root.style.setProperty("--page-width", WIDTH_CH[a.width]);
+  root.style.setProperty("--line-spacing", LOOK_SPACING[a.look].line);
+  root.style.setProperty("--paragraph-spacing", LOOK_SPACING[a.look].paragraph);
 }

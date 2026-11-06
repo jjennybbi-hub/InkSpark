@@ -1,6 +1,7 @@
 import { render, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { RichEditor } from "./RichEditor";
+import { DEFAULTS, LOOK_WIDTH, applyAppearance, loadAppearance } from "./appearance";
 import { PRESET_THEMES, parseThemeFile, themeToFile } from "./themes";
 
 /** Loads a page, makes a one-character edit, and returns the Markdown that would be saved. */
@@ -69,5 +70,20 @@ describe("themes", () => {
     expect(
       parseThemeFile('{"name":"x","bg":"red","text":"#000000","accent":"#000000"}'),
     ).toBeNull();
+  });
+});
+
+describe("reading looks", () => {
+  it("sets line spacing, paragraph spacing and a width in characters", () => {
+    applyAppearance({ ...DEFAULTS, look: "relaxed", width: LOOK_WIDTH.relaxed }, []);
+    const style = document.documentElement.style;
+    expect(style.getPropertyValue("--line-spacing")).toBe("2");
+    expect(style.getPropertyValue("--paragraph-spacing")).toBe("1em");
+    expect(style.getPropertyValue("--page-width")).toBe("50ch");
+  });
+
+  it("keeps today's look for settings saved before looks existed", () => {
+    localStorage.setItem("inkspark.appearance", JSON.stringify({ themeId: "paper", size: 20 }));
+    expect(loadAppearance()).toMatchObject({ look: "open", width: "medium", size: 20 });
   });
 });

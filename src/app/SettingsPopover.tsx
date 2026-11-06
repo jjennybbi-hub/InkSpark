@@ -4,6 +4,9 @@ import {
   type EditorWidth,
   type FontChoice,
   FONTS,
+  LOOKS,
+  LOOK_WIDTH,
+  type ReadingLook,
   SIZE_MAX,
   SIZE_MIN,
   WIDTHS,
@@ -28,6 +31,12 @@ const WIDTH_LABELS: Record<EditorWidth, string> = {
   narrow: "Narrow",
   medium: "Medium",
   wide: "Wide",
+};
+
+const LOOK_LABELS: Record<ReadingLook, string> = {
+  compact: "Compact",
+  open: "Open",
+  relaxed: "Relaxed",
 };
 
 interface Props {
@@ -276,6 +285,22 @@ export function SettingsPopover({
             />
           </div>
           {problem !== "" && <p className="hint">{problem}</p>}
+          <h2>Reading look</h2>
+          <div className="look-grid" role="group" aria-label="Reading look">
+            {LOOKS.map((look) => (
+              <button
+                key={look}
+                type="button"
+                className="theme-btn"
+                aria-pressed={value.look === look}
+                onClick={() => {
+                  onChange({ ...value, look, width: LOOK_WIDTH[look] });
+                }}
+              >
+                {LOOK_LABELS[look]}
+              </button>
+            ))}
+          </div>
           <h2>Interface</h2>
           <label>
             Font
