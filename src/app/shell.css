@@ -438,7 +438,8 @@ select:focus-visible {
 .app-shell[data-focus="true"] .shelf,
 .app-shell[data-focus="true"] .prompt-bar,
 .app-shell[data-focus="true"] .format-bar,
-.app-shell[data-focus="true"] .save-dot {
+.app-shell[data-focus="true"] .save-dot,
+.app-shell[data-focus="true"] .export-menu {
   display: none;
 }
 
@@ -633,4 +634,36 @@ button.icon-btn {
 .shelf > button {
   align-self: flex-start;
   flex: none;
+}
+
+/* Export sits just left of the gear and opens upward, floating over the page. */
+.export-menu {
+  position: fixed;
+  right: 3.5rem;
+  bottom: 1rem;
+  z-index: 20;
+}
+
+.export-menu > .icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+}
+
+.export-menu .popover {
+  top: auto;
+  right: 0;
+  bottom: 2.4rem;
+  width: 16rem;
+}
+
+.export-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.export-result {
+  margin: 0.6rem 0 0;
+  overflow-wrap: anywhere;
 }

@@ -4,6 +4,7 @@
 use std::path::Path;
 
 use crate::error::AppError;
+use crate::export::{self, DocxDocument};
 use crate::ideas::{self, Idea};
 use crate::project::{self, PageSummary};
 
@@ -117,6 +118,20 @@ pub fn seen_prompts(path: String) -> Result<Vec<String>, AppError> {
 #[specta::specta]
 pub fn mark_prompt_seen(path: String, hash: String) -> Result<(), AppError> {
     ideas::mark_prompt_seen(Path::new(&path), &hash)
+}
+
+/// Writes Markdown to `dest` (chosen by the user); returns the path written.
+#[tauri::command]
+#[specta::specta]
+pub fn export_markdown(path: String, dest: String, content: String) -> Result<String, AppError> {
+    export::export_markdown(Path::new(&path), Path::new(&dest), &content)
+}
+
+/// Writes a Word document to `dest` (chosen by the user); returns the path written.
+#[tauri::command]
+#[specta::specta]
+pub fn export_docx(path: String, dest: String, doc: DocxDocument) -> Result<String, AppError> {
+    export::export_docx(Path::new(&path), Path::new(&dest), &doc)
 }
 
 #[cfg(test)]

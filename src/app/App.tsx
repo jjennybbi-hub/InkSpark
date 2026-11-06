@@ -6,6 +6,7 @@ import { pickPrompt, promptHash } from "../spark/dealer";
 import "@fontsource/atkinson-hyperlegible/400.css";
 import "@fontsource/atkinson-hyperlegible/700.css";
 import { loadAppInfo } from "./appInfo";
+import { ExportMenu } from "./ExportMenu";
 import { RichEditor } from "./RichEditor";
 import { SettingsPopover } from "./SettingsPopover";
 import {
@@ -119,6 +120,12 @@ export function App(): JSX.Element {
     });
     return queue.current;
   }, []);
+
+  /** Exports read from disk, so the page must be saved first. False if it could not be. */
+  const saveFirst = useCallback(async (): Promise<boolean> => {
+    await flush();
+    return session.current?.dirty !== true;
+  }, [flush]);
 
   const showPage = useCallback(
     async (path: string, id: string): Promise<void> => {
@@ -394,6 +401,13 @@ export function App(): JSX.Element {
             </div>
           </nav>
           <section className="editor" aria-label="Editor">
+            <ExportMenu
+              project={project}
+              pages={pages}
+              currentId={currentId}
+              appearance={appearance}
+              saveFirst={saveFirst}
+            />
             <SettingsPopover
               value={appearance}
               customThemes={customThemes}

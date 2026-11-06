@@ -35,6 +35,8 @@ specta = { version = "=2.0.0-rc.26", features = ["derive"] }
 specta-typescript = "=0.0.13"
 tauri-specta = { version = "=2.0.0-rc.26", features = ["derive", "typescript"] }
 tauri-plugin-dialog = "2"
+# A .docx file is a zip of XML parts; this builds that container for Word export (MIT).
+zip = { version = "9.4.1", default-features = false, features = ["deflate"] }
 
 [lints]
 workspace = true

@@ -56,6 +56,42 @@ afterEach(() => {
 });
 
 describe("App", () => {
+  it("exports all pages to the chosen place, as one Word file, with nothing moved", async () => {
+    const calls: Call[] = [];
+    localStorage.setItem("inkspark.lastProject", "/tmp/book");
+    mockIPC((cmd, args) => {
+      calls.push({ cmd, args: (args ?? {}) as Record<string, unknown> });
+      if (cmd === "open_project") {
+        return [
+          { id: "p1", title: "One" },
+          { id: "p2", title: "Two" },
+        ];
+      }
+      if (cmd === "read_page") {
+        return "Some **bold** words";
+      }
+      if (cmd === "list_ideas") {
+        return [];
+      }
+      if (cmd === "plugin:dialog|save") {
+        return "/tmp/out/book.docx";
+      }
+      if (cmd === "export_docx") {
+        return "/tmp/out/book.docx";
+      }
+      throw new Error(`unexpected command: ${cmd}`);
+    });
+    const { container } = render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Export" }));
+    await expectNoAxeViolations(container);
+    fireEvent.click(screen.getByRole("button", { name: "Export all pages as Word" }));
+    expect(await screen.findByText("Saved to /tmp/out/book.docx")).toBeInTheDocument();
+    const sent = calls.find((c) => c.cmd === "export_docx")?.args;
+    expect(sent?.dest).toBe("/tmp/out/book.docx");
+    const doc = sent?.doc as { blocks: { pageBreak: boolean }[] };
+    expect(doc.blocks.map((b) => b.pageBreak)).toEqual([false, true]);
+  });
+
   it("offers to choose a folder when none is remembered", () => {
     mockIPC(() => undefined);
     render(<App />);

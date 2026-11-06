@@ -1,11 +1,5 @@
 QUEUE: do only the FIRST step below. When it's done, delete it from this file so the next step moves to the top.
 
-STEP 4: export
-- Export one page or all pages to Markdown and Word (.docx), from a quiet export icon (an overlay menu, following the UI rule).
-- The user picks where to save. Writes go through the Rust storage module.
-- Formatting (bold, italic, headings, font and size) carries over into Word.
-- Typecheck, lint and test. Rebuild the clickable app, then commit and push.
-
 STEP 5: cast and script writing
 - Cast list: each project keeps its own list of characters, places and events. Add with "+", rename or remove from a floating overlay. Renaming a character updates their name throughout the page.
 - Writing formats: pick a format per page or section. Start with Chat history (Annie: hello), Screenplay and Stage play. The format controls how lines look; the writer only types the words.

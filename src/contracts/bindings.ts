@@ -23,6 +23,10 @@ export const commands = {
 	seenPrompts: (path: string) => typedError<string[], AppError>(__TAURI_INVOKE("seen_prompts", { path })),
 	/**  Records a prompt hash as shown in this project. */
 	markPromptSeen: (path: string, hash: string) => typedError<null, AppError>(__TAURI_INVOKE("mark_prompt_seen", { path, hash })),
+	/**  Writes Markdown to `dest` (chosen by the user); returns the path written. */
+	exportMarkdown: (path: string, dest: string, content: string) => typedError<string, AppError>(__TAURI_INVOKE("export_markdown", { path, dest, content })),
+	/**  Writes a Word document to `dest` (chosen by the user); returns the path written. */
+	exportDocx: (path: string, dest: string, doc: DocxDocument_Deserialize) => typedError<string, AppError>(__TAURI_INVOKE("export_docx", { path, dest, doc })),
 };
 
 /* Types */
@@ -47,6 +51,105 @@ export type AppInfo = {
 	arch: string,
 	/**  The Tauri runtime version. */
 	tauriVersion: string,
+};
+
+/**  One paragraph. */
+export type DocxBlock = DocxBlock_Serialize | DocxBlock_Deserialize;
+
+/**  One paragraph. */
+export type DocxBlock_Deserialize = {
+	/**  Heading level 1-3, or 0 for body text. */
+	heading: number,
+	/**  `left`, `center`, `right` or `justify`. */
+	align?: string | null,
+	list?: DocxList | null,
+	quote: boolean,
+	code: boolean,
+	/**  A horizontal line with no text. */
+	rule: boolean,
+	/**  Start this paragraph on a new page. */
+	pageBreak: boolean,
+	runs: DocxRun_Deserialize[],
+};
+
+/**  One paragraph. */
+export type DocxBlock_Serialize = {
+	/**  Heading level 1-3, or 0 for body text. */
+	heading: number,
+	/**  `left`, `center`, `right` or `justify`. */
+	align: string | null,
+	list: DocxList | null,
+	quote: boolean,
+	code: boolean,
+	/**  A horizontal line with no text. */
+	rule: boolean,
+	/**  Start this paragraph on a new page. */
+	pageBreak: boolean,
+	runs: DocxRun_Serialize[],
+};
+
+/**  A whole Word document: the writer's default look plus its paragraphs in order. */
+export type DocxDocument = DocxDocument_Serialize | DocxDocument_Deserialize;
+
+/**  A whole Word document: the writer's default look plus its paragraphs in order. */
+export type DocxDocument_Deserialize = {
+	/**  Default font name. */
+	font: string,
+	/**  Default text size, in half-points (Word's unit). */
+	halfPoints: number,
+	blocks: DocxBlock_Deserialize[],
+};
+
+/**  A whole Word document: the writer's default look plus its paragraphs in order. */
+export type DocxDocument_Serialize = {
+	/**  Default font name. */
+	font: string,
+	/**  Default text size, in half-points (Word's unit). */
+	halfPoints: number,
+	blocks: DocxBlock_Serialize[],
+};
+
+/**  Membership of a list. Items sharing an `id` count together. */
+export type DocxList = {
+	id: number,
+	ordered: boolean,
+	/**  Nesting depth, starting at 0. */
+	level: number,
+};
+
+/**  A stretch of text with one formatting. A newline in `text` is a line break. */
+export type DocxRun = DocxRun_Serialize | DocxRun_Deserialize;
+
+/**  A stretch of text with one formatting. A newline in `text` is a line break. */
+export type DocxRun_Deserialize = {
+	text: string,
+	bold: boolean,
+	italic: boolean,
+	underline: boolean,
+	strike: boolean,
+	code: boolean,
+	font?: string | null,
+	halfPoints?: number | null,
+	/**  Six hex digits; anything else is ignored. */
+	color?: string | null,
+	/**  Six hex digits; anything else is ignored. */
+	highlight?: string | null,
+};
+
+/**  A stretch of text with one formatting. A newline in `text` is a line break. */
+export type DocxRun_Serialize = {
+	text: string,
+	bold: boolean,
+	italic: boolean,
+	underline: boolean,
+	strike: boolean,
+	code: boolean,
+	font: string | null,
+	halfPoints: number | null,
+	/**  Six hex digits; anything else is ignored. */
+	color: string | null,
+	/**  Six hex digits; anything else is ignored. */
+	highlight: string | null,
 };
 
 /**  One note on the shelf. */

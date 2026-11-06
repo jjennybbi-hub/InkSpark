@@ -3,6 +3,7 @@
 
 pub mod commands;
 pub mod error;
+pub mod export;
 pub mod ideas;
 pub mod project;
 pub mod storage;
@@ -31,7 +32,9 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::list_ideas,
             commands::add_idea,
             commands::seen_prompts,
-            commands::mark_prompt_seen
+            commands::mark_prompt_seen,
+            commands::export_markdown,
+            commands::export_docx
         ])
         .typ::<AppError>()
 }
