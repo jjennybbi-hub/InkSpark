@@ -671,9 +671,17 @@ button.icon-btn {
 /* A prompt is a solid floating card: its words never mix with the page, and long ones scroll. */
 .prompt-bar {
   z-index: 10;
+  pointer-events: none; /* Clicks pass through to the page, even where a faded card sits. */
+}
+
+.prompt-bar > * {
+  pointer-events: auto;
 }
 
 .prompt-card {
+  transition:
+    opacity 0.25s ease,
+    visibility 0.25s;
   order: -1;
   position: relative;
   width: min(22rem, 70vw);
@@ -690,6 +698,18 @@ button.icon-btn {
   position: absolute;
   top: 0.4rem;
   right: 0.4rem;
+}
+
+/* While typing the card fades completely: it hides nothing and catches no clicks. */
+.prompt-card[data-faded="true"] {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prompt-card {
+    transition: none;
+  }
 }
 
 /* The last lines can scroll up to the middle of the window, clear of anything at the bottom. */

@@ -3,6 +3,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type JSX, useCallback, useEffect, useRef, useState } from "react";
 import { type AppInfo, type Idea, type PageSummary, commands } from "../contracts";
 import { pickPrompt, promptHash } from "../spark/dealer";
+import { PromptCard } from "./PromptCard";
 import "@fontsource/atkinson-hyperlegible/400.css";
 import "@fontsource/atkinson-hyperlegible/700.css";
 import { loadAppInfo } from "./appInfo";
@@ -425,24 +426,15 @@ export function App(): JSX.Element {
                 Prompt
               </button>
               {prompt !== "" && (
-                <div className="prompt-card">
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label="Close prompt"
-                    title="Close prompt"
-                    onClick={() => {
-                      setPrompt("");
-                      setCredit("");
-                    }}
-                  >
-                    ×
-                  </button>
-                  <p>
-                    {prompt}
-                    {credit !== "" && <span className="prompt-credit"> — {credit}</span>}
-                  </p>
-                </div>
+                <PromptCard
+                  key={prompt}
+                  text={prompt}
+                  credit={credit}
+                  onClose={() => {
+                    setPrompt("");
+                    setCredit("");
+                  }}
+                />
               )}
             </div>
             <span
