@@ -112,32 +112,32 @@ export interface ThemeGroup {
 export const THEME_GROUPS: readonly ThemeGroup[] = [
   {
     name: "Dark text on light",
-    note: "Did better in proofreading studies, especially at small sizes.",
+    note: "Best for proofreading in studies.",
     ids: ["paper", "sepia", "parchment", "lemonade"],
   },
   {
     name: "Blue, for ideas",
-    note: "One study linked blue to creative tasks. A later repeat did not find it.",
+    note: "Linked to creative tasks; evidence is mixed.",
     ids: ["ocean", "winter", "slate", "storm", "midnight-blue"],
   },
   {
     name: "Red tints, for detail",
-    note: "One study linked red to detail work, using stronger red. A later repeat did not find it.",
+    note: "Linked to detail work; evidence is mixed.",
     ids: ["rose", "cherry-blossom", "dawn"],
   },
   {
     name: "Dark, for dim rooms",
-    note: "A comfort choice. May help some people with low vision.",
+    note: "A comfort choice.",
     ids: ["night", "forest", "mocha", "coffeehouse", "library", "terminal-green"],
   },
   {
     name: "High contrast",
-    note: "The strongest difference between text and page, for accessibility.",
+    note: "For accessibility.",
     ids: ["contrast-light", "contrast-dark"],
   },
   {
     name: "Seasons and moods",
-    note: "For atmosphere. No proven benefit.",
+    note: "For atmosphere.",
     ids: ["spring", "summer", "autumn", "mint", "lavender", "dusk"],
   },
 ];
