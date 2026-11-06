@@ -1,11 +1,11 @@
 # CLAUDE.md — InkSpark conventions
 
-`PLAN.md` is the approved plan and the single source of truth. If anything here conflicts with it, `PLAN.md` wins.
+`SPEC.md` defines version 1 and wins over everything else here. `PLAN.md` is the long-term vision for after version 1.
 Each milestone has a spec in `docs/milestones/Mx.md`. Decisions are recorded as ADRs in `docs/adr/NNN-title.md`.
 
 ## Product rules (never break these)
 - **No encouragement UI.** No goals, streaks, praise, badges, popups or nudges. Counts appear only in Publish.
-- **No generated quotes.** Quotes and passages are real, cited human text only (author, work, location, link). AI-drafted prompt banks/templates must be labeled as AI-drafted.
+- **No generated quotes.** Quotes and passages are real, cited human text only (author, work, location, link). Prompts carry no AI label (owner's decision, see `SPEC.md`).
 - **Local-first.** No accounts, no servers, no telemetry.
 - **Never lose a word.** All writes to user files go through the Rust `storage` module (temp file → fsync → rename).
 - If a cloud network limit blocks a download or source, report it. Don't work around it.
@@ -58,7 +58,7 @@ Unit (vitest, cargo test); property tests (fast-check, proptest) for the journal
 - **Contracts**: no hand-edited generated bindings; inputs validated with zod/serde; schemas versioned.
 - **Accessibility**: keyboard reachable, visible focus, labels/ARIA, sufficient contrast, no motion without reduce-motion handling.
 - **Calm UI**: no goal/streak/encouragement UI, no badges or popups on the writer.
-- **Content**: no generated quotes; every quote cited; AI-drafted content labeled.
+- **Content**: no generated quotes; every quote cited.
 - **Hygiene**: no stray `TODO`/`FIXME` without an issue or ADR reference, no debug logging, no dead code, no secrets, no new dependency without a stated reason and an acceptable license (MIT/Apache-2.0/BSD/ISC/MPL-2.0/Zlib/Unicode).
 - **Ownership**: the diff touches only the track's owned directories.
 
