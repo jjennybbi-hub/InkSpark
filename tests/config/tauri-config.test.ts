@@ -102,12 +102,13 @@ describe("Tauri capabilities (AC-4)", () => {
     }
   });
 
-  it("default.json holds only core:default and the folder picker", () => {
+  it("default.json holds only core:default, window close and the folder picker", () => {
     const cap = readRecord(path.join(capDir, "default.json"));
     const permissions = cap.permissions;
     expect(Array.isArray(permissions)).toBe(true);
     expect((permissions as unknown[]).map(permissionId)).toEqual([
       "core:default",
+      "core:window:allow-destroy",
       "dialog:allow-open",
     ]);
   });

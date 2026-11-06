@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The main window. Core defaults plus the folder picker (dialog:allow-open). No fs or shell: all file access goes through Rust commands.",
+  "description": "The main window. Core defaults, closing the window after the save (core:window:allow-destroy), and the folder picker (dialog:allow-open). No fs or shell: all file access goes through Rust commands.",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open"]
+  "permissions": ["core:default", "core:window:allow-destroy", "dialog:allow-open"]
 }
