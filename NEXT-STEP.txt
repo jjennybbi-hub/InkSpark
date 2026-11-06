@@ -5,3 +5,20 @@ STEP 4: export
 - The user picks where to save. Writes go through the Rust storage module.
 - Formatting (bold, italic, headings, font and size) carries over into Word.
 - Typecheck, lint and test. Rebuild the clickable app, then commit and push.
+
+STEP 5: cast and script writing
+- Cast list: each project keeps its own list of characters, places and events. Add with "+", rename or remove from a floating overlay. Renaming a character updates their name throughout the page.
+- Writing formats: pick a format per page or section. Start with Chat history (Annie: hello), Screenplay and Stage play. The format controls how lines look; the writer only types the words.
+- Looks real: each format looks like the real thing as you type, not just labelled text.
+  - Chat history looks like a real messaging app: bubbles, left and right sides, contact name and picture circle, timestamps, typing bar. Styles to choose from: iMessage-like, WhatsApp-like, Discord-like and plain SMS.
+  - Screenplay looks like a real script page: Courier font, standard margins, centred names, scene headings.
+  - Stage play and any later format follow that format's real page layout.
+- Choosing who speaks (one key, no menus):
+  - Enter finishes the line and moves to the next speaker automatically, so a two-person chat needs nothing else.
+  - Tab changes who is speaking if the automatic choice is wrong.
+  - Clicking a bubble's name or side also changes the speaker.
+  - The first time a new name is typed, it joins the cast. Nothing to set up first.
+- Places and events: typing @ suggests names from the cast list, so spellings stay the same.
+- Saving and export: pages stay plain Markdown files, so "Annie: hello" is readable anywhere. Cast lists are saved through the Rust storage module. Word export keeps the format's layout.
+- Rules: overlays only, nothing shifts the page; no generated names or lines; every control has a label and works from the keyboard.
+- Typecheck, lint and test. Install with scripts/install-app.sh, then commit and push.
