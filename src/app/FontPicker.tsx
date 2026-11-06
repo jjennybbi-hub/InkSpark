@@ -1,5 +1,8 @@
 import { type CSSProperties, type JSX, useEffect, useRef, useState } from "react";
+import { ImportIcon, pickAndImportFont } from "./customFonts";
 import type { FontOption } from "./fonts";
+
+const IMPORT_VALUE = "__import__";
 
 const LIST_HEIGHT = 256;
 
@@ -8,17 +11,29 @@ interface Props {
   options: readonly FontOption[];
   value: string;
   onChange: (value: string) => void;
+  /** Starts the list with a button that imports a font file and picks it. */
+  canImport?: boolean;
 }
 
 /** A font menu whose choices each appear in their own font. It floats, so nothing moves. */
-export function FontPicker({ label, options, value, onChange }: Props): JSX.Element {
+export function FontPicker({
+  label,
+  options,
+  value,
+  onChange,
+  canImport = false,
+}: Props): JSX.Element {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [place, setPlace] = useState<CSSProperties>({});
   const root = useRef<HTMLSpanElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLUListElement>(null);
+  const [problem, setProblem] = useState(false);
   const current = options.find((o) => o.value === value);
+  const rows: readonly FontOption[] = canImport
+    ? [{ label: "Import font", value: IMPORT_VALUE }, ...options]
+    : options;
 
   useEffect(() => {
     if (!open) {
@@ -58,13 +73,28 @@ export function FontPicker({ label, options, value, onChange }: Props): JSX.Elem
     setActive(
       Math.max(
         0,
-        options.findIndex((o) => o.value === value),
+        rows.findIndex((o) => o.value === value),
       ),
     );
     setOpen(true);
   };
 
+  const importFont = async (): Promise<void> => {
+    const result = await pickAndImportFont();
+    if (result === "failed") {
+      setProblem(true);
+    } else if (result !== null) {
+      setProblem(false);
+      setOpen(false);
+      onChange(result.value);
+    }
+  };
+
   const choose = (option: FontOption | undefined): void => {
+    if (option?.value === IMPORT_VALUE) {
+      void importFont();
+      return;
+    }
     setOpen(false);
     if (option !== undefined) {
       onChange(option.value);
@@ -111,13 +141,13 @@ export function FontPicker({ label, options, value, onChange }: Props): JSX.Elem
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
               e.preventDefault();
-              setActive((i) => Math.min(options.length - 1, i + 1));
+              setActive((i) => Math.min(rows.length - 1, i + 1));
             } else if (e.key === "ArrowUp") {
               e.preventDefault();
               setActive((i) => Math.max(0, i - 1));
             } else if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              choose(options[active]);
+              choose(rows[active]);
             } else if (e.key === "Escape") {
               // Closes only this list, not the panel around it.
               e.stopPropagation();
@@ -126,14 +156,15 @@ export function FontPicker({ label, options, value, onChange }: Props): JSX.Elem
             }
           }}
         >
-          {options.map((option, index) => (
+          {rows.map((option, index) => (
             <li
               key={option.label}
               id={`${label}-${String(index)}`}
               role="option"
               aria-selected={option.value === value}
               data-active={index === active}
-              style={{ fontFamily: option.value }}
+              className={option.value === IMPORT_VALUE ? "font-import-row" : undefined}
+              style={option.value === IMPORT_VALUE ? undefined : { fontFamily: option.value }}
               onMouseEnter={() => {
                 setActive(index);
               }}
@@ -141,7 +172,14 @@ export function FontPicker({ label, options, value, onChange }: Props): JSX.Elem
                 choose(option);
               }}
             >
-              {option.label}
+              {option.value === IMPORT_VALUE ? (
+                <>
+                  <ImportIcon />
+                  {problem ? "That file could not be read as a font" : option.label}
+                </>
+              ) : (
+                option.label
+              )}
             </li>
           ))}
         </ul>

@@ -1,7 +1,7 @@
 import { Editor, type JSONContent } from "@tiptap/core";
 import type { DocxBlock, DocxDocument, DocxRun } from "../contracts";
-import type { Appearance } from "./appearance";
 import { editorExtensions } from "./editorExtensions";
+import { DEFAULT_TEXT_FONT, PAGE_TEXT_SIZE } from "./fonts";
 
 /** CSS pixels to Word's half-points: 1px is 0.75pt. */
 function halfPoints(px: number): number {
@@ -168,7 +168,7 @@ function isBlank(page: string): boolean {
 }
 
 /** One Word document from any number of pages; each later page starts on a new sheet. */
-export function buildDocx(pages: readonly string[], look: Appearance): DocxDocument {
+export function buildDocx(pages: readonly string[]): DocxDocument {
   const blocks = pages
     .filter((p) => !isBlank(p))
     .flatMap((page, index) =>
@@ -176,7 +176,11 @@ export function buildDocx(pages: readonly string[], look: Appearance): DocxDocum
         i === 0 && index > 0 ? { ...block, pageBreak: true } : block,
       ),
     );
-  return { font: fontOf(look.textFont) ?? "Arial", halfPoints: halfPoints(look.size), blocks };
+  return {
+    font: fontOf(DEFAULT_TEXT_FONT) ?? "Arial",
+    halfPoints: halfPoints(PAGE_TEXT_SIZE),
+    blocks,
+  };
 }
 
 /** One Markdown text from any number of pages, separated by a horizontal line. */

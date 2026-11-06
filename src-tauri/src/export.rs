@@ -373,6 +373,18 @@ pub fn export_markdown(project: &Path, dest: &Path, content: &str) -> Result<Str
     Ok(dest.to_string_lossy().into_owned())
 }
 
+/// Writes a downloaded theme file to `dest`; returns the path actually written.
+///
+/// # Errors
+///
+/// Refuses the project's own page folders; otherwise returns the I/O error.
+pub fn export_theme(project: &Path, dest: &Path, content: &str) -> Result<String, AppError> {
+    let dest = with_extension(dest, "json");
+    check_destination(project, &dest)?;
+    atomic_write(&dest, content.as_bytes())?;
+    Ok(dest.to_string_lossy().into_owned())
+}
+
 /// Writes a Word document to `dest`; returns the path actually written.
 ///
 /// # Errors

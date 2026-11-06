@@ -1,4 +1,3 @@
-import { DEFAULT_TEXT_FONT, TEXT_FONTS } from "./fonts";
 import { PRESET_THEMES, SYSTEM_THEME_ID, type ThemeDef, findTheme, parseTheme } from "./themes";
 
 export type FontChoice = "serif" | "sans" | "mono" | "dyslexia";
@@ -12,9 +11,10 @@ export interface Appearance {
   themeId: string;
   /** The app's menus and labels. */
   font: FontChoice;
-  /** The writing on the page. */
-  textFont: string;
-  size: number;
+  /** An imported interface font, used instead of `font` when set. */
+  uiFont: string | null;
+  /** How much bigger the page looks, in percent. Display only: never saved into the writing or exports. */
+  zoom: number;
   width: EditorWidth;
   look: ReadingLook;
 }
@@ -28,13 +28,13 @@ export const LOOK_WIDTH: Record<ReadingLook, EditorWidth> = {
   open: "medium",
   relaxed: "narrow",
 };
-export const SIZE_MIN = 14;
-export const SIZE_MAX = 28;
+export const ZOOM_MIN = 50;
+export const ZOOM_MAX = 200;
 export const DEFAULTS: Appearance = {
   themeId: SYSTEM_THEME_ID,
   font: "serif",
-  textFont: DEFAULT_TEXT_FONT,
-  size: 18,
+  uiFont: null,
+  zoom: 100,
   width: "medium",
   look: "open",
 };
@@ -56,11 +56,11 @@ export function loadAppearance(): Appearance {
     return {
       themeId: typeof wanted === "string" && wanted !== "" ? wanted : DEFAULTS.themeId,
       font: FONTS.find((f) => f === r.font) ?? DEFAULTS.font,
-      textFont: TEXT_FONTS.find((f) => f.value === r.textFont)?.value ?? DEFAULTS.textFont,
-      size:
-        typeof r.size === "number" && r.size >= SIZE_MIN && r.size <= SIZE_MAX
-          ? r.size
-          : DEFAULTS.size,
+      uiFont: typeof r.uiFont === "string" && r.uiFont !== "" ? r.uiFont : null,
+      zoom:
+        typeof r.zoom === "number" && r.zoom >= ZOOM_MIN && r.zoom <= ZOOM_MAX
+          ? r.zoom
+          : DEFAULTS.zoom,
       width: WIDTHS.find((w) => w === r.width) ?? DEFAULTS.width,
       look: LOOKS.find((l) => l === r.look) ?? DEFAULTS.look,
     };
@@ -110,7 +110,7 @@ const EMERGENCY: ThemeDef = {
   dark: false,
 };
 
-function resolveTheme(id: string, custom: readonly ThemeDef[]): ThemeDef {
+export function resolveTheme(id: string, custom: readonly ThemeDef[]): ThemeDef {
   const fallback = PRESET_THEMES.find((t) => t.id === "paper") ?? PRESET_THEMES[0];
   if (id === SYSTEM_THEME_ID) {
     const dark =
@@ -141,8 +141,12 @@ export function applyAppearance(a: Appearance, custom: readonly ThemeDef[]): voi
   root.style.setProperty("--paper", theme.bg);
   root.style.setProperty("--ink", theme.text);
   root.style.setProperty("--accent", theme.accent);
-  root.style.setProperty("--font-text", a.textFont);
-  root.style.setProperty("--text-size", `${String(a.size)}px`);
+  if (a.uiFont === null) {
+    root.style.removeProperty("--font-body");
+  } else {
+    root.style.setProperty("--font-body", a.uiFont);
+  }
+  root.style.setProperty("--zoom", String(a.zoom / 100));
   root.style.setProperty("--page-width", WIDTH_CH[a.width]);
   root.style.setProperty("--line-spacing", LOOK_SPACING[a.look].line);
   root.style.setProperty("--paragraph-spacing", LOOK_SPACING[a.look].paragraph);

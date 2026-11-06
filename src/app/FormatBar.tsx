@@ -3,6 +3,7 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import { type JSX, type ReactNode, useState } from "react";
 import { FontPicker } from "./FontPicker";
 import { ReadAloud } from "./ReadAloud";
+import { useCustomFonts } from "./customFonts";
 import { DEFAULT_TEXT_FONT, TEXT_FONTS } from "./fonts";
 
 const SIZES = ["12", "14", "16", "18", "20", "24", "28", "32", "40"];
@@ -88,6 +89,7 @@ export function FormatBar({
   pageKey?: string | null;
 }): JSX.Element {
   const [tip, setTip] = useState<Tip | null>(null);
+  const customFonts = useCustomFonts();
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) => {
@@ -184,7 +186,8 @@ export function FormatBar({
         </select>
         <FontPicker
           label="Font family"
-          options={TEXT_FONTS}
+          options={[...TEXT_FONTS, ...customFonts]}
+          canImport
           value={s.family === "" ? textFont : s.family}
           onChange={(font) => {
             // The page's own font needs no marking, so a later change of it still applies here.

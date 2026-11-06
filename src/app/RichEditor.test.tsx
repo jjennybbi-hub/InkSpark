@@ -84,7 +84,7 @@ describe("reading looks", () => {
 
   it("keeps today's look for settings saved before looks existed", () => {
     localStorage.setItem("inkspark.appearance", JSON.stringify({ themeId: "paper", size: 20 }));
-    expect(loadAppearance()).toMatchObject({ look: "open", width: "medium", size: 20 });
+    expect(loadAppearance()).toMatchObject({ look: "open", width: "medium", zoom: 100 });
   });
 });
 

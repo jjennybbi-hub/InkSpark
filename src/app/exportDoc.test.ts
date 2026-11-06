@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULTS } from "./appearance";
 import { buildDocx, buildMarkdown, fileNameFrom, hexColor, pageToBlocks } from "./exportDoc";
 
 describe("export", () => {
@@ -44,18 +43,12 @@ describe("export", () => {
     expect(lists[3]).not.toBeNull();
   });
 
-  it("uses the writer's font and size as the Word default", () => {
-    const doc = buildDocx(["x"], {
-      ...DEFAULTS,
-      font: "mono",
-      textFont: "'Times New Roman', Times, serif",
-      size: 20,
-    });
-    expect(doc).toMatchObject({ font: "Times New Roman", halfPoints: 30 });
+  it("uses Arial at the normal size as the Word default, whatever the zoom", () => {
+    expect(buildDocx(["x"])).toMatchObject({ font: "Arial", halfPoints: 27 });
   });
 
   it("starts each later page on a new sheet and skips blank pages", () => {
-    const doc = buildDocx(["First\n\nmore", "  ", "Second"], DEFAULTS);
+    const doc = buildDocx(["First\n\nmore", "  ", "Second"]);
     expect(doc.blocks.map((b) => b.pageBreak)).toEqual([false, false, true]);
   });
 

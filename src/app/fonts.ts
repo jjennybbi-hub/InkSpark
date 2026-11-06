@@ -23,6 +23,9 @@ export const TEXT_FONTS: readonly FontOption[] = [
 
 export const DEFAULT_TEXT_FONT = "Arial, Helvetica, sans-serif";
 
+/** Text with no size of its own, in px. Matches --text-size in shell.css and is what exports use. */
+export const PAGE_TEXT_SIZE = 18;
+
 /** Interface font choices, with the same font lists as shell.css. */
 export const INTERFACE_FONTS: readonly FontOption[] = [
   {

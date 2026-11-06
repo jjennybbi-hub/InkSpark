@@ -34,7 +34,8 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::seen_prompts,
             commands::mark_prompt_seen,
             commands::export_markdown,
-            commands::export_docx
+            commands::export_docx,
+            commands::export_theme
         ])
         .typ::<AppError>()
 }

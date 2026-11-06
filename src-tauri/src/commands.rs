@@ -127,6 +127,13 @@ pub fn export_markdown(path: String, dest: String, content: String) -> Result<St
     export::export_markdown(Path::new(&path), Path::new(&dest), &content)
 }
 
+/// Writes a theme file to `dest` (chosen by the user); returns the path written.
+#[tauri::command]
+#[specta::specta]
+pub fn export_theme(path: String, dest: String, content: String) -> Result<String, AppError> {
+    export::export_theme(Path::new(&path), Path::new(&dest), &content)
+}
+
 /// Writes a Word document to `dest` (chosen by the user); returns the path written.
 #[tauri::command]
 #[specta::specta]

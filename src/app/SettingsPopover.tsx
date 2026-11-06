@@ -1,3 +1,5 @@
+import { save } from "@tauri-apps/plugin-dialog";
+import { commands } from "../contracts";
 import { type JSX, useEffect, useRef, useState } from "react";
 import {
   type Appearance,
@@ -6,12 +8,14 @@ import {
   LOOKS,
   LOOK_WIDTH,
   type ReadingLook,
-  SIZE_MAX,
-  SIZE_MIN,
   WIDTHS,
+  ZOOM_MAX,
+  ZOOM_MIN,
+  resolveTheme,
 } from "./appearance";
 import { FontPicker } from "./FontPicker";
-import { INTERFACE_FONTS, TEXT_FONTS } from "./fonts";
+import { DownloadIcon, ImportIcon, pickAndImportFont, useCustomFonts } from "./customFonts";
+import { INTERFACE_FONTS } from "./fonts";
 import {
   PRESET_THEMES,
   THEME_GROUPS,
@@ -19,6 +23,7 @@ import {
   type ThemeDef,
   makeCustomTheme,
   parseThemeFile,
+  isDarkColor,
   themeToFile,
 } from "./themes";
 
@@ -36,6 +41,7 @@ const LOOK_LABELS: Record<ReadingLook, string> = {
 
 interface Props {
   value: Appearance;
+  project: string;
   customThemes: readonly ThemeDef[];
   onChange: (next: Appearance) => void;
   onCustomThemes: (next: ThemeDef[]) => void;
@@ -56,16 +62,14 @@ function Swatch({ theme }: { theme: ThemeDef }): JSX.Element {
 /** App appearance only. It floats over the page, so opening it moves nothing. */
 export function SettingsPopover({
   value,
+  project,
   customThemes,
   onChange,
   onCustomThemes,
 }: Props): JSX.Element {
   const [open, setOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [name, setName] = useState("");
-  const [bg, setBg] = useState("#fbfbf9");
-  const [text, setText] = useState("#22252b");
-  const [accent, setAccent] = useState("#3b6ea5");
+  const [editing, setEditing] = useState(false);
+  const customFonts = useCustomFonts();
   const [problem, setProblem] = useState("");
   const root = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -96,21 +100,45 @@ export function SettingsPopover({
     onChange({ ...value, themeId });
   };
 
-  const saveNew = (): void => {
-    const theme = makeCustomTheme(name, bg, text, accent);
-    onCustomThemes([...customThemes, theme]);
-    choose(theme.id);
-    setCreating(false);
-    setName("");
+  const shown = resolveTheme(value.themeId, customThemes);
+
+  /** Built-in themes stay as they are: the first change makes an editable copy. */
+  const editTheme = (change: Partial<Pick<ThemeDef, "name" | "bg" | "text" | "accent">>): void => {
+    const edited = { ...shown, ...change };
+    edited.dark = isDarkColor(edited.bg);
+    if (customThemes.some((t) => t.id === shown.id)) {
+      onCustomThemes(customThemes.map((t) => (t.id === shown.id ? edited : t)));
+      return;
+    }
+    const copy = makeCustomTheme(`My ${shown.name}`, edited.bg, edited.text, edited.accent);
+    onCustomThemes([...customThemes, copy]);
+    choose(copy.id);
   };
 
-  const exportTheme = (theme: ThemeDef): void => {
-    const url = URL.createObjectURL(new Blob([themeToFile(theme)], { type: "application/json" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${theme.name.replace(/[^\w-]+/g, "-")}.inkspark-theme.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const downloadTheme = async (): Promise<void> => {
+    try {
+      const dest = await save({
+        defaultPath: `${shown.name.replace(/[^\w-]+/g, "-")}.inkspark-theme.json`,
+        filters: [{ name: "InkSpark theme", extensions: ["json"] }],
+      });
+      if (dest === null) {
+        return;
+      }
+      const result = await commands.exportTheme(project, dest, themeToFile(shown));
+      setProblem(result.status === "ok" ? "" : "The theme could not be saved there.");
+    } catch {
+      setProblem("The theme could not be saved there.");
+    }
+  };
+
+  const importInterfaceFont = async (): Promise<void> => {
+    const result = await pickAndImportFont();
+    if (result === "failed") {
+      setProblem("That file could not be read as a font.");
+    } else if (result !== null) {
+      setProblem("");
+      onChange({ ...value, uiFont: result.value });
+    }
   };
 
   const importTheme = async (file: File): Promise<void> => {
@@ -176,15 +204,114 @@ export function SettingsPopover({
               type="button"
               className="theme-btn"
               onClick={() => {
-                setCreating((v) => !v);
+                setEditing((v) => !v);
               }}
+              aria-expanded={editing}
             >
               <span className="swatch" aria-hidden="true">
                 +
               </span>
-              New theme
+              Customize
             </button>
           </div>
+          {editing && (
+            <div className="theme-editor" role="group" aria-label="Customize theme">
+              {current !== undefined && (
+                <label>
+                  Name
+                  <input
+                    type="text"
+                    value={current.name}
+                    maxLength={40}
+                    onChange={(e) => {
+                      editTheme({ name: e.target.value });
+                    }}
+                  />
+                </label>
+              )}
+              <label>
+                Background
+                <input
+                  type="color"
+                  value={shown.bg}
+                  onChange={(e) => {
+                    editTheme({ bg: e.target.value });
+                  }}
+                />
+              </label>
+              <label>
+                Text
+                <input
+                  type="color"
+                  value={shown.text}
+                  onChange={(e) => {
+                    editTheme({ text: e.target.value });
+                  }}
+                />
+              </label>
+              <label>
+                Accent
+                <input
+                  type="color"
+                  value={shown.accent}
+                  onChange={(e) => {
+                    editTheme({ accent: e.target.value });
+                  }}
+                />
+              </label>
+              <div className="theme-editor-files">
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label="Import theme"
+                  title="Import theme"
+                  onClick={() => {
+                    fileInput.current?.click();
+                  }}
+                >
+                  <ImportIcon />
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label="Download theme"
+                  title="Download theme"
+                  onClick={() => void downloadTheme()}
+                >
+                  <DownloadIcon />
+                </button>
+                {current !== undefined && (
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    aria-label="Delete this theme"
+                    title="Delete this theme"
+                    onClick={() => {
+                      onCustomThemes(customThemes.filter((t) => t.id !== current.id));
+                      choose(SYSTEM_THEME_ID);
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept=".json,application/json"
+                  className="visually-hidden"
+                  aria-label="Theme file"
+                  tabIndex={-1}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (file !== undefined) {
+                      void importTheme(file);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          )}
           {THEME_GROUPS.map((group) => (
             <div key={group.name} className="theme-group" role="group" aria-label={group.name}>
               <h3>{group.name}</h3>
@@ -212,100 +339,6 @@ export function SettingsPopover({
               </div>
             </div>
           ))}
-          {creating && (
-            <div className="new-theme">
-              <label>
-                Name
-                <input
-                  type="text"
-                  value={name}
-                  maxLength={40}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                  }}
-                />
-              </label>
-              <label>
-                Background
-                <input
-                  type="color"
-                  value={bg}
-                  onChange={(e) => {
-                    setBg(e.target.value);
-                  }}
-                />
-              </label>
-              <label>
-                Text
-                <input
-                  type="color"
-                  value={text}
-                  onChange={(e) => {
-                    setText(e.target.value);
-                  }}
-                />
-              </label>
-              <label>
-                Accent
-                <input
-                  type="color"
-                  value={accent}
-                  onChange={(e) => {
-                    setAccent(e.target.value);
-                  }}
-                />
-              </label>
-              <button type="button" onClick={saveNew}>
-                Save theme
-              </button>
-            </div>
-          )}
-          <div className="theme-files">
-            {current !== undefined && (
-              <button
-                type="button"
-                onClick={() => {
-                  exportTheme(current);
-                }}
-              >
-                Export this theme
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                fileInput.current?.click();
-              }}
-            >
-              Import theme
-            </button>
-            {current !== undefined && (
-              <button
-                type="button"
-                onClick={() => {
-                  onCustomThemes(customThemes.filter((t) => t.id !== current.id));
-                  choose(SYSTEM_THEME_ID);
-                }}
-              >
-                Delete this theme
-              </button>
-            )}
-            <input
-              ref={fileInput}
-              type="file"
-              accept=".json,application/json"
-              className="visually-hidden"
-              aria-label="Theme file"
-              tabIndex={-1}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (file !== undefined) {
-                  void importTheme(file);
-                }
-              }}
-            />
-          </div>
           {problem !== "" && <p className="hint">{problem}</p>}
           <h2>Reading look</h2>
           <div className="look-grid" role="group" aria-label="Reading look">
@@ -323,28 +356,17 @@ export function SettingsPopover({
               </button>
             ))}
           </div>
-          <h2>Text</h2>
-          <div className="font-field">
-            <span>Text font</span>
-            <FontPicker
-              label="Text font"
-              options={TEXT_FONTS}
-              value={value.textFont}
-              onChange={(textFont) => {
-                onChange({ ...value, textFont });
-              }}
-            />
-          </div>
+          <h2>Page</h2>
           <label>
-            Size
+            Zoom: {value.zoom}%
             <input
               type="range"
-              min={SIZE_MIN}
-              max={SIZE_MAX}
-              step={1}
-              value={value.size}
+              min={ZOOM_MIN}
+              max={ZOOM_MAX}
+              step={10}
+              value={value.zoom}
               onChange={(e) => {
-                onChange({ ...value, size: Number(e.target.value) });
+                onChange({ ...value, zoom: Number(e.target.value) });
               }}
             />
           </label>
@@ -369,17 +391,31 @@ export function SettingsPopover({
           <h2>Interface</h2>
           <div className="font-field">
             <span>Interface font</span>
-            <FontPicker
-              label="Interface font"
-              options={INTERFACE_FONTS}
-              value={INTERFACE_FONTS[FONTS.indexOf(value.font)]?.value ?? ""}
-              onChange={(picked) => {
-                const font = FONTS[INTERFACE_FONTS.findIndex((f) => f.value === picked)];
-                if (font !== undefined) {
-                  onChange({ ...value, font });
-                }
-              }}
-            />
+            <div className="font-row">
+              <FontPicker
+                label="Interface font"
+                canImport
+                options={[...INTERFACE_FONTS, ...customFonts]}
+                value={value.uiFont ?? INTERFACE_FONTS[FONTS.indexOf(value.font)]?.value ?? ""}
+                onChange={(picked) => {
+                  const font = FONTS[INTERFACE_FONTS.findIndex((f) => f.value === picked)];
+                  onChange(
+                    font === undefined
+                      ? { ...value, uiFont: picked }
+                      : { ...value, font, uiFont: null },
+                  );
+                }}
+              />
+              <button
+                type="button"
+                className="icon-btn"
+                aria-label="Import font"
+                title="Import font"
+                onClick={() => void importInterfaceFont()}
+              >
+                <ImportIcon />
+              </button>
+            </div>
           </div>
           <p className="hint">Focus mode: ⌘⇧F. Esc leaves it.</p>
         </div>

@@ -27,6 +27,8 @@ export const commands = {
 	exportMarkdown: (path: string, dest: string, content: string) => typedError<string, AppError>(__TAURI_INVOKE("export_markdown", { path, dest, content })),
 	/**  Writes a Word document to `dest` (chosen by the user); returns the path written. */
 	exportDocx: (path: string, dest: string, doc: DocxDocument_Deserialize) => typedError<string, AppError>(__TAURI_INVOKE("export_docx", { path, dest, doc })),
+	/**  Writes a theme file to `dest` (chosen by the user); returns the path written. */
+	exportTheme: (path: string, dest: string, content: string) => typedError<string, AppError>(__TAURI_INVOKE("export_theme", { path, dest, content })),
 };
 
 /* Types */

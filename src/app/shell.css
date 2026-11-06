@@ -227,6 +227,8 @@ select:focus-visible {
   font-family: var(--font-body);
   font-size: var(--text-size);
   line-height: 1.7;
+  /* Looks bigger on screen only; the writing and exports keep their real sizes. */
+  zoom: var(--zoom, 1);
 }
 
 .page .ProseMirror p {
@@ -746,7 +748,7 @@ button.icon-btn {
 
 /* The writing has its own font, separate from the app's menus and labels. */
 .page .ProseMirror {
-  font-family: var(--font-text, Arial, Helvetica, sans-serif);
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 /* Font menus: each choice appears in its own font, floating over everything. */
@@ -826,4 +828,36 @@ button.icon-btn {
   margin: 0 0 0.35rem;
   font-size: 0.75rem;
   opacity: 0.7;
+}
+
+/* A font picker with its import button right beside it. */
+.font-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.font-import-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+}
+
+.theme-editor {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.theme-editor label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.theme-editor-files {
+  display: flex;
+  gap: 0.4rem;
 }

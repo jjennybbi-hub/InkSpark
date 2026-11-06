@@ -3,6 +3,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type JSX, useCallback, useEffect, useRef, useState } from "react";
 import { type AppInfo, type Idea, type PageSummary, commands } from "../contracts";
 import { pickPrompt, promptHash } from "../spark/dealer";
+import { restoreCustomFonts } from "./customFonts";
 import { PromptCard } from "./PromptCard";
 import "@fontsource/atkinson-hyperlegible/400.css";
 import "@fontsource/atkinson-hyperlegible/700.css";
@@ -217,6 +218,10 @@ export function App(): JSX.Element {
   }, [openFolder]);
 
   useEffect(() => {
+    void restoreCustomFonts();
+  }, []);
+
+  useEffect(() => {
     applyAppearance(appearance, customThemes);
     saveAppearance(appearance);
     saveCustomThemes(customThemes);
@@ -406,21 +411,16 @@ export function App(): JSX.Element {
               project={project}
               pages={pages}
               currentId={currentId}
-              appearance={appearance}
               saveFirst={saveFirst}
             />
             <SettingsPopover
               value={appearance}
+              project={project}
               customThemes={customThemes}
               onChange={setAppearance}
               onCustomThemes={setCustomThemes}
             />
-            <RichEditor
-              pageKey={currentId}
-              markdown={text}
-              onChange={onChange}
-              textFont={appearance.textFont}
-            />
+            <RichEditor pageKey={currentId} markdown={text} onChange={onChange} />
             <div className="prompt-bar">
               <button type="button" onClick={() => void dealPrompt()}>
                 Prompt

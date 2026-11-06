@@ -1,7 +1,6 @@
 import { save } from "@tauri-apps/plugin-dialog";
 import { type JSX, useEffect, useRef, useState } from "react";
 import { type PageSummary, commands } from "../contracts";
-import type { Appearance } from "./appearance";
 import { buildDocx, buildMarkdown, fileNameFrom } from "./exportDoc";
 
 type Scope = "page" | "all";
@@ -16,18 +15,11 @@ interface Props {
   project: string;
   pages: readonly PageSummary[];
   currentId: string | null;
-  appearance: Appearance;
   saveFirst: () => Promise<boolean>;
 }
 
 /** Export floats over the page, so opening it moves nothing. */
-export function ExportMenu({
-  project,
-  pages,
-  currentId,
-  appearance,
-  saveFirst,
-}: Props): JSX.Element {
+export function ExportMenu({ project, pages, currentId, saveFirst }: Props): JSX.Element {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
   const root = useRef<HTMLDivElement>(null);
@@ -85,7 +77,7 @@ export function ExportMenu({
       const result =
         format === "md"
           ? await commands.exportMarkdown(project, dest, buildMarkdown(texts))
-          : await commands.exportDocx(project, dest, buildDocx(texts, appearance));
+          : await commands.exportDocx(project, dest, buildDocx(texts));
       setNote(
         result.status === "ok"
           ? `Saved to ${result.data}`
