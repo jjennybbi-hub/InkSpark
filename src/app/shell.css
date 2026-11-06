@@ -570,3 +570,32 @@ select:focus-visible {
   font-size: 0.8em;
   opacity: 0.6;
 }
+
+/* The gear sits at the bottom of the left column, beside Change folder, and opens upward. */
+.settings {
+  top: auto;
+  right: auto;
+  bottom: 1rem;
+  left: 0.75rem;
+}
+
+.settings .popover {
+  top: auto;
+  right: auto;
+  bottom: 2.4rem;
+  left: 0;
+}
+
+.pages {
+  overflow: hidden;
+}
+
+.pages ul {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.pages > .pages-actions:last-child {
+  flex: none;
+  padding-left: 2.6rem;
+}
