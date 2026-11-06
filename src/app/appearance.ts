@@ -1,3 +1,4 @@
+import { DEFAULT_TEXT_FONT, TEXT_FONTS } from "./fonts";
 import { PRESET_THEMES, SYSTEM_THEME_ID, type ThemeDef, findTheme, parseTheme } from "./themes";
 
 export type FontChoice = "serif" | "sans" | "mono" | "dyslexia";
@@ -9,7 +10,10 @@ export type ReadingLook = "compact" | "open" | "relaxed";
 export interface Appearance {
   /** A preset id, a custom theme id, or "system". */
   themeId: string;
+  /** The app's menus and labels. */
   font: FontChoice;
+  /** The writing on the page. */
+  textFont: string;
   size: number;
   width: EditorWidth;
   look: ReadingLook;
@@ -29,6 +33,7 @@ export const SIZE_MAX = 28;
 export const DEFAULTS: Appearance = {
   themeId: SYSTEM_THEME_ID,
   font: "serif",
+  textFont: DEFAULT_TEXT_FONT,
   size: 18,
   width: "medium",
   look: "open",
@@ -51,6 +56,7 @@ export function loadAppearance(): Appearance {
     return {
       themeId: typeof wanted === "string" && wanted !== "" ? wanted : DEFAULTS.themeId,
       font: FONTS.find((f) => f === r.font) ?? DEFAULTS.font,
+      textFont: TEXT_FONTS.find((f) => f.value === r.textFont)?.value ?? DEFAULTS.textFont,
       size:
         typeof r.size === "number" && r.size >= SIZE_MIN && r.size <= SIZE_MAX
           ? r.size
@@ -135,6 +141,7 @@ export function applyAppearance(a: Appearance, custom: readonly ThemeDef[]): voi
   root.style.setProperty("--paper", theme.bg);
   root.style.setProperty("--ink", theme.text);
   root.style.setProperty("--accent", theme.accent);
+  root.style.setProperty("--font-text", a.textFont);
   root.style.setProperty("--text-size", `${String(a.size)}px`);
   root.style.setProperty("--page-width", WIDTH_CH[a.width]);
   root.style.setProperty("--line-spacing", LOOK_SPACING[a.look].line);

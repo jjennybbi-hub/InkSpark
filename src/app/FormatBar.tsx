@@ -1,24 +1,9 @@
 import { type Editor, useEditorState } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { type JSX, type ReactNode, useState } from "react";
+import { FontPicker } from "./FontPicker";
+import { DEFAULT_TEXT_FONT, TEXT_FONTS } from "./fonts";
 
-const FONT_FAMILIES: readonly { label: string; value: string }[] = [
-  { label: "Font: default", value: "" },
-  { label: "Georgia", value: "Georgia, 'Times New Roman', serif" },
-  { label: "Times New Roman", value: "'Times New Roman', Times, serif" },
-  { label: "Palatino", value: "Palatino, 'Palatino Linotype', serif" },
-  { label: "Baskerville", value: "Baskerville, 'Baskerville Old Face', serif" },
-  { label: "Garamond", value: "Garamond, 'EB Garamond', serif" },
-  { label: "System sans", value: "system-ui, -apple-system, Helvetica, Arial, sans-serif" },
-  { label: "Arial", value: "Arial, Helvetica, sans-serif" },
-  { label: "Helvetica", value: "Helvetica, Arial, sans-serif" },
-  { label: "Verdana", value: "Verdana, Geneva, sans-serif" },
-  { label: "Trebuchet", value: "'Trebuchet MS', Helvetica, sans-serif" },
-  { label: "Avenir", value: "Avenir, 'Avenir Next', Helvetica, sans-serif" },
-  { label: "Atkinson Hyperlegible", value: "'Atkinson Hyperlegible', system-ui, sans-serif" },
-  { label: "Menlo", value: "ui-monospace, Menlo, Consolas, monospace" },
-  { label: "Courier New", value: "'Courier New', Courier, monospace" },
-];
 const SIZES = ["12", "14", "16", "18", "20", "24", "28", "32", "40"];
 
 interface BtnProps {
@@ -90,7 +75,14 @@ interface Tip {
 }
 
 /** Text formatting only. App appearance lives in the settings popover. */
-export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
+export function FormatBar({
+  editor,
+  textFont = DEFAULT_TEXT_FONT,
+}: {
+  editor: Editor | null;
+  /** The page's font: what text without a font of its own appears in. */
+  textFont?: string | undefined;
+}): JSX.Element {
   const [tip, setTip] = useState<Tip | null>(null);
   const state = useEditorState({
     editor,
@@ -186,28 +178,19 @@ export function FormatBar({ editor }: { editor: Editor | null }): JSX.Element {
           <option value="2">Heading 2</option>
           <option value="3">Heading 3</option>
         </select>
-        <select
-          aria-label="Font family"
-          data-tip="Font family"
-          value={s.family}
-          disabled={off}
-          onChange={(e) => {
-            if (e.target.value === "") {
+        <FontPicker
+          label="Font family"
+          options={TEXT_FONTS}
+          value={s.family === "" ? textFont : s.family}
+          onChange={(font) => {
+            // The page's own font needs no marking, so a later change of it still applies here.
+            if (font === textFont) {
               chain()?.unsetFontFamily().run();
             } else {
-              chain()?.setFontFamily(e.target.value).run();
+              chain()?.setFontFamily(font).run();
             }
           }}
-        >
-          {FONT_FAMILIES.map((f) => (
-            <option key={f.label} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-          {s.family !== "" && !FONT_FAMILIES.some((f) => f.value === s.family) && (
-            <option value={s.family}>Custom</option>
-          )}
-        </select>
+        />
         <select
           aria-label="Font size"
           data-tip="Font size"

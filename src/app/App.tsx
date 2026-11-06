@@ -416,7 +416,12 @@ export function App(): JSX.Element {
               onChange={setAppearance}
               onCustomThemes={setCustomThemes}
             />
-            <RichEditor pageKey={currentId} markdown={text} onChange={onChange} />
+            <RichEditor
+              pageKey={currentId}
+              markdown={text}
+              onChange={onChange}
+              textFont={appearance.textFont}
+            />
             <div className="prompt-bar">
               <button type="button" onClick={() => void dealPrompt()}>
                 Prompt

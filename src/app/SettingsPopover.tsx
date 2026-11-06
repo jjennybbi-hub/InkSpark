@@ -2,7 +2,6 @@ import { type JSX, useEffect, useRef, useState } from "react";
 import {
   type Appearance,
   type EditorWidth,
-  type FontChoice,
   FONTS,
   LOOKS,
   LOOK_WIDTH,
@@ -11,6 +10,8 @@ import {
   SIZE_MIN,
   WIDTHS,
 } from "./appearance";
+import { FontPicker } from "./FontPicker";
+import { INTERFACE_FONTS, TEXT_FONTS } from "./fonts";
 import {
   PRESET_THEMES,
   SYSTEM_THEME_ID,
@@ -19,13 +20,6 @@ import {
   parseThemeFile,
   themeToFile,
 } from "./themes";
-
-const FONT_LABELS: Record<FontChoice, string> = {
-  serif: "Serif",
-  sans: "Sans",
-  mono: "Mono",
-  dyslexia: "Dyslexia-friendly (Atkinson Hyperlegible)",
-};
 
 const WIDTH_LABELS: Record<EditorWidth, string> = {
   narrow: "Narrow",
@@ -301,25 +295,18 @@ export function SettingsPopover({
               </button>
             ))}
           </div>
-          <h2>Interface</h2>
-          <label>
-            Font
-            <select
-              value={value.font}
-              onChange={(e) => {
-                const font = FONTS.find((f) => f === e.target.value);
-                if (font !== undefined) {
-                  onChange({ ...value, font });
-                }
+          <h2>Text</h2>
+          <div className="font-field">
+            <span>Text font</span>
+            <FontPicker
+              label="Text font"
+              options={TEXT_FONTS}
+              value={value.textFont}
+              onChange={(textFont) => {
+                onChange({ ...value, textFont });
               }}
-            >
-              {FONTS.map((f) => (
-                <option key={f} value={f}>
-                  {FONT_LABELS[f]}
-                </option>
-              ))}
-            </select>
-          </label>
+            />
+          </div>
           <label>
             Size
             <input
@@ -351,6 +338,21 @@ export function SettingsPopover({
               ))}
             </select>
           </label>
+          <h2>Interface</h2>
+          <div className="font-field">
+            <span>Interface font</span>
+            <FontPicker
+              label="Interface font"
+              options={INTERFACE_FONTS}
+              value={INTERFACE_FONTS[FONTS.indexOf(value.font)]?.value ?? ""}
+              onChange={(picked) => {
+                const font = FONTS[INTERFACE_FONTS.findIndex((f) => f.value === picked)];
+                if (font !== undefined) {
+                  onChange({ ...value, font });
+                }
+              }}
+            />
+          </div>
           <p className="hint">Focus mode: ⌘⇧F. Esc leaves it.</p>
         </div>
       )}

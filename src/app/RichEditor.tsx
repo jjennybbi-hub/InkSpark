@@ -8,6 +8,7 @@ interface Props {
   pageKey: string | null;
   markdown: string;
   onChange: (markdown: string) => void;
+  textFont?: string | undefined;
 }
 
 function readMarkdown(editor: Editor): string {
@@ -15,7 +16,7 @@ function readMarkdown(editor: Editor): string {
   return storage.markdown.getMarkdown();
 }
 
-export function RichEditor({ pageKey, markdown, onChange }: Props): JSX.Element {
+export function RichEditor({ pageKey, markdown, onChange, textFont }: Props): JSX.Element {
   const loaded = useRef<string | null | undefined>(undefined);
   const latest = useRef(onChange);
   const content = useRef(markdown);
@@ -60,7 +61,7 @@ export function RichEditor({ pageKey, markdown, onChange }: Props): JSX.Element 
     <div className="rich">
       <div className="page-scroll">
         <EditorContent editor={editor} className="page" />
-        <FormatBar editor={editor} />
+        <FormatBar editor={editor} textFont={textFont} />
       </div>
     </div>
   );

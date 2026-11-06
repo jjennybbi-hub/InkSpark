@@ -45,8 +45,13 @@ describe("export", () => {
   });
 
   it("uses the writer's font and size as the Word default", () => {
-    const doc = buildDocx(["x"], { ...DEFAULTS, font: "sans", size: 20 });
-    expect(doc).toMatchObject({ font: "Arial", halfPoints: 30 });
+    const doc = buildDocx(["x"], {
+      ...DEFAULTS,
+      font: "mono",
+      textFont: "'Times New Roman', Times, serif",
+      size: 20,
+    });
+    expect(doc).toMatchObject({ font: "Times New Roman", halfPoints: 30 });
   });
 
   it("starts each later page on a new sheet and skips blank pages", () => {

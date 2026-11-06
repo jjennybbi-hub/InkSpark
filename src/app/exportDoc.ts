@@ -1,15 +1,7 @@
 import { Editor, type JSONContent } from "@tiptap/core";
 import type { DocxBlock, DocxDocument, DocxRun } from "../contracts";
-import type { Appearance, FontChoice } from "./appearance";
+import type { Appearance } from "./appearance";
 import { editorExtensions } from "./editorExtensions";
-
-/** Word cannot use the app's system font stacks, so each choice maps to its nearest named font. */
-const WORD_FONTS: Record<FontChoice, string> = {
-  serif: "Georgia",
-  sans: "Arial",
-  mono: "Menlo",
-  dyslexia: "Atkinson Hyperlegible",
-};
 
 /** CSS pixels to Word's half-points: 1px is 0.75pt. */
 function halfPoints(px: number): number {
@@ -184,7 +176,7 @@ export function buildDocx(pages: readonly string[], look: Appearance): DocxDocum
         i === 0 && index > 0 ? { ...block, pageBreak: true } : block,
       ),
     );
-  return { font: WORD_FONTS[look.font], halfPoints: halfPoints(look.size), blocks };
+  return { font: fontOf(look.textFont) ?? "Arial", halfPoints: halfPoints(look.size), blocks };
 }
 
 /** One Markdown text from any number of pages, separated by a horizontal line. */
