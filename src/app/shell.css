@@ -602,19 +602,27 @@ select:focus-visible {
   padding-bottom: 3.5rem;
 }
 
-/* App buttons: flat accent colour, no border, one height. List items, format controls and theme cards stay quiet. */
+/* App buttons: quiet frosted glass in the theme's own colours, one height. List items, format controls and theme cards stay quiet. */
 button:not(.page-link, .fmt-btn, .theme-btn) {
   min-height: 2rem;
   padding: 0 0.7rem;
   font-size: 0.9rem;
   line-height: 1;
-  color: var(--on-accent, #ffffff);
-  background: var(--accent);
+  color: var(--ink);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ink) 5%, transparent),
+    color-mix(in srgb, var(--ink) 11%, transparent)
+  );
+  backdrop-filter: blur(10px) saturate(140%);
   border: 0;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 28%),
+    0 1px 2px rgb(0 0 0 / 10%);
 }
 
 button:not(.page-link, .fmt-btn, .theme-btn):hover {
-  background: color-mix(in srgb, var(--accent) 85%, var(--ink));
+  background: color-mix(in srgb, var(--ink) 15%, transparent);
 }
 
 button.icon-btn {
