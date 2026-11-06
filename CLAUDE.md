@@ -61,3 +61,14 @@ Unit (vitest, cargo test); property tests (fast-check, proptest) for the journal
 - **Content**: no generated quotes; every quote cited; AI-drafted content labeled.
 - **Hygiene**: no stray `TODO`/`FIXME` without an issue or ADR reference, no debug logging, no dead code, no secrets, no new dependency without a stated reason and an acceptable license (MIT/Apache-2.0/BSD/ISC/MPL-2.0/Zlib/Unicode).
 - **Ownership**: the diff touches only the track's owned directories.
+
+## UI rule: stable layout (owner preference, applies to every session)
+- The page structure stays constant. Menus, settings and pickers open as overlays (popovers, dropdowns, floating side sheets). They never push, shift or resize other parts of the layout.
+- Toolbars have a fixed height.
+- App controls are icon buttons with tooltips: a gear for settings, "+" for new items.
+- Text formatting (inside the writing) and app appearance (themes, UI font) are separate controls.
+
+## Keeping the owner's app stable (applies to every session)
+- The owner opens InkSpark from the Dock (`~/Applications/InkSpark.app`). Never tell them to run `npm run tauri dev`; it stops when Terminal closes and restarts on every code edit.
+- Update their app only with `scripts/install-app.sh`, and only at the end of a finished, tested step. Never delete or copy over the app by hand.
+- If a new version won't open, run `scripts/rollback-app.sh`.
