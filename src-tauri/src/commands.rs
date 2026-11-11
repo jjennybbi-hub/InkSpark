@@ -6,7 +6,7 @@ use std::path::Path;
 use crate::error::AppError;
 use crate::export::{self, DocxDocument};
 use crate::ideas::{self, Idea};
-use crate::project::{self, DeletedPage, PageSummary};
+use crate::project::{self, DeletedPage, LayoutEntry, PageSummary};
 
 /// Basic facts about the running build of the app.
 #[derive(Debug, Clone, serde::Serialize, specta::Type)]
@@ -125,6 +125,56 @@ pub fn restore_page(path: String, id: String) -> Result<Vec<PageSummary>, AppErr
 #[specta::specta]
 pub fn erase_page(path: String, id: String) -> Result<(), AppError> {
     project::erase_page(Path::new(&path), &id)
+}
+
+/// The page list's chapters and order.
+#[tauri::command]
+#[specta::specta]
+pub fn get_layout(path: String) -> Result<Vec<LayoutEntry>, AppError> {
+    project::get_layout(Path::new(&path))
+}
+
+/// Saves a new order of pages and chapters; every page and chapter must still be there once.
+#[tauri::command]
+#[specta::specta]
+pub fn set_layout(path: String, layout: Vec<LayoutEntry>) -> Result<Vec<LayoutEntry>, AppError> {
+    project::set_layout(Path::new(&path), layout)
+}
+
+/// A new chapter and the layout that now holds it.
+#[derive(Debug, Clone, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct NewChapter {
+    /// The new chapter's id.
+    pub id: String,
+    /// The whole layout after adding it.
+    pub layout: Vec<LayoutEntry>,
+}
+
+/// Adds an empty chapter at the end of the list.
+#[tauri::command]
+#[specta::specta]
+pub fn add_chapter(path: String, name: String) -> Result<NewChapter, AppError> {
+    let (layout, id) = project::add_chapter(Path::new(&path), &name)?;
+    Ok(NewChapter { id, layout })
+}
+
+/// Renames a chapter.
+#[tauri::command]
+#[specta::specta]
+pub fn rename_chapter(
+    path: String,
+    id: String,
+    name: String,
+) -> Result<Vec<LayoutEntry>, AppError> {
+    project::rename_chapter(Path::new(&path), &id, &name)
+}
+
+/// Removes a chapter; its pages stay in the list where it was.
+#[tauri::command]
+#[specta::specta]
+pub fn remove_chapter(path: String, id: String) -> Result<Vec<LayoutEntry>, AppError> {
+    project::remove_chapter(Path::new(&path), &id)
 }
 
 /// Lists the Idea Shelf, newest first.

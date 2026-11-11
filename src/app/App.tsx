@@ -1,9 +1,16 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type JSX, useCallback, useEffect, useRef, useState } from "react";
-import { type AppInfo, type Idea, type PageSummary, commands } from "../contracts";
+import {
+  type AppInfo,
+  type Idea,
+  type LayoutEntry,
+  type PageSummary,
+  commands,
+} from "../contracts";
 import { pickPrompt, promptHash } from "../spark/dealer";
 import { restoreCustomFonts } from "./customFonts";
+import { orderPages } from "./layout";
 import { PageList, RecentlyDeleted } from "./PageList";
 import { PromptCard } from "./PromptCard";
 import "@fontsource/atkinson-hyperlegible/400.css";
@@ -70,6 +77,7 @@ export function App(): JSX.Element {
   const [project, setProject] = useState<string | null>(null);
   const [pages, setPages] = useState<PageSummary[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
+  const [layout, setLayout] = useState<readonly LayoutEntry[]>([]);
   const [text, setText] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [message, setMessage] = useState("");
@@ -208,6 +216,64 @@ export function App(): JSX.Element {
     await showPage(project, result.data.id);
   }, [flush, project, showPage]);
 
+  const pageIds = pages.map((p) => p.id).join("\n");
+  // The layout follows the set of pages: adding, deleting and restoring all change it.
+  useEffect(() => {
+    if (project === null) {
+      return;
+    }
+    let stale = false;
+    void commands.getLayout(project).then((result) => {
+      if (!stale && result.status === "ok") {
+        setLayout(result.data);
+      }
+    });
+    return () => {
+      stale = true;
+    };
+  }, [project, pageIds]);
+
+  const layoutCommand = async (
+    pending: Promise<
+      { status: "ok"; data: LayoutEntry[] } | { status: "error"; error: { message: string } }
+    >,
+  ): Promise<void> => {
+    const result = await pending;
+    if (result.status === "error") {
+      setMessage(`Could not change the page list: ${result.error.message}`);
+      return;
+    }
+    setLayout(result.data);
+  };
+
+  const saveLayout = async (next: readonly LayoutEntry[]): Promise<void> => {
+    if (project === null) {
+      return;
+    }
+    const before = layout;
+    setLayout(next);
+    const result = await commands.setLayout(project, [...next]);
+    if (result.status === "error") {
+      setLayout(before);
+      setMessage(`Could not move that: ${result.error.message}`);
+      return;
+    }
+    setLayout(result.data);
+  };
+
+  const addChapter = async (): Promise<string | null> => {
+    if (project === null) {
+      return null;
+    }
+    const result = await commands.addChapter(project, "New chapter");
+    if (result.status === "error") {
+      setMessage(`Could not add a chapter: ${result.error.message}`);
+      return null;
+    }
+    setLayout(result.data.layout);
+    return result.data.id;
+  };
+
   const renamePage = async (id: string, name: string): Promise<void> => {
     if (project === null) {
       return;
@@ -234,10 +300,15 @@ export function App(): JSX.Element {
       setMessage(`Could not delete that page: ${result.error.message}`);
       return;
     }
-    const index = pages.findIndex((p) => p.id === id);
+    const ordered = orderPages(pages, layout);
+    const index = ordered.findIndex((p) => p.id === id);
     setPages(result.data);
     if (id === currentId) {
-      const next = result.data[Math.max(0, index)] ?? result.data[result.data.length - 1];
+      const remaining = ordered.filter(
+        (p) => p.id !== id && result.data.some((r) => r.id === p.id),
+      );
+      const next =
+        remaining[Math.max(0, index)] ?? remaining[remaining.length - 1] ?? result.data[0];
       if (next !== undefined) {
         await showPage(project, next.id);
       }
@@ -414,23 +485,22 @@ export function App(): JSX.Element {
       ) : (
         <div className="workspace">
           <nav className="pages" aria-label="Pages">
-            <div className="pages-actions">
-              <button
-                type="button"
-                className="icon-btn"
-                aria-label="New page"
-                title="New page: add a blank page to the end of the list"
-                onClick={() => void addPage()}
-              >
-                +
-              </button>
-            </div>
             <PageList
+              key={project}
+              project={project}
               pages={pages}
+              layout={layout}
               currentId={currentId}
               onOpen={(id) => void showPage(project, id)}
+              onAddPage={() => void addPage()}
+              onAddChapter={addChapter}
               onRename={(id, name) => void renamePage(id, name)}
               onDelete={(id) => void deletePage(id)}
+              onLayout={(next) => void saveLayout(next)}
+              onRenameChapter={(id, name) =>
+                void layoutCommand(commands.renameChapter(project, id, name))
+              }
+              onRemoveChapter={(id) => void layoutCommand(commands.removeChapter(project, id))}
             />
             <div className="pages-actions">
               <button
@@ -453,7 +523,7 @@ export function App(): JSX.Element {
           <section className="editor" aria-label="Editor">
             <ExportMenu
               project={project}
-              pages={pages}
+              pages={orderPages(pages, layout)}
               currentId={currentId}
               saveFirst={saveFirst}
             />

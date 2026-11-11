@@ -938,3 +938,66 @@ button.icon-btn {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Chapters: one level deep. Drop marks are drawn as lines or tints, so nothing moves while dragging. */
+.page-tree {
+  user-select: none;
+}
+
+.page-tree[data-dragging] {
+  cursor: grabbing;
+}
+
+.page-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1.1rem;
+}
+
+.chapter-row {
+  display: flex;
+  align-items: center;
+}
+
+.chapter-fold {
+  flex: none;
+  width: 1.4rem;
+  min-height: 1.6rem;
+  padding: 0;
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+
+.chapter-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.page-tree [data-drop="before"] {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
+.page-tree [data-drop="after"] {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.page-tree [data-drop="into"] {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 6px;
+}
+
+.page-tree [data-dragging] {
+  opacity: 0.45;
+}
+
+.new-menu {
+  position: relative;
+}
+
+.new-menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+}

@@ -39,6 +39,16 @@ export const commands = {
 	restorePage: (path: string, id: string) => typedError<PageSummary[], AppError>(__TAURI_INVOKE("restore_page", { path, id })),
 	/**  Permanently erases a page that is already in Recently Deleted. */
 	erasePage: (path: string, id: string) => typedError<null, AppError>(__TAURI_INVOKE("erase_page", { path, id })),
+	/**  The page list's chapters and order. */
+	getLayout: (path: string) => typedError<LayoutEntry[], AppError>(__TAURI_INVOKE("get_layout", { path })),
+	/**  Saves a new order of pages and chapters; every page and chapter must still be there once. */
+	setLayout: (path: string, layout: LayoutEntry[]) => typedError<LayoutEntry[], AppError>(__TAURI_INVOKE("set_layout", { path, layout })),
+	/**  Adds an empty chapter at the end of the list. */
+	addChapter: (path: string, name: string) => typedError<NewChapter, AppError>(__TAURI_INVOKE("add_chapter", { path, name })),
+	/**  Renames a chapter. */
+	renameChapter: (path: string, id: string, name: string) => typedError<LayoutEntry[], AppError>(__TAURI_INVOKE("rename_chapter", { path, id, name })),
+	/**  Removes a chapter; its pages stay in the list where it was. */
+	removeChapter: (path: string, id: string) => typedError<LayoutEntry[], AppError>(__TAURI_INVOKE("remove_chapter", { path, id })),
 };
 
 /* Types */
@@ -178,6 +188,29 @@ export type Idea = {
 	id: string,
 	/**  The note text. */
 	text: string,
+};
+
+/**  One row of the page list: a page, or a chapter holding pages. Chapters do not nest. */
+export type LayoutEntry = 
+/**  A page outside any chapter. */
+{ kind: "page"; 
+/**  The page id. */
+id: string } | 
+/**  A chapter and the ids of its pages, in order. */
+{ kind: "chapter"; 
+/**  The chapter id. */
+id: string; 
+/**  The chapter's name. */
+name: string; 
+/**  Its pages, in order. */
+pages: string[] };
+
+/**  A new chapter and the layout that now holds it. */
+export type NewChapter = {
+	/**  The new chapter's id. */
+	id: string,
+	/**  The whole layout after adding it. */
+	layout: LayoutEntry[],
 };
 
 /**  The operating system family. */

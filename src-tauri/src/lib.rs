@@ -40,7 +40,12 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::delete_page,
             commands::list_deleted,
             commands::restore_page,
-            commands::erase_page
+            commands::erase_page,
+            commands::get_layout,
+            commands::set_layout,
+            commands::add_chapter,
+            commands::rename_chapter,
+            commands::remove_chapter
         ])
         .typ::<AppError>()
 }

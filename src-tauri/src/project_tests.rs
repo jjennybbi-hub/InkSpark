@@ -302,3 +302,109 @@ fn project_files_from_before_this_feature_still_open() {
     ok(atomic_write(&root.join("project.json"), br#"{"pages":["p1"]}"#).map_err(AppError::from));
     assert_eq!(ok(open_project(&root))[0].title, "Old");
 }
+
+fn page(id: &str) -> LayoutEntry {
+    LayoutEntry::Page { id: id.to_owned() }
+}
+
+#[test]
+fn old_projects_get_a_flat_layout() {
+    let (root, ids) = three_pages("layout-old");
+    let layout = ok(get_layout(&root));
+    assert_eq!(layout, ids.iter().map(|id| page(id)).collect::<Vec<_>>());
+}
+
+#[test]
+fn chapters_hold_pages_and_set_the_export_order() {
+    let (root, ids) = three_pages("layout-chapter");
+    let new = ok(add_chapter(&root, "  Part one "));
+    let chapter = new.1;
+    let layout = vec![
+        LayoutEntry::Chapter {
+            id: chapter.clone(),
+            name: "ignored".to_owned(),
+            pages: vec![ids[2].clone(), ids[0].clone()],
+        },
+        page(&ids[1]),
+    ];
+    let saved = ok(set_layout(&root, layout));
+    assert!(matches!(&saved[0], LayoutEntry::Chapter { name, .. } if name == "Part one"));
+    let order: Vec<_> = ok(open_project(&root)).into_iter().map(|p| p.id).collect();
+    assert_eq!(order, vec![ids[2].clone(), ids[0].clone(), ids[1].clone()]);
+}
+
+#[test]
+fn a_new_order_can_never_lose_or_repeat_a_page_or_chapter() {
+    let (root, ids) = three_pages("layout-invalid");
+    let chapter = ok(add_chapter(&root, "C")).1;
+    let missing = vec![page(&ids[0]), page(&ids[1])];
+    assert!(set_layout(&root, missing).is_err());
+    let repeated = vec![page(&ids[0]), page(&ids[0]), page(&ids[1]), page(&ids[2])];
+    assert!(set_layout(&root, repeated).is_err());
+    let no_chapter = vec![page(&ids[0]), page(&ids[1]), page(&ids[2])];
+    assert!(set_layout(&root, no_chapter).is_err());
+    assert_eq!(ok(open_project(&root)).len(), 3);
+    assert!(
+        ok(get_layout(&root))
+            .iter()
+            .any(|e| matches!(e, LayoutEntry::Chapter { id, .. } if *id == chapter))
+    );
+}
+
+#[test]
+fn removing_a_chapter_keeps_its_pages_in_place() {
+    let (root, ids) = three_pages("layout-remove");
+    let chapter = ok(add_chapter(&root, "C")).1;
+    ok(set_layout(
+        &root,
+        vec![
+            page(&ids[0]),
+            LayoutEntry::Chapter {
+                id: chapter.clone(),
+                name: String::new(),
+                pages: vec![ids[1].clone(), ids[2].clone()],
+            },
+        ],
+    ));
+    let layout = ok(remove_chapter(&root, &chapter));
+    assert_eq!(layout, vec![page(&ids[0]), page(&ids[1]), page(&ids[2])]);
+    assert!(rename_chapter(&root, &chapter, "x").is_err());
+}
+
+#[test]
+fn a_deleted_page_goes_back_into_its_chapter() {
+    let (root, ids) = three_pages("layout-restore");
+    let chapter = ok(add_chapter(&root, "C")).1;
+    ok(set_layout(
+        &root,
+        vec![
+            page(&ids[0]),
+            LayoutEntry::Chapter {
+                id: chapter.clone(),
+                name: String::new(),
+                pages: vec![ids[1].clone(), ids[2].clone()],
+            },
+        ],
+    ));
+    ok(delete_page(&root, &ids[2]));
+    ok(restore_page(&root, &ids[2]));
+    assert!(ok(get_layout(&root)).iter().any(|e| matches!(
+        e,
+        LayoutEntry::Chapter { pages, .. } if *pages == vec![ids[1].clone(), ids[2].clone()]
+    )));
+    assert!(rename_chapter(&root, &chapter, "   ").is_err());
+    assert!(matches!(&ok(rename_chapter(&root, &chapter, "Two"))[1],
+        LayoutEntry::Chapter { name, .. } if name == "Two"));
+}
+
+#[test]
+fn a_page_an_older_version_added_still_shows() {
+    let (root, ids) = three_pages("layout-older");
+    let text = ok(fs::read_to_string(root.join("project.json")).map_err(AppError::from));
+    let mut value: serde_json::Value =
+        ok(serde_json::from_str(&text).map_err(|e| AppError::Invalid(e.to_string())));
+    value["pages"] = serde_json::json!([ids[0], ids[1]]);
+    let edited = value.to_string();
+    ok(atomic_write(&root.join("project.json"), edited.as_bytes()).map_err(AppError::from));
+    assert_eq!(ok(get_layout(&root)), vec![page(&ids[0]), page(&ids[1])]);
+}

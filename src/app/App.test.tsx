@@ -27,6 +27,9 @@ function mockProject(calls: Call[]): void {
     if (cmd === "list_ideas") {
       return [];
     }
+    if (cmd === "get_layout") {
+      return [{ kind: "page", id: "p1" }];
+    }
     throw new Error(`unexpected command: ${cmd}`);
   });
 }
