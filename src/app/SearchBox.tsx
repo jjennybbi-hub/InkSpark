@@ -11,6 +11,40 @@ interface Props {
 
 const WAIT_MS = 150;
 
+/** Matches next to each other share a page heading, in the order they came. */
+export function groupByPage(hits: readonly SearchHit[]): [SearchHit, ...SearchHit[]][] {
+  const groups: [SearchHit, ...SearchHit[]][] = [];
+  for (const hit of hits) {
+    const last = groups[groups.length - 1];
+    if (last?.[0].id === hit.id) {
+      last.push(hit);
+    } else {
+      groups.push([hit]);
+    }
+  }
+  return groups;
+}
+
+/** Starts the text before a match at a whole word, with "…" when something was cut. */
+export function trimStart(before: string): string {
+  const cut = before.trimStart();
+  const space = cut.indexOf(" ");
+  if (cut.length < 30 || space === -1) {
+    return cut;
+  }
+  return `…${cut.slice(space + 1)}`;
+}
+
+/** Ends the text after a match at a whole word, with "…" when something was cut. */
+export function trimEnd(after: string): string {
+  const cut = after.trimEnd();
+  const space = cut.lastIndexOf(" ");
+  if (cut.length < 30 || space === -1) {
+    return cut;
+  }
+  return `${cut.slice(0, space)}…`;
+}
+
 /**
  * Search across every page. The field sits at the top of the page list; results float over the
  * list and never move anything. ⌘F jumps here.
@@ -180,25 +214,27 @@ export function SearchBox({ project, onOpen, onRestore }: Props): JSX.Element {
                 }
               }}
             >
-              {hits.map((hit) => (
-                <li key={`${hit.id}-${String(hit.nth)}`}>
-                  <button
-                    type="button"
-                    className="search-hit"
-                    onClick={() => {
-                      pick(hit);
-                    }}
-                  >
-                    <span className="search-title">
-                      {hit.title || "Untitled"}
-                      {hit.deleted && <span className="search-tag">deleted</span>}
-                    </span>
-                    <span className="search-snippet">
-                      {hit.before}
+              {groupByPage(hits).map((group) => (
+                <li key={group[0].id} className="search-group">
+                  <div className="search-title">
+                    <span className="search-name">{group[0].title || "Untitled"}</span>
+                    {group[0].deleted && <span className="search-tag">Deleted</span>}
+                  </div>
+                  {group.map((hit) => (
+                    <button
+                      key={String(hit.nth)}
+                      type="button"
+                      className="search-hit"
+                      aria-label={`${group[0].title || "Untitled"}: ${hit.before}${hit.matched}${hit.after}`}
+                      onClick={() => {
+                        pick(hit);
+                      }}
+                    >
+                      {trimStart(hit.before)}
                       <mark>{hit.matched}</mark>
-                      {hit.after}
-                    </span>
-                  </button>
+                      {trimEnd(hit.after)}
+                    </button>
+                  ))}
                 </li>
               ))}
             </ul>

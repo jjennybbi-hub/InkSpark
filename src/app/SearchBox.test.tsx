@@ -41,15 +41,15 @@ describe("SearchBox", () => {
   it("lists matches and opens a live page at its match", async () => {
     const { onOpen } = setup();
     await search("lantern");
-    fireEvent.click(screen.getByText("Opening"));
+    fireEvent.click(screen.getByRole("button", { name: /^Opening:/ }));
     expect(onOpen).toHaveBeenCalledWith(HITS[0], "lantern");
   });
 
   it("marks deleted pages and asks before restoring", async () => {
     const { onOpen, onRestore } = setup();
     await search("lantern");
-    expect(screen.getByText("deleted")).toBeTruthy();
-    fireEvent.click(screen.getByText("Old"));
+    expect(screen.getByText("Deleted")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^Old:/ }));
     expect(onOpen).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Restore and open" }));
     expect(onRestore).toHaveBeenCalledWith(HITS[1], "lantern");
@@ -95,5 +95,20 @@ describe("RichEditor find", () => {
     await waitFor(() => {
       expect(window.getSelection()?.toString()).toBe("lantern");
     });
+  });
+});
+
+describe("result tidying", () => {
+  it("cuts snippets at whole words and groups a page's matches", async () => {
+    const { groupByPage, trimEnd, trimStart } = await import("./SearchBox");
+    expect(trimStart("s of something very shocking. You could ")).toBe(
+      "…of something very shocking. You could ",
+    );
+    expect(trimEnd(" by the way his eye opened wide and his")).toBe(
+      " by the way his eye opened wide and…",
+    );
+    expect(trimStart("short ")).toBe("short ");
+    const a = { ...HITS[0], nth: 1 } as (typeof HITS)[0];
+    expect(groupByPage([HITS[0], a, HITS[1]] as typeof HITS).map((g) => g.length)).toEqual([2, 1]);
   });
 });

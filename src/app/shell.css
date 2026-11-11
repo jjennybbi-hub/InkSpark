@@ -1074,49 +1074,74 @@ button.icon-btn {
   list-style: none;
 }
 
+.search-group {
+  padding: 0.3rem 0;
+}
+
+.search-group + .search-group {
+  border-top: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+.search-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.2rem 0.55rem 0.15rem;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+}
+
+.search-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-tag {
+  flex: none;
+  padding: 0 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+  border-radius: 4px;
+  font-weight: 400;
+}
+
 .search-hit {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   width: 100%;
-  padding: 0.45rem 0.55rem;
+  padding: 0.3rem 0.55rem;
   border: 0;
   border-radius: 6px;
   background: none;
   color: inherit;
   font: inherit;
+  font-size: 0.88rem;
+  line-height: 1.45;
   text-align: left;
   cursor: pointer;
 }
 
 .search-hit:hover,
 .search-hit:focus-visible {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   outline: none;
 }
 
-.search-title {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.search-tag {
-  margin-left: 0.4rem;
-  font-size: 0.7rem;
-  font-weight: 400;
-  opacity: 0.6;
-}
-
-.search-snippet {
-  display: block;
-  font-size: 0.85rem;
-  opacity: 0.8;
-  overflow-wrap: anywhere;
-}
-
-.search-snippet mark {
-  background: color-mix(in srgb, var(--accent) 25%, transparent);
+.search-hit mark {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
   color: inherit;
+  font-weight: 600;
   border-radius: 2px;
+  padding: 0 1px;
 }
 
 .search-none,
