@@ -223,11 +223,21 @@ export function App(): JSX.Element {
       return;
     }
     let stale = false;
-    void commands.getLayout(project).then((result) => {
-      if (!stale && result.status === "ok") {
-        setLayout(result.data);
-      }
-    });
+    const flat = (): LayoutEntry[] =>
+      pageIds === "" ? [] : pageIds.split("\n").map((id) => ({ kind: "page" as const, id }));
+    // If chapters cannot be read, the pages still show, in a plain list.
+    commands.getLayout(project).then(
+      (result) => {
+        if (!stale) {
+          setLayout(result.status === "ok" ? result.data : flat());
+        }
+      },
+      () => {
+        if (!stale) {
+          setLayout(flat());
+        }
+      },
+    );
     return () => {
       stale = true;
     };

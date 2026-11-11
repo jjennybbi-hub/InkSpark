@@ -73,6 +73,12 @@ describe("App", () => {
       if (cmd === "read_page") {
         return "Some **bold** words";
       }
+      if (cmd === "get_layout") {
+        return [
+          { kind: "page", id: "p1" },
+          { kind: "page", id: "p2" },
+        ];
+      }
       if (cmd === "list_ideas") {
         return [];
       }
