@@ -728,8 +728,10 @@ button.icon-btn {
   }
 }
 
-/* The last lines can scroll up to the middle of the window, clear of anything at the bottom. */
+/* The last lines can scroll up to the middle of the window, clear of anything at the bottom.
+   The first lines start lower, with room above them to scroll. */
 .page .ProseMirror {
+  padding-top: 20vh;
   padding-bottom: 50vh;
 }
 
