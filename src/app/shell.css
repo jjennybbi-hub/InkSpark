@@ -53,6 +53,18 @@ body,
 #root {
   height: 100%;
   margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Quiet scrollbars: a faint thin line that only shows while you hover a scrolling area. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover {
+  scrollbar-color: color-mix(in srgb, currentColor 15%, transparent) transparent;
 }
 
 body {
@@ -216,6 +228,7 @@ select:focus-visible {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: none;
 }
 
 .page .ProseMirror {
