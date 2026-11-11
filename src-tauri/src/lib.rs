@@ -45,7 +45,8 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::set_layout,
             commands::add_chapter,
             commands::rename_chapter,
-            commands::remove_chapter
+            commands::remove_chapter,
+            commands::search_pages
         ])
         .typ::<AppError>()
 }

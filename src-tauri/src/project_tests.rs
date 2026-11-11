@@ -408,3 +408,58 @@ fn a_page_an_older_version_added_still_shows() {
     ok(atomic_write(&root.join("project.json"), edited.as_bytes()).map_err(AppError::from));
     assert_eq!(ok(get_layout(&root)), vec![page(&ids[0]), page(&ids[1])]);
 }
+
+// Search across pages.
+
+fn project_with(tag: &str, texts: &[&str]) -> (PathBuf, Vec<String>) {
+    let dir = temp_root(tag);
+    open_project(&dir).unwrap();
+    let mut ids = Vec::new();
+    for text in texts {
+        let page = create_page(&dir).unwrap();
+        save_page(&dir, &page.id, text).unwrap();
+        ids.push(page.id);
+    }
+    (dir, ids)
+}
+
+#[test]
+fn finds_words_on_every_page_ignoring_case() {
+    let (dir, ids) = project_with(
+        "s1",
+        &["The Lantern glowed.", "no match", "a lantern, a LANTERN"],
+    );
+    let hits = search_pages(&dir, "lantern").unwrap();
+    let found: Vec<(&str, u32)> = hits.iter().map(|h| (h.id.as_str(), h.nth)).collect();
+    let last = ids.get(2).unwrap().as_str();
+    assert_eq!(
+        found,
+        vec![(ids.first().unwrap().as_str(), 0), (last, 0), (last, 1)]
+    );
+    assert_eq!(hits.first().unwrap().matched, "Lantern");
+    assert_eq!(hits.first().unwrap().before, "The ");
+    assert_eq!(hits.first().unwrap().after, " glowed.");
+}
+
+#[test]
+fn empty_query_finds_nothing() {
+    let (dir, _) = project_with("s2", &["anything"]);
+    assert!(search_pages(&dir, "  ").unwrap().is_empty());
+}
+
+#[test]
+fn deleted_pages_are_found_and_marked() {
+    let (dir, ids) = project_with("s3", &["moon here", "moon there"]);
+    delete_page(&dir, ids.first().unwrap()).unwrap();
+    let hits = search_pages(&dir, "moon").unwrap();
+    let marks: Vec<bool> = hits.iter().map(|h| h.deleted).collect();
+    assert_eq!(marks, vec![false, true]);
+}
+
+#[test]
+fn search_never_writes() {
+    let (dir, _) = project_with("s4", &["quiet"]);
+    let before = fs::read_to_string(dir.join(PROJECT_FILE)).unwrap();
+    search_pages(&dir, "quiet").unwrap();
+    assert_eq!(fs::read_to_string(dir.join(PROJECT_FILE)).unwrap(), before);
+}

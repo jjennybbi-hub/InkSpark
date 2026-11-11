@@ -17,7 +17,8 @@ import "@fontsource/atkinson-hyperlegible/400.css";
 import "@fontsource/atkinson-hyperlegible/700.css";
 import { loadAppInfo } from "./appInfo";
 import { ExportMenu } from "./ExportMenu";
-import { RichEditor } from "./RichEditor";
+import { type FindRequest, RichEditor } from "./RichEditor";
+import { SearchBox } from "./SearchBox";
 import { SettingsPopover } from "./SettingsPopover";
 import {
   applyAppearance,
@@ -89,6 +90,7 @@ export function App(): JSX.Element {
   const [customThemes, setCustomThemes] = useState<ThemeDef[]>(loadCustomThemes);
   const [focusMode, setFocusMode] = useState(false);
   const [info, setInfo] = useState<AppInfo | null>(null);
+  const [find, setFind] = useState<FindRequest | null>(null);
 
   useEffect(() => {
     loadAppInfo().then(setInfo, () => {
@@ -325,6 +327,23 @@ export function App(): JSX.Element {
     }
   };
 
+  const openMatch = async (path: string, id: string, query: string, nth: number): Promise<void> => {
+    if (id !== currentId) {
+      await showPage(path, id);
+    }
+    setFind({ query, nth });
+  };
+
+  const restoreMatch = async (path: string, id: string, query: string, nth: number) => {
+    const result = await commands.restorePage(path, id);
+    if (result.status === "error") {
+      setMessage(`Could not restore that page: ${result.error.message}`);
+      return;
+    }
+    setPages(result.data);
+    await openMatch(path, id, query, nth);
+  };
+
   // Reopen the last project so the app opens straight to writing.
   useEffect(() => {
     const last = rememberedProject();
@@ -495,6 +514,12 @@ export function App(): JSX.Element {
       ) : (
         <div className="workspace">
           <nav className="pages" aria-label="Pages">
+            <SearchBox
+              key={`search-${project}`}
+              project={project}
+              onOpen={(hit, query) => void openMatch(project, hit.id, query, hit.nth)}
+              onRestore={(hit, query) => void restoreMatch(project, hit.id, query, hit.nth)}
+            />
             <PageList
               key={project}
               project={project}
@@ -544,7 +569,7 @@ export function App(): JSX.Element {
               onChange={setAppearance}
               onCustomThemes={setCustomThemes}
             />
-            <RichEditor pageKey={currentId} markdown={text} onChange={onChange} />
+            <RichEditor pageKey={currentId} markdown={text} onChange={onChange} find={find} />
             <div className="prompt-bar">
               <button
                 type="button"

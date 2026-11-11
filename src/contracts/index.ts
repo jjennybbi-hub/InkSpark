@@ -9,6 +9,7 @@ export type {
   DeletedPage,
   LayoutEntry,
   Idea,
+  SearchHit,
 } from "./bindings";
 export type {
   DocxDocument_Deserialize as DocxDocument,

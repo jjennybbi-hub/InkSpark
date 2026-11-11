@@ -1014,3 +1014,125 @@ button.icon-btn {
   top: calc(100% + 4px);
   left: 0;
 }
+
+/* Search all pages: a steady field at the top of the page list; results float over the list. */
+.search {
+  position: relative;
+  flex: none;
+  height: 2.25rem;
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.6rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  transform: translateY(-50%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.search input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 0 0.6rem 0 1.9rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ink) 4%, var(--paper));
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.search input::placeholder {
+  color: color-mix(in srgb, var(--ink) 50%, transparent);
+}
+
+.search input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.search-results {
+  position: fixed;
+  z-index: 30;
+  width: 22rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--ink) 14%, transparent);
+}
+
+.search-results ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-hit {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.search-hit:hover,
+.search-hit:focus-visible {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  outline: none;
+}
+
+.search-title {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.search-tag {
+  margin-left: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+.search-snippet {
+  display: block;
+  font-size: 0.85rem;
+  opacity: 0.8;
+  overflow-wrap: anywhere;
+}
+
+.search-snippet mark {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+
+.search-none,
+.search-ask p {
+  margin: 0.4rem 0.55rem;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.search-ask {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+
+.search-ask p {
+  flex-basis: 100%;
+}

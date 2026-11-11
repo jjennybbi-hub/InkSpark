@@ -1,18 +1,17 @@
 QUEUE: do only the FIRST step below. When it's done, delete it from this file so the next step moves to the top. SPEC.md describes version 1 and wins over older notes here.
 
-STEP 1: search across all pages.
-STEP 2: old versions screen. See and restore a page's saved versions.
-STEP 3: automatic backups to a folder the owner picks.
-STEP 4: cast list and Chat history, from the notes below. Cast icon: bottom-right row beside Export and the gear.
+STEP 1: old versions screen. See and restore a page's saved versions.
+STEP 2: automatic backups to a folder the owner picks.
+STEP 3: cast list and Chat history, from the notes below. Cast icon: bottom-right row beside Export and the gear.
 Also check for any "AI-drafted" prompt label in the app and remove it (SPEC.md).
 
-NOTES FOR STEP 4:
-STEP 5, OWNER'S ANSWERS SO FAR (paused by the owner, nothing built yet):
+NOTES FOR STEP 3:
+STEP 4, OWNER'S ANSWERS SO FAR (paused by the owner, nothing built yet):
 - Size this time: cast list + Chat history only (iMessage-like style, Enter and Tab for speakers, @ suggestions). Screenplay, Stage play and the other chat styles stay queued as later steps.
 - Format choice: writing formats can be switched, and switching must preserve the original text. Offer both whole page and section by section. The logic works per section; whole page simply means all the sections.
 - Still to ask: where the cast list icon sits (beside Export and the gear, or top of the left column).
 
-STEP 5: cast and script writing
+STEP 4: cast and script writing
 - Cast list: each project keeps its own list of characters, places and events. Add with "+", rename or remove from a floating overlay. Renaming a character updates their name throughout the page.
 - Writing formats: pick a format per page or section. Start with Chat history (Annie: hello), Screenplay and Stage play. The format controls how lines look; the writer only types the words.
 - Looks real: each format looks like the real thing as you type, not just labelled text.

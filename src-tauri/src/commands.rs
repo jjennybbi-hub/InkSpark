@@ -6,7 +6,7 @@ use std::path::Path;
 use crate::error::AppError;
 use crate::export::{self, DocxDocument};
 use crate::ideas::{self, Idea};
-use crate::project::{self, DeletedPage, LayoutEntry, PageSummary};
+use crate::project::{self, DeletedPage, LayoutEntry, PageSummary, SearchHit};
 
 /// Basic facts about the running build of the app.
 #[derive(Debug, Clone, serde::Serialize, specta::Type)]
@@ -229,3 +229,10 @@ pub fn export_docx(path: String, dest: String, doc: DocxDocument) -> Result<Stri
 #[cfg(test)]
 #[path = "commands_tests.rs"]
 mod tests;
+
+/// Finds text across every page of the project at `path`, including Recently Deleted.
+#[tauri::command]
+#[specta::specta]
+pub fn search_pages(path: String, query: String) -> Result<Vec<SearchHit>, AppError> {
+    project::search_pages(Path::new(&path), &query)
+}

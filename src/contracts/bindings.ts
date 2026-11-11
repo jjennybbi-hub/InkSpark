@@ -49,6 +49,8 @@ export const commands = {
 	renameChapter: (path: string, id: string, name: string) => typedError<LayoutEntry[], AppError>(__TAURI_INVOKE("rename_chapter", { path, id, name })),
 	/**  Removes a chapter; its pages stay in the list where it was. */
 	removeChapter: (path: string, id: string) => typedError<LayoutEntry[], AppError>(__TAURI_INVOKE("remove_chapter", { path, id })),
+	/**  Finds text across every page of the project at `path`, including Recently Deleted. */
+	searchPages: (path: string, query: string) => typedError<SearchHit[], AppError>(__TAURI_INVOKE("search_pages", { path, query })),
 };
 
 /* Types */
@@ -224,6 +226,24 @@ export type PageSummary = {
 	title: string,
 	/**  Whether `title` is a name the writer gave, so typing does not change it. */
 	named: boolean,
+};
+
+/**  One place where a search matched. */
+export type SearchHit = {
+	/**  The page id. */
+	id: string,
+	/**  The page's title, as in the page list. */
+	title: string,
+	/**  Whether the page is in Recently Deleted. */
+	deleted: boolean,
+	/**  Which match this is on its page, counting from 0. */
+	nth: number,
+	/**  A little text before the match. */
+	before: string,
+	/**  The matched text as written. */
+	matched: string,
+	/**  A little text after the match. */
+	after: string,
 };
 
 /* Tauri Specta runtime */

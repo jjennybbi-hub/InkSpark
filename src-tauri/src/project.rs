@@ -672,3 +672,101 @@ fn prune_history(dir: &Path) -> Result<(), AppError> {
 #[cfg(test)]
 #[path = "project_tests.rs"]
 mod tests;
+
+/// One place where a search matched.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchHit {
+    /// The page id.
+    pub id: String,
+    /// The page's title, as in the page list.
+    pub title: String,
+    /// Whether the page is in Recently Deleted.
+    pub deleted: bool,
+    /// Which match this is on its page, counting from 0.
+    pub nth: u32,
+    /// A little text before the match.
+    pub before: String,
+    /// The matched text as written.
+    pub matched: String,
+    /// A little text after the match.
+    pub after: String,
+}
+
+/// Most matches shown for one page, and in all.
+const HITS_PER_PAGE: usize = 5;
+const HITS_TOTAL: usize = 200;
+const CONTEXT_CHARS: usize = 40;
+
+/// Lowercases one char to one char, so positions stay lined up with the original text.
+fn fold(c: char) -> char {
+    let mut lower = c.to_lowercase();
+    match (lower.next(), lower.next()) {
+        (Some(l), None) => l,
+        _ => c,
+    }
+}
+
+fn plain(text: &str) -> String {
+    text.chars()
+        .map(|c| if c.is_whitespace() { ' ' } else { c })
+        .collect()
+}
+
+fn page_hits(id: &str, title: &str, deleted: bool, text: &str, needle: &[char]) -> Vec<SearchHit> {
+    let chars: Vec<char> = text.chars().collect();
+    let folded: Vec<char> = chars.iter().copied().map(fold).collect();
+    let mut hits = Vec::new();
+    let mut at = 0;
+    while at + needle.len() <= folded.len() && hits.len() < HITS_PER_PAGE {
+        if folded.get(at..at + needle.len()) == Some(needle) {
+            let start = at.saturating_sub(CONTEXT_CHARS);
+            let end = (at + needle.len() + CONTEXT_CHARS).min(chars.len());
+            let slice = |a: usize, b: usize| {
+                plain(&chars.get(a..b).unwrap_or(&[]).iter().collect::<String>())
+            };
+            hits.push(SearchHit {
+                id: id.to_owned(),
+                title: title.to_owned(),
+                deleted,
+                nth: u32::try_from(hits.len()).unwrap_or(u32::MAX),
+                before: slice(start, at),
+                matched: slice(at, at + needle.len()),
+                after: slice(at + needle.len(), end),
+            });
+            at += needle.len();
+        } else {
+            at += 1;
+        }
+    }
+    hits
+}
+
+/// Finds `query` (ignoring case) in every page, in list order, then in Recently Deleted.
+/// Only reads files.
+///
+/// # Errors
+///
+/// Fails when `project.json` cannot be read.
+pub fn search_pages(root: &Path, query: &str) -> Result<Vec<SearchHit>, AppError> {
+    let needle: Vec<char> = query.trim().chars().map(fold).collect();
+    if needle.is_empty() {
+        return Ok(Vec::new());
+    }
+    let project = read_project_file(root)?;
+    let live = project.pages.iter().map(|id| (id, false));
+    let gone = project.deleted.iter().rev().map(|e| (&e.id, true));
+    let mut hits = Vec::new();
+    for (id, deleted) in live.chain(gone) {
+        if hits.len() >= HITS_TOTAL {
+            break;
+        }
+        let Ok(text) = fs::read_to_string(page_path(root, id)) else {
+            continue;
+        };
+        let title = summary(root, &project, id).title;
+        hits.extend(page_hits(id, &title, deleted, &text, &needle));
+    }
+    hits.truncate(HITS_TOTAL);
+    Ok(hits)
+}
