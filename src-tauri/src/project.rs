@@ -634,6 +634,64 @@ pub fn save_page(root: &Path, id: &str, content: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+/// One saved earlier version of a page.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PageVersion {
+    /// The 20-digit stamp naming `.history/<id>/<stamp>.md`; pass it back to read the version.
+    pub stamp: String,
+    /// When the version was replaced, in milliseconds since 1970.
+    pub saved_at: f64,
+}
+
+/// Lists a page's saved earlier versions, newest first. A page with none gives an empty list.
+///
+/// # Errors
+///
+/// `Invalid` for a bad id; I/O errors other than a missing history folder.
+pub fn list_versions(root: &Path, id: &str) -> Result<Vec<PageVersion>, AppError> {
+    check_id(id)?;
+    let dir = root.join(".history").join(id);
+    let entries = match fs::read_dir(&dir) {
+        Ok(rd) => rd,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(err) => return Err(err.into()),
+    };
+    let mut stamps: Vec<u128> = entries
+        .filter_map(Result::ok)
+        .filter_map(|e| history_stamp(&e.file_name().to_string_lossy()))
+        .collect();
+    stamps.sort_unstable_by(|a, b| b.cmp(a));
+    #[allow(clippy::cast_precision_loss)]
+    Ok(stamps
+        .into_iter()
+        .map(|s| PageVersion {
+            stamp: format!("{s:020}"),
+            saved_at: s as f64,
+        })
+        .collect())
+}
+
+/// Returns the text of one saved version of a page.
+///
+/// # Errors
+///
+/// `Invalid` for a bad id or stamp, `NotFound` when that version is gone.
+pub fn read_version(root: &Path, id: &str, stamp: &str) -> Result<String, AppError> {
+    check_id(id)?;
+    let name = format!("{stamp}.md");
+    if history_stamp(&name).is_none() {
+        return Err(AppError::Invalid(format!("not a version: {stamp}")));
+    }
+    match fs::read_to_string(root.join(".history").join(id).join(name)) {
+        Ok(text) => Ok(text),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            Err(AppError::NotFound(stamp.to_owned()))
+        }
+        Err(err) => Err(err.into()),
+    }
+}
+
 /// The stamp encoded in a history file name (`<20 digits>.md`), if it is one of ours.
 fn history_stamp(name: &str) -> Option<u128> {
     let stem = name.strip_suffix(".md")?;

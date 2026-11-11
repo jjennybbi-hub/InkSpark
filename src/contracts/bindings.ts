@@ -51,6 +51,10 @@ export const commands = {
 	removeChapter: (path: string, id: string) => typedError<LayoutEntry[], AppError>(__TAURI_INVOKE("remove_chapter", { path, id })),
 	/**  Finds text across every page of the project at `path`, including Recently Deleted. */
 	searchPages: (path: string, query: string) => typedError<SearchHit[], AppError>(__TAURI_INVOKE("search_pages", { path, query })),
+	/**  Lists a page's saved earlier versions, newest first. */
+	listVersions: (path: string, id: string) => typedError<PageVersion[], AppError>(__TAURI_INVOKE("list_versions", { path, id })),
+	/**  Returns the text of one saved version of a page. */
+	readVersion: (path: string, id: string, stamp: string) => typedError<string, AppError>(__TAURI_INVOKE("read_version", { path, id, stamp })),
 };
 
 /* Types */
@@ -226,6 +230,14 @@ export type PageSummary = {
 	title: string,
 	/**  Whether `title` is a name the writer gave, so typing does not change it. */
 	named: boolean,
+};
+
+/**  One saved earlier version of a page. */
+export type PageVersion = {
+	/**  The 20-digit stamp naming `.history/<id>/<stamp>.md`; pass it back to read the version. */
+	stamp: string,
+	/**  When the version was replaced, in milliseconds since 1970. */
+	savedAt: number | null,
 };
 
 /**  One place where a search matched. */

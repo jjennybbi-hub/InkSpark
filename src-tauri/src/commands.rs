@@ -6,7 +6,7 @@ use std::path::Path;
 use crate::error::AppError;
 use crate::export::{self, DocxDocument};
 use crate::ideas::{self, Idea};
-use crate::project::{self, DeletedPage, LayoutEntry, PageSummary, SearchHit};
+use crate::project::{self, DeletedPage, LayoutEntry, PageSummary, PageVersion, SearchHit};
 
 /// Basic facts about the running build of the app.
 #[derive(Debug, Clone, serde::Serialize, specta::Type)]
@@ -235,4 +235,18 @@ mod tests;
 #[specta::specta]
 pub fn search_pages(path: String, query: String) -> Result<Vec<SearchHit>, AppError> {
     project::search_pages(Path::new(&path), &query)
+}
+
+/// Lists a page's saved earlier versions, newest first.
+#[tauri::command]
+#[specta::specta]
+pub fn list_versions(path: String, id: String) -> Result<Vec<PageVersion>, AppError> {
+    project::list_versions(Path::new(&path), &id)
+}
+
+/// Returns the text of one saved version of a page.
+#[tauri::command]
+#[specta::specta]
+pub fn read_version(path: String, id: String, stamp: String) -> Result<String, AppError> {
+    project::read_version(Path::new(&path), &id, &stamp)
 }

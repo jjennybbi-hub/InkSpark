@@ -10,6 +10,7 @@ export type {
   LayoutEntry,
   Idea,
   SearchHit,
+  PageVersion,
 } from "./bindings";
 export type {
   DocxDocument_Deserialize as DocxDocument,

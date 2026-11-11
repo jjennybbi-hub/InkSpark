@@ -20,6 +20,7 @@ import { ExportMenu } from "./ExportMenu";
 import { type FindRequest, RichEditor } from "./RichEditor";
 import { SearchBox } from "./SearchBox";
 import { SettingsPopover } from "./SettingsPopover";
+import { VersionsSheet } from "./VersionsSheet";
 import {
   applyAppearance,
   loadAppearance,
@@ -91,6 +92,7 @@ export function App(): JSX.Element {
   const [focusMode, setFocusMode] = useState(false);
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [find, setFind] = useState<FindRequest | null>(null);
+  const [reloads, setReloads] = useState(0);
 
   useEffect(() => {
     loadAppInfo().then(setInfo, () => {
@@ -139,6 +141,31 @@ export function App(): JSX.Element {
     await flush();
     return session.current?.dirty !== true;
   }, [flush]);
+
+  /** Puts an old version back. The text it replaces is kept as a version by `save_page`. */
+  const restoreVersion = useCallback(
+    async (old: string): Promise<boolean> => {
+      await flush();
+      const s = session.current;
+      if (s === null || s.dirty) {
+        setMessage(UNSAVED_NOTE);
+        return false;
+      }
+      const result = await commands.savePage(s.path, s.id, old);
+      if (result.status === "error") {
+        setMessage(`Could not restore: ${result.error.message}`);
+        return false;
+      }
+      s.text = old;
+      setText(old);
+      setReloads((n) => n + 1);
+      setPages((prev) =>
+        prev.map((p) => (p.id === s.id && !p.named ? { ...p, title: firstLine(old) } : p)),
+      );
+      return true;
+    },
+    [flush],
+  );
 
   const showPage = useCallback(
     async (path: string, id: string): Promise<void> => {
@@ -562,6 +589,13 @@ export function App(): JSX.Element {
               currentId={currentId}
               saveFirst={saveFirst}
             />
+            <VersionsSheet
+              key={`versions-${currentId ?? ""}`}
+              project={project}
+              pageId={currentId}
+              saveFirst={saveFirst}
+              onRestore={restoreVersion}
+            />
             <SettingsPopover
               value={appearance}
               project={project}
@@ -569,7 +603,13 @@ export function App(): JSX.Element {
               onChange={setAppearance}
               onCustomThemes={setCustomThemes}
             />
-            <RichEditor pageKey={currentId} markdown={text} onChange={onChange} find={find} />
+            <RichEditor
+              key={reloads}
+              pageKey={currentId}
+              markdown={text}
+              onChange={onChange}
+              find={find}
+            />
             <div className="prompt-bar">
               <button
                 type="button"

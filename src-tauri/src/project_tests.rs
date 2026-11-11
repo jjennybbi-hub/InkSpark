@@ -463,3 +463,59 @@ fn search_never_writes() {
     search_pages(&dir, "quiet").unwrap();
     assert_eq!(fs::read_to_string(dir.join(PROJECT_FILE)).unwrap(), before);
 }
+
+#[test]
+fn versions_are_listed_newest_first_and_readable() {
+    let root = temp_root("versions");
+    let id = "p1";
+    fs::create_dir_all(root.join("pages")).unwrap_or_else(|err| panic!("{err}"));
+    assert_eq!(
+        list_versions(&root, id).unwrap_or_else(|err| panic!("{err}")),
+        []
+    );
+    for text in ["one", "two", "three"] {
+        save_page(&root, id, text).unwrap_or_else(|err| panic!("{err}"));
+    }
+    let versions = list_versions(&root, id).unwrap_or_else(|err| panic!("{err}"));
+    assert_eq!(versions.len(), 2);
+    let texts: Vec<String> = versions
+        .iter()
+        .map(|v| read_version(&root, id, &v.stamp).unwrap_or_else(|err| panic!("{err}")))
+        .collect();
+    assert_eq!(texts, ["two", "one"]);
+}
+
+#[test]
+fn restoring_a_version_keeps_the_current_text_as_a_version() {
+    let root = temp_root("restore-version");
+    let id = "p1";
+    fs::create_dir_all(root.join("pages")).unwrap_or_else(|err| panic!("{err}"));
+    save_page(&root, id, "old").unwrap_or_else(|err| panic!("{err}"));
+    save_page(&root, id, "now").unwrap_or_else(|err| panic!("{err}"));
+    let first = list_versions(&root, id).unwrap_or_else(|err| panic!("{err}"));
+    let old = read_version(&root, id, &first[0].stamp).unwrap_or_else(|err| panic!("{err}"));
+    save_page(&root, id, &old).unwrap_or_else(|err| panic!("{err}"));
+    assert_eq!(read_page(&root, id).unwrap_or_default(), "old");
+    let after = list_versions(&root, id).unwrap_or_else(|err| panic!("{err}"));
+    assert_eq!(
+        read_version(&root, id, &after[0].stamp).unwrap_or_default(),
+        "now"
+    );
+}
+
+#[test]
+fn read_version_rejects_paths_and_bad_stamps() {
+    let root = temp_root("bad-version");
+    assert!(matches!(
+        read_version(&root, "p1", "../x"),
+        Err(AppError::Invalid(_))
+    ));
+    assert!(matches!(
+        read_version(&root, "../p", "00000000000000000001"),
+        Err(AppError::Invalid(_))
+    ));
+    assert!(matches!(
+        read_version(&root, "p1", "00000000000000000001"),
+        Err(AppError::NotFound(_))
+    ));
+}

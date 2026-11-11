@@ -454,7 +454,8 @@ select:focus-visible {
 .app-shell[data-focus="true"] .prompt-bar,
 .app-shell[data-focus="true"] .format-bar,
 .app-shell[data-focus="true"] .save-dot,
-.app-shell[data-focus="true"] .export-menu {
+.app-shell[data-focus="true"] .export-menu,
+.app-shell[data-focus="true"] .versions-menu {
   display: none;
 }
 
@@ -1160,4 +1161,79 @@ button.icon-btn {
 
 .search-ask p {
   flex-basis: 100%;
+}
+
+/* Old versions: an icon left of Export; the sheet floats over the right edge and moves nothing. */
+.versions-menu {
+  position: fixed;
+  right: 6rem;
+  bottom: 1rem;
+  z-index: 20;
+}
+
+.versions-menu > .icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+}
+
+.versions-sheet {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  bottom: 3.6rem;
+  width: min(24rem, calc(100vw - 2rem));
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--ink) 18%, transparent);
+}
+
+.versions-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.versions-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.versions-list {
+  flex: 0 1 auto;
+  max-height: 40%;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.versions-list button {
+  width: 100%;
+  text-align: left;
+  border-color: transparent;
+}
+
+.versions-list button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.versions-preview {
+  flex: 1 1 auto;
+  min-height: 4rem;
+  margin: 0;
+  padding: 0.6rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-body);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
 }
