@@ -250,3 +250,23 @@ pub fn list_versions(path: String, id: String) -> Result<Vec<PageVersion>, AppEr
 pub fn read_version(path: String, id: String, stamp: String) -> Result<String, AppError> {
     project::read_version(Path::new(&path), &id, &stamp)
 }
+
+/// Copies the project at `path` into the folder `dest`, named by the local `stamp`
+/// (`YYYY-MM-DD HHMM`). With `daily`, skips when today's copy exists. Returns the new folder.
+#[tauri::command]
+#[specta::specta]
+pub fn backup_project(
+    path: String,
+    dest: String,
+    stamp: String,
+    daily: bool,
+) -> Result<Option<String>, AppError> {
+    crate::backup::backup_project(Path::new(&path), Path::new(&dest), &stamp, daily)
+}
+
+/// The stamp of the newest backup of `path` in `dest`, if any.
+#[tauri::command]
+#[specta::specta]
+pub fn last_backup(path: String, dest: String) -> Result<Option<String>, AppError> {
+    crate::backup::last_backup(Path::new(&path), Path::new(&dest))
+}

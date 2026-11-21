@@ -45,3 +45,30 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     }
     Ok(())
 }
+
+/// Creates a folder (and its parents) for files the app is about to write.
+///
+/// # Errors
+///
+/// Returns the underlying I/O error.
+pub fn create_dir(path: &Path) -> std::io::Result<()> {
+    fs::create_dir_all(path)
+}
+
+/// Renames a finished folder into place, so a half-made copy never looks complete.
+///
+/// # Errors
+///
+/// Returns the underlying I/O error.
+pub fn rename(from: &Path, to: &Path) -> std::io::Result<()> {
+    fs::rename(from, to)
+}
+
+/// Removes a whole folder the app made itself (an old or unfinished backup copy).
+///
+/// # Errors
+///
+/// Returns the underlying I/O error.
+pub fn remove_dir(path: &Path) -> std::io::Result<()> {
+    fs::remove_dir_all(path)
+}

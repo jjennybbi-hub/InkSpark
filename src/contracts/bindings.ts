@@ -55,6 +55,13 @@ export const commands = {
 	listVersions: (path: string, id: string) => typedError<PageVersion[], AppError>(__TAURI_INVOKE("list_versions", { path, id })),
 	/**  Returns the text of one saved version of a page. */
 	readVersion: (path: string, id: string, stamp: string) => typedError<string, AppError>(__TAURI_INVOKE("read_version", { path, id, stamp })),
+	/**
+	 *  Copies the project at `path` into the folder `dest`, named by the local `stamp`
+	 *  (`YYYY-MM-DD HHMM`). With `daily`, skips when today's copy exists. Returns the new folder.
+	 */
+	backupProject: (path: string, dest: string, stamp: string, daily: boolean) => typedError<string | null, AppError>(__TAURI_INVOKE("backup_project", { path, dest, stamp, daily })),
+	/**  The stamp of the newest backup of `path` in `dest`, if any. */
+	lastBackup: (path: string, dest: string) => typedError<string | null, AppError>(__TAURI_INVOKE("last_backup", { path, dest })),
 };
 
 /* Types */

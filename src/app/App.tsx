@@ -20,6 +20,7 @@ import { ExportMenu } from "./ExportMenu";
 import { type FindRequest, RichEditor } from "./RichEditor";
 import { SearchBox } from "./SearchBox";
 import { SettingsPopover } from "./SettingsPopover";
+import { dailyBackup } from "./backups";
 import { VersionsSheet } from "./VersionsSheet";
 import {
   applyAppearance,
@@ -99,6 +100,22 @@ export function App(): JSX.Element {
       setInfo(null);
     });
   }, []);
+  // Once a day: a backup when the project opens, checked again each hour while it stays open.
+  useEffect(() => {
+    if (project === null) {
+      return;
+    }
+    const run = (): void => {
+      dailyBackup(project).catch((error: unknown) => {
+        console.warn("InkSpark backup skipped:", error);
+      });
+    };
+    run();
+    const hourly = window.setInterval(run, 60 * 60 * 1000);
+    return () => {
+      window.clearInterval(hourly);
+    };
+  }, [project]);
   const quickCapture = useRef<HTMLTextAreaElement>(null);
   const session = useRef<Session | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());

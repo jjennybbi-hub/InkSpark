@@ -13,6 +13,7 @@ import {
   ZOOM_MIN,
   resolveTheme,
 } from "./appearance";
+import { BackupSettings } from "./BackupSettings";
 import { FontPicker } from "./FontPicker";
 import { DownloadIcon, ImportIcon, pickAndImportFont, useCustomFonts } from "./customFonts";
 import { INTERFACE_FONTS } from "./fonts";
@@ -419,6 +420,7 @@ export function SettingsPopover({
               </button>
             </div>
           </div>
+          <BackupSettings project={project} />
           <p className="hint">Focus mode: ⌘⇧F. Esc leaves it.</p>
         </div>
       )}

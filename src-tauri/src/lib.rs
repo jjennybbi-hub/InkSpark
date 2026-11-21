@@ -1,6 +1,7 @@
 //! InkSpark's Tauri backend.
 #![forbid(unsafe_code)]
 
+pub mod backup;
 pub mod commands;
 pub mod error;
 pub mod export;
@@ -48,7 +49,9 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::remove_chapter,
             commands::search_pages,
             commands::list_versions,
-            commands::read_version
+            commands::read_version,
+            commands::backup_project,
+            commands::last_backup
         ])
         .typ::<AppError>()
 }
