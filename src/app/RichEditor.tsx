@@ -97,8 +97,6 @@ export function RichEditor({
   const loaded = useRef<string | null | undefined>(undefined);
   const latest = useRef(onChange);
   const content = useRef(markdown);
-  /** True while a page is being loaded, so loading is never mistaken for typing. */
-  const loading = useRef(false);
   useEffect(() => {
     latest.current = onChange;
     content.current = markdown;
@@ -118,13 +116,12 @@ export function RichEditor({
       },
     },
     onUpdate: ({ editor: e }) => {
-      if (!loading.current) {
-        latest.current(readMarkdown(e));
-        window.clearTimeout(speakerTimer.current);
-        speakerTimer.current = window.setTimeout(() => {
-          speakersOut.current?.(speakersOnPage(e.state.doc));
-        }, SPEAKERS_MS);
-      }
+      // Loading a page passes emitUpdate: false, so this runs only for real edits.
+      latest.current(readMarkdown(e));
+      window.clearTimeout(speakerTimer.current);
+      speakerTimer.current = window.setTimeout(() => {
+        speakersOut.current?.(speakersOnPage(e.state.doc));
+      }, SPEAKERS_MS);
     },
   });
 
@@ -133,10 +130,8 @@ export function RichEditor({
       return;
     }
     loaded.current = pageKey;
-    loading.current = true;
     editor.setEditable(pageKey !== null, false);
     editor.commands.setContent(content.current, { emitUpdate: false });
-    loading.current = false;
     editor.commands.setTextSelection(0);
   }, [editor, pageKey]);
 

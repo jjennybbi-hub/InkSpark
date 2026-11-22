@@ -1,7 +1,7 @@
 import { type Editor, Extension, Node } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { Plugin, PluginKey, TextSelection, type EditorState } from "@tiptap/pm/state";
-import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 
 /**
  * Chat history: a section of lines like `Annie: hello`. The words stay exactly as typed; the
@@ -118,6 +118,8 @@ export interface ChatContext {
   line: PMNode;
   /** Position just before the line. */
   linePos: number;
+  /** Which line of the section it is, counting from 0. */
+  index: number;
 }
 
 /** The chat section and line holding the cursor, if any. */
@@ -127,22 +129,33 @@ export function chatAt(state: EditorState): ChatContext | null {
     const node = $from.node(depth);
     if (node.type.name === "chatSection") {
       const line = $from.node(depth + 1);
-      return { node, pos: $from.before(depth), line, linePos: $from.before(depth + 1) };
+      return {
+        node,
+        pos: $from.before(depth),
+        line,
+        linePos: $from.before(depth + 1),
+        index: $from.index(depth),
+      };
     }
   }
   return null;
 }
 
-/** Speakers in the order they first speak in a section. */
-export function speakersIn(section: PMNode): string[] {
-  const names: string[] = [];
-  section.forEach((line) => {
-    const name = speakerOf(line.textContent);
+/** Adds each name not already in `names`, keeping order. */
+function addNew(names: string[], more: Iterable<string>): string[] {
+  for (const name of more) {
     if (name !== "" && !names.includes(name)) {
       names.push(name);
     }
-  });
+  }
   return names;
+}
+
+/** Speakers in the order they first speak in a section. */
+export function speakersIn(section: PMNode): string[] {
+  const lines: string[] = [];
+  section.forEach((line) => lines.push(speakerOf(line.textContent)));
+  return addNew([], lines);
 }
 
 /** Every speaker named in any chat on the page. */
@@ -152,11 +165,7 @@ export function speakersOnPage(doc: PMNode): string[] {
     if (node.type.name !== "chatSection") {
       return true;
     }
-    for (const name of speakersIn(node)) {
-      if (!names.includes(name)) {
-        names.push(name);
-      }
-    }
+    addNew(names, speakersIn(node));
     return false;
   });
   return names;
@@ -188,42 +197,39 @@ export interface ChatOptions {
   cast: () => readonly string[];
 }
 
-/** Replaces the speaker of the line starting at `linePos` (its `Name: ` part only). */
-function setSpeaker(editor: Editor, linePos: number, line: PMNode, name: string): boolean {
-  const start = linePos + 1 + timeLength(line.textContent);
-  const cut = prefixLength(line.textContent) - timeLength(line.textContent);
+/** People to cycle through: the section's speakers, then the rest of the cast. */
+function pool(section: PMNode, cast: readonly string[]): string[] {
+  return addNew(speakersIn(section), cast);
+}
+
+/**
+ * Moves the line at `linePos` to the next (`step` 1) or previous (-1) speaker, replacing only
+ * its `Name: ` part. The cursor keeps its place in the words, or sits right after the name.
+ */
+function cycleSpeaker(
+  view: EditorView,
+  section: PMNode,
+  linePos: number,
+  line: PMNode,
+  cast: readonly string[],
+  step: number,
+): boolean {
+  const text = line.textContent;
+  const name = cycle(pool(section, cast), speakerOf(text), step);
+  const start = linePos + 1 + timeLength(text);
+  const cut = prefixLength(text) - timeLength(text);
   const prefix = name === "" ? "" : `${name}: `;
-  const { tr, selection } = editor.state;
+  const { tr, selection } = view.state;
   const offset = Math.max(0, selection.from - start - cut);
   tr.insertText(prefix, start, start + cut);
   tr.setSelection(TextSelection.create(tr.doc, start + prefix.length + offset));
-  editor.view.dispatch(tr);
+  view.dispatch(tr);
   return true;
 }
 
-function pool(section: PMNode, cast: readonly string[]): string[] {
-  const names = speakersIn(section);
-  for (const name of cast) {
-    if (!names.includes(name)) {
-      names.push(name);
-    }
-  }
-  return names;
-}
-
-function indexOfLine(ctx: ChatContext): number {
-  let index = 0;
-  ctx.node.forEach((_, offset, i) => {
-    if (ctx.pos + 1 + offset === ctx.linePos) {
-      index = i;
-    }
-  });
-  return index;
-}
-
-function cycleSpeaker(editor: Editor, ctx: ChatContext, cast: readonly string[], step: number) {
-  const current = speakerOf(ctx.line.textContent);
-  return setSpeaker(editor, ctx.linePos, ctx.line, cycle(pool(ctx.node, cast), current, step));
+function cycleAtCursor(editor: Editor, cast: readonly string[], step: number): boolean {
+  const ctx = chatAt(editor.state);
+  return ctx !== null && cycleSpeaker(editor.view, ctx.node, ctx.linePos, ctx.line, cast, step);
 }
 
 const chatKey = new PluginKey("chatLook");
@@ -297,7 +303,7 @@ export const ChatKeys = Extension.create<ChatOptions>({
           return false;
         }
         const text = ctx.line.textContent;
-        const index = indexOfLine(ctx);
+        const index = ctx.index;
         const words = text.slice(prefixLength(text)).trim();
         const { tr } = editor.state;
         if (words === "" && index === ctx.node.childCount - 1) {
@@ -330,14 +336,8 @@ export const ChatKeys = Extension.create<ChatOptions>({
         editor.view.dispatch(tr.scrollIntoView());
         return true;
       },
-      Tab: ({ editor }) => {
-        const ctx = chatAt(editor.state);
-        return ctx !== null && cycleSpeaker(editor, ctx, this.options.cast(), 1);
-      },
-      "Shift-Tab": ({ editor }) => {
-        const ctx = chatAt(editor.state);
-        return ctx !== null && cycleSpeaker(editor, ctx, this.options.cast(), -1);
-      },
+      Tab: ({ editor }) => cycleAtCursor(editor, this.options.cast(), 1),
+      "Shift-Tab": ({ editor }) => cycleAtCursor(editor, this.options.cast(), -1),
     };
   },
   addProseMirrorPlugins() {
@@ -375,14 +375,11 @@ export const ChatKeys = Extension.create<ChatOptions>({
                 return false;
               }
               event.preventDefault();
-              const current = speakerOf(lineNode.textContent);
-              const name = cycle(pool(section, options.cast()), current, 1);
-              const start = found + 1 + timeLength(lineNode.textContent);
-              const cut = prefixLength(lineNode.textContent) - timeLength(lineNode.textContent);
-              const prefix = name === "" ? "" : `${name}: `;
-              const tr = view.state.tr.insertText(prefix, start, start + cut);
-              tr.setSelection(TextSelection.create(tr.doc, start + prefix.length));
-              view.dispatch(tr);
+              // Put the cursor on this line first, so it lands right after the new name.
+              view.dispatch(
+                view.state.tr.setSelection(TextSelection.create(view.state.doc, found + 1)),
+              );
+              cycleSpeaker(view, section, found, lineNode, options.cast(), 1);
               view.focus();
               return true;
             },
