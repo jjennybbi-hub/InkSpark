@@ -54,7 +54,7 @@ fn copy_tree(from: &Path, to: &Path) -> Result<(), AppError> {
     for entry in fs::read_dir(from)? {
         let entry = entry?;
         let name = entry.file_name();
-        if name.to_string_lossy().ends_with(".tmp") {
+        if storage::is_temp_name(&name.to_string_lossy()) {
             continue; // A save in progress; the finished file is copied instead.
         }
         let src = entry.path();
@@ -106,22 +106,29 @@ pub fn backup_project(
     if target.exists() {
         return Ok(Some(target.to_string_lossy().into_owned()));
     }
+    remove_partials(&dir)?;
     let partial = dir.join(format!("{stamp}{PARTIAL}"));
-    if partial.exists() {
-        storage::remove_dir(&partial)?;
-    }
     copy_tree(&root_real, &partial)?;
     storage::rename(&partial, &target)?;
     prune(&dir)?;
     Ok(Some(target.to_string_lossy().into_owned()))
 }
 
+/// Removes old copies beyond [`KEEP`].
 fn prune(dir: &Path) -> Result<(), AppError> {
     let names = finished(dir);
     for old in names.iter().take(names.len().saturating_sub(KEEP)) {
         storage::remove_dir(&dir.join(old))?;
     }
-    for entry in fs::read_dir(dir)?.filter_map(Result::ok) {
+    Ok(())
+}
+
+/// Removes half-made copies left by an interrupted backup.
+fn remove_partials(dir: &Path) -> Result<(), AppError> {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return Ok(()); // No backups folder yet.
+    };
+    for entry in entries.filter_map(Result::ok) {
         let name = entry.file_name().to_string_lossy().into_owned();
         if let Some(base) = name.strip_suffix(PARTIAL)
             && valid_stamp(base)
