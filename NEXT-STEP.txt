@@ -1,6 +1,12 @@
 QUEUE: do only the FIRST step below. When it's done, delete it from this file so the next step moves to the top. SPEC.md describes version 1 and wins over older notes here.
 
-STEP 1: more chat styles and script formats (cast list and iMessage-like Chat history are DONE)
+STEP 1: chat timestamps (owner's choice)
+- In Chat history, a time typed at the start of a line, like "[9:41] Annie: hello", shows as a small time label above that bubble, like a messaging app.
+- The page stays plain text; switching formats keeps the time exactly as typed.
+- Ask the owner: label above every bubble or only when the time changes; whether Enter copies the last time onto the new line.
+- Typecheck, lint and test. Install with scripts/install-app.sh, then commit and push.
+
+STEP 2: more chat styles and script formats
 - Still to do from the notes below: timestamps in chat, WhatsApp-like / Discord-like / SMS styles, Screenplay, Stage play, Word export layout per format.
 - Cast list: each project keeps its own list of characters, places and events. Add with "+", rename or remove from a floating overlay. Renaming a character updates their name throughout the page.
 - Writing formats: pick a format per page or section. Start with Chat history (Annie: hello), Screenplay and Stage play. The format controls how lines look; the writer only types the words.
