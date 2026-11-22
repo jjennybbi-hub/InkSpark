@@ -1,6 +1,6 @@
 import { Editor } from "@tiptap/core";
 import { afterEach, describe, expect, it } from "vitest";
-import { nextSpeaker, renameOnPage, sectionRange, setFormat, speakerOf } from "./chat";
+import { nextSpeaker, renameOnPage, sectionRange, setFormat, speakerOf, timeOf } from "./chat";
 import { editorExtensions } from "./editorExtensions";
 import { pageToBlocks } from "./exportDoc";
 
@@ -29,6 +29,31 @@ function md(e: Editor): string {
 const CHAT = '<div data-chat="Annie">\n\nAnnie: hello\n\nBob: hi there\n\n</div>';
 
 describe("chat history", () => {
+  it("reads a typed time before the speaker", () => {
+    expect(timeOf("[9:41] Annie: hello")).toBe("9:41");
+    expect(speakerOf("[9:41] Annie: hello")).toBe("Annie");
+    expect(timeOf("Annie: hello")).toBe("");
+  });
+
+  it("keeps a typed time exactly when saving and switching formats", () => {
+    const timed = '<div data-chat="Annie">\n\n[9:41] Annie: hello\n\n[9:41] Bob: hi\n\n</div>';
+    const e = make(timed);
+    expect(make(md(e)).getText()).toContain("[9:41] Annie: hello");
+    const { from, to } = sectionRange(e.state);
+    setFormat(e, "normal", from, to);
+    expect(e.getText()).toContain("[9:41] Annie: hello");
+  });
+
+  it("shows the time label only when the time changes", () => {
+    const e = make(
+      '<div data-chat="Annie">\n\n[9:41] Annie: a\n\n[9:41] Bob: b\n\n[9:45] Annie: c\n\n</div>',
+    );
+    const marks = [...e.view.dom.querySelectorAll(".chat-line")].map((n) =>
+      n.getAttribute("data-time"),
+    );
+    expect(marks).toEqual(["shown", "same", "shown"]);
+  });
+
   it("reads the speaker from the start of a line", () => {
     expect(speakerOf("Annie: hello")).toBe("Annie");
     expect(speakerOf("no speaker here")).toBe("");

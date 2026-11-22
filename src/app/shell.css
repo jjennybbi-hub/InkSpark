@@ -1430,6 +1430,36 @@ button.icon-btn {
   left: auto;
 }
 
+/* A typed time like [9:41] shows as a small label above the bubble, only when it changes. */
+.page .ProseMirror .chat-line[data-time="shown"] {
+  margin-top: 1.6rem;
+}
+
+.page .ProseMirror .chat-time {
+  position: absolute;
+  top: -1.35rem;
+  left: 0.2rem;
+  font-size: 0.7em;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--ink) 50%, transparent);
+}
+
+.page .ProseMirror .chat-line[data-side="me"] .chat-time {
+  right: 0.2rem;
+  left: auto;
+}
+
+/* The same time again stays in the text but barely shows. */
+.page .ProseMirror .chat-time.chat-time-same {
+  position: static;
+  font-size: 0.6em;
+  opacity: 0.35;
+}
+
+.page .ProseMirror .chat-line[data-side="me"] .chat-time.chat-time-same {
+  color: #fff;
+}
+
 /* The name sits small at the top of the bubble; clicking it changes who speaks. */
 .page .ProseMirror .chat-name {
   display: block;

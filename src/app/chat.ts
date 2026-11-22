@@ -10,14 +10,28 @@ import { Decoration, DecorationSet } from "@tiptap/pm/view";
 
 const SPEAKER = /^([^:\n]{1,40}):[  ]?/;
 
-/** The speaker of a line, or "" for a line with no `Name:` at the start. */
-export function speakerOf(text: string): string {
-  return SPEAKER.exec(text)?.[1]?.trim() ?? "";
+/** An optional time typed first, like `[9:41] `. */
+const TIME = /^\[([^\]\n]{1,20})\] ?/;
+
+/** The time typed at the start of a line, like `9:41` in `[9:41] Annie: hi`, or "". */
+export function timeOf(text: string): string {
+  return TIME.exec(text)?.[1]?.trim() ?? "";
 }
 
-/** How many characters `Name: ` takes at the start of a line. */
+/** How many characters `[time] ` takes at the start of a line. */
+function timeLength(text: string): number {
+  return TIME.exec(text)?.[0].length ?? 0;
+}
+
+/** The speaker of a line, or "" for a line with no `Name:` at the start. */
+export function speakerOf(text: string): string {
+  return SPEAKER.exec(text.slice(timeLength(text)))?.[1]?.trim() ?? "";
+}
+
+/** How many characters `[time] Name: ` takes at the start of a line. */
 function prefixLength(text: string): number {
-  return SPEAKER.exec(text)?.[0].length ?? 0;
+  const t = timeLength(text);
+  return t + (SPEAKER.exec(text.slice(t))?.[0].length ?? 0);
 }
 
 function escapeAttr(value: string): string {
@@ -176,8 +190,8 @@ export interface ChatOptions {
 
 /** Replaces the speaker of the line starting at `linePos` (its `Name: ` part only). */
 function setSpeaker(editor: Editor, linePos: number, line: PMNode, name: string): boolean {
-  const start = linePos + 1;
-  const cut = prefixLength(line.textContent);
+  const start = linePos + 1 + timeLength(line.textContent);
+  const cut = prefixLength(line.textContent) - timeLength(line.textContent);
   const prefix = name === "" ? "" : `${name}: `;
   const { tr, selection } = editor.state;
   const offset = Math.max(0, selection.from - start - cut);
@@ -222,30 +236,46 @@ function decorations(doc: PMNode): DecorationSet {
     }
     const me = String(node.attrs.me ?? "");
     let previous = "\u0000";
+    let lastTime = "";
     node.forEach((line, offset) => {
       const linePos = pos + 1 + offset;
       const text = line.textContent;
       const name = speakerOf(text);
       const cut = prefixLength(text);
+      const tCut = timeLength(text);
+      const time = timeOf(text);
+      // The label shows only when the time changes, like a messaging app.
+      const showTime = time !== "" && time !== lastTime;
       const side = name === "" ? "none" : name === me ? "me" : "them";
       decos.push(
         Decoration.node(linePos, linePos + line.nodeSize, {
           class: "chat-line",
           "data-side": side,
           "data-initial": name.slice(0, 1).toUpperCase(),
-          "data-first": String(name !== previous),
+          "data-first": String(name !== previous || showTime),
+          "data-time": showTime ? "shown" : tCut > 0 ? "same" : "none",
           "data-empty": String(text.slice(cut).trim() === ""),
         }),
       );
-      if (cut > 0) {
+      if (tCut > 0) {
         decos.push(
-          Decoration.inline(linePos + 1, linePos + 1 + cut, {
+          Decoration.inline(linePos + 1, linePos + 1 + tCut, {
+            class: showTime ? "chat-time" : "chat-time chat-time-same",
+          }),
+        );
+      }
+      if (cut > tCut) {
+        decos.push(
+          Decoration.inline(linePos + 1 + tCut, linePos + 1 + cut, {
             class: "chat-name",
             title: "Click to change who is speaking (or press Tab)",
           }),
         );
       }
       previous = name;
+      if (time !== "") {
+        lastTime = time;
+      }
     });
     return false;
   });
@@ -347,8 +377,8 @@ export const ChatKeys = Extension.create<ChatOptions>({
               event.preventDefault();
               const current = speakerOf(lineNode.textContent);
               const name = cycle(pool(section, options.cast()), current, 1);
-              const start = found + 1;
-              const cut = prefixLength(lineNode.textContent);
+              const start = found + 1 + timeLength(lineNode.textContent);
+              const cut = prefixLength(lineNode.textContent) - timeLength(lineNode.textContent);
               const prefix = name === "" ? "" : `${name}: `;
               const tr = view.state.tr.insertText(prefix, start, start + cut);
               tr.setSelection(TextSelection.create(tr.doc, start + prefix.length));
