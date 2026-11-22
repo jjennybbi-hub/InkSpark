@@ -62,6 +62,10 @@ export const commands = {
 	backupProject: (path: string, dest: string, stamp: string, daily: boolean) => typedError<string | null, AppError>(__TAURI_INVOKE("backup_project", { path, dest, stamp, daily })),
 	/**  The stamp of the newest backup of `path` in `dest`, if any. */
 	lastBackup: (path: string, dest: string) => typedError<string | null, AppError>(__TAURI_INVOKE("last_backup", { path, dest })),
+	/**  Reads the project's cast list (characters, places and events). */
+	getCast: (path: string) => typedError<CastEntry[], AppError>(__TAURI_INVOKE("get_cast", { path })),
+	/**  Replaces the project's cast list; returns the list as saved. */
+	setCast: (path: string, entries: CastEntry[]) => typedError<CastEntry[], AppError>(__TAURI_INVOKE("set_cast", { path, entries })),
 };
 
 /* Types */
@@ -87,6 +91,23 @@ export type AppInfo = {
 	/**  The Tauri runtime version. */
 	tauriVersion: string,
 };
+
+/**  One name on the cast list. */
+export type CastEntry = {
+	/**  The name as it is written in the pages. */
+	name: string,
+	/**  Character, place or event. */
+	kind: CastKind,
+};
+
+/**  What a cast entry is. */
+export type CastKind = 
+/**  A person who can speak. */
+"character" | 
+/**  A place. */
+"place" | 
+/**  An event. */
+"event";
 
 /**  A page in the Recently Deleted list. */
 export type DeletedPage = {

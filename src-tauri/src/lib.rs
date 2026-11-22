@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 pub mod backup;
+pub mod cast;
 pub mod commands;
 pub mod error;
 pub mod export;
@@ -51,7 +52,9 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::list_versions,
             commands::read_version,
             commands::backup_project,
-            commands::last_backup
+            commands::last_backup,
+            commands::get_cast,
+            commands::set_cast
         ])
         .typ::<AppError>()
 }

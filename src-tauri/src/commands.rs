@@ -3,6 +3,7 @@
 
 use std::path::Path;
 
+use crate::cast;
 use crate::error::AppError;
 use crate::export::{self, DocxDocument};
 use crate::ideas::{self, Idea};
@@ -269,4 +270,21 @@ pub fn backup_project(
 #[specta::specta]
 pub fn last_backup(path: String, dest: String) -> Result<Option<String>, AppError> {
     crate::backup::last_backup(Path::new(&path), Path::new(&dest))
+}
+
+/// Reads the project's cast list (characters, places and events).
+#[tauri::command]
+#[specta::specta]
+pub fn get_cast(path: String) -> Result<Vec<cast::CastEntry>, AppError> {
+    cast::get_cast(Path::new(&path))
+}
+
+/// Replaces the project's cast list; returns the list as saved.
+#[tauri::command]
+#[specta::specta]
+pub fn set_cast(
+    path: String,
+    entries: Vec<cast::CastEntry>,
+) -> Result<Vec<cast::CastEntry>, AppError> {
+    cast::set_cast(Path::new(&path), entries)
 }

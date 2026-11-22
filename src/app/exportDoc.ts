@@ -1,5 +1,6 @@
 import { Editor, type JSONContent } from "@tiptap/core";
 import type { DocxBlock, DocxDocument, DocxRun } from "../contracts";
+import { speakerOf } from "./chat";
 import { editorExtensions } from "./editorExtensions";
 import { DEFAULT_TEXT_FONT, PAGE_TEXT_SIZE } from "./fonts";
 
@@ -104,6 +105,10 @@ function alignOf(node: JSONContent): string | null {
   return typeof align === "string" && align !== "left" ? align : null;
 }
 
+function lineText(node: JSONContent): string {
+  return (node.content ?? []).map((n) => n.text ?? "").join("");
+}
+
 function blocksOf(root: JSONContent): DocxBlock[] {
   const out: DocxBlock[] = [];
   let nextList = 0;
@@ -121,6 +126,14 @@ function blocksOf(root: JSONContent): DocxBlock[] {
             align: alignOf(node),
             runs: toRuns(node.content),
           });
+          break;
+        case "chatSection":
+          // A chat keeps its lines; the right-hand speaker's lines sit on the right, as on screen.
+          for (const line of node.content ?? []) {
+            const me = String(node.attrs?.me ?? "");
+            const side = me !== "" && speakerOf(lineText(line)) === me ? "right" : null;
+            out.push({ ...inherited, align: side, runs: toRuns(line.content) });
+          }
           break;
         case "codeBlock":
           out.push({ ...inherited, code: true, runs: toRuns(node.content) });

@@ -8,6 +8,7 @@ import { Heading } from "@tiptap/extension-heading";
 import { HardBreak } from "@tiptap/extension-hard-break";
 import { Paragraph } from "@tiptap/extension-paragraph";
 import { Markdown } from "tiptap-markdown";
+import { ChatKeys, ChatLine, ChatSection } from "./chat";
 
 interface MarkdownState {
   write: (text: string) => void;
@@ -85,12 +86,15 @@ const PlainBreak = HardBreak.extend({
 });
 
 /** The editor's document rules, shared with export so a page reads the same in both. */
-export function editorExtensions(): Extensions {
+export function editorExtensions(cast: () => readonly string[] = () => []): Extensions {
   return [
     StarterKit.configure({ paragraph: false, heading: false, hardBreak: false }),
     AlignedParagraph,
     AlignedHeading.configure({ levels: [1, 2, 3] }),
     PlainBreak,
+    ChatSection,
+    ChatLine,
+    ChatKeys.configure({ cast }),
     TextStyleKit,
     Highlight.configure({ multicolor: true }),
     TextAlign.configure({ types: ["heading", "paragraph"] }),

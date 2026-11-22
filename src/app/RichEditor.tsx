@@ -1,7 +1,10 @@
 import { type Editor, EditorContent, useEditor } from "@tiptap/react";
-import { type JSX, useEffect, useRef } from "react";
+import { type JSX, useEffect, useRef, useState } from "react";
 import { editorExtensions } from "./editorExtensions";
 import { FormatBar } from "./FormatBar";
+import type { CastEntry } from "../contracts";
+import { renameOnPage, speakersOnPage } from "./chat";
+import { ChatTools } from "./ChatTools";
 
 interface Props {
   /** Changes when a different page is shown, so the editor swaps its content. */
@@ -11,7 +14,15 @@ interface Props {
   textFont?: string | undefined;
   /** A search match to select and scroll to; a new object each time asks again. */
   find?: FindRequest | null | undefined;
+  /** The project's cast list, for chat speakers and @ suggestions. */
+  cast?: readonly CastEntry[] | undefined;
+  /** A cast rename to carry out on this page; a new object each time asks again. */
+  rename?: { from: string; to: string } | null | undefined;
+  /** Called with the chat speakers on the page, shortly after typing stops. */
+  onSpeakers?: ((names: string[]) => void) | undefined;
 }
+
+const SPEAKERS_MS = 1500;
 
 export interface FindRequest {
   query: string;
@@ -66,7 +77,23 @@ function readMarkdown(editor: Editor): string {
   return storage.markdown.getMarkdown();
 }
 
-export function RichEditor({ pageKey, markdown, onChange, textFont, find }: Props): JSX.Element {
+export function RichEditor({
+  pageKey,
+  markdown,
+  onChange,
+  textFont,
+  find,
+  cast = [],
+  rename,
+  onSpeakers,
+}: Props): JSX.Element {
+  // Read when Tab or Enter is pressed in a chat, never during render.
+  const [castBox] = useState(() => {
+    const box = { names: [] as string[], read: (): readonly string[] => box.names };
+    return box;
+  });
+  const speakersOut = useRef(onSpeakers);
+  const speakerTimer = useRef<number | undefined>(undefined);
   const loaded = useRef<string | null | undefined>(undefined);
   const latest = useRef(onChange);
   const content = useRef(markdown);
@@ -75,10 +102,12 @@ export function RichEditor({ pageKey, markdown, onChange, textFont, find }: Prop
   useEffect(() => {
     latest.current = onChange;
     content.current = markdown;
+    speakersOut.current = onSpeakers;
+    castBox.names = cast.filter((c) => c.kind === "character").map((c) => c.name);
   });
 
   const editor = useEditor({
-    extensions: editorExtensions(),
+    extensions: editorExtensions(castBox.read),
     content: "",
     editorProps: {
       attributes: {
@@ -91,6 +120,10 @@ export function RichEditor({ pageKey, markdown, onChange, textFont, find }: Prop
     onUpdate: ({ editor: e }) => {
       if (!loading.current) {
         latest.current(readMarkdown(e));
+        window.clearTimeout(speakerTimer.current);
+        speakerTimer.current = window.setTimeout(() => {
+          speakersOut.current?.(speakersOnPage(e.state.doc));
+        }, SPEAKERS_MS);
       }
     },
   });
@@ -118,8 +151,22 @@ export function RichEditor({ pageKey, markdown, onChange, textFont, find }: Prop
     }
   }, [editor, find, pageKey]);
 
+  useEffect(() => {
+    if (rename !== null && rename !== undefined) {
+      renameOnPage(editor, rename.from, rename.to);
+    }
+  }, [editor, rename]);
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(speakerTimer.current);
+    },
+    [],
+  );
+
   return (
     <div className="rich">
+      <ChatTools editor={editor} names={cast.map((c) => c.name)} />
       <div className="page-scroll">
         <EditorContent editor={editor} className="page" />
         <FormatBar editor={editor} textFont={textFont} pageKey={pageKey} />

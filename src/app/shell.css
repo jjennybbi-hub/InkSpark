@@ -1239,3 +1239,202 @@ button.icon-btn {
   border-radius: 6px;
   background: color-mix(in srgb, var(--ink) 5%, transparent);
 }
+
+/* Cast list: an icon left of old versions; its list floats upward over the page. */
+.cast-menu {
+  position: fixed;
+  right: 8.5rem;
+  bottom: 1rem;
+  z-index: 20;
+}
+
+.cast-menu > .icon-btn,
+.format-switch > .icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+}
+
+.cast-menu .popover {
+  top: auto;
+  right: 0;
+  bottom: 2.4rem;
+  width: 17rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.cast-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cast-group ul {
+  margin: 0 0 0.6rem;
+  padding: 0;
+  list-style: none;
+}
+
+.cast-group li {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 2rem;
+}
+
+.cast-name {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.cast-group input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The writing-format icon floats in the margin beside the cursor's line. */
+.format-switch {
+  position: fixed;
+  z-index: 15;
+}
+
+.format-switch > .icon-btn {
+  opacity: 0.45;
+}
+
+.format-switch > .icon-btn:hover,
+.format-switch > .icon-btn:focus-visible,
+.format-switch > .icon-btn[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.format-switch .popover {
+  top: 2.4rem;
+  left: 0;
+  right: auto;
+  bottom: auto;
+  width: 16rem;
+}
+
+.format-me {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.6rem;
+}
+
+/* @ suggestions: a small floating list under the @. */
+.mention-list {
+  position: fixed;
+  z-index: 30;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  color: var(--ink);
+  background: var(--paper, Canvas);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+}
+
+.mention-list li {
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mention-list li[aria-selected="true"] {
+  background: color-mix(in srgb, #0a84ff 22%, transparent);
+}
+
+/* Chat history, iMessage-like: grey bubbles on the left, blue on the right. */
+.page .ProseMirror .chat {
+  --bubble-them: color-mix(in srgb, var(--ink) 10%, transparent);
+  --bubble-me: #0a84ff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 1rem 0;
+  padding: 0.75rem 2.75rem 0;
+  font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-size: 0.95em;
+  border-radius: 14px;
+  outline: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+/* A typing bar under the messages, like the app's own. */
+.page .ProseMirror .chat::after {
+  content: "iMessage";
+  display: block;
+  margin: 0.6rem -2rem 0.75rem;
+  padding: 0.35rem 0.9rem;
+  color: color-mix(in srgb, var(--ink) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  border-radius: 999px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.page .ProseMirror .chat-line {
+  position: relative;
+  max-width: 70%;
+  margin: 0;
+  padding: 0.4rem 0.8rem;
+  line-height: 1.35;
+  border-radius: 18px;
+  align-self: flex-start;
+  background: var(--bubble-them);
+}
+
+.page .ProseMirror .chat-line[data-first="true"] {
+  margin-top: 0.5rem;
+}
+
+.page .ProseMirror .chat-line[data-side="me"] {
+  align-self: flex-end;
+  color: #fff;
+  background: var(--bubble-me);
+}
+
+.page .ProseMirror .chat-line[data-side="me"] ::selection {
+  background: rgb(255 255 255 / 35%);
+}
+
+.page .ProseMirror .chat-line[data-side="none"] {
+  align-self: center;
+  max-width: 85%;
+  font-size: 0.85em;
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+  background: none;
+}
+
+/* The contact's picture circle, beside the first bubble of a run. */
+.page .ProseMirror .chat-line[data-first="true"]:not([data-side="none"])::before {
+  content: attr(data-initial);
+  position: absolute;
+  bottom: 0;
+  left: -2.3rem;
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(180deg, #a5abb8, #858b98);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.page .ProseMirror .chat-line[data-side="me"][data-first="true"]::before {
+  right: -2.3rem;
+  left: auto;
+}
+
+/* The name sits small at the top of the bubble; clicking it changes who speaks. */
+.page .ProseMirror .chat-name {
+  display: block;
+  font-size: 0.75em;
+  font-weight: 600;
+  opacity: 0.7;
+  cursor: pointer;
+}

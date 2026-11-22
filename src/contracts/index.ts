@@ -11,6 +11,8 @@ export type {
   Idea,
   SearchHit,
   PageVersion,
+  CastEntry,
+  CastKind,
 } from "./bindings";
 export type {
   DocxDocument_Deserialize as DocxDocument,

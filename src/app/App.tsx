@@ -3,6 +3,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type JSX, useCallback, useEffect, useRef, useState } from "react";
 import {
   type AppInfo,
+  type CastEntry,
   type Idea,
   type LayoutEntry,
   type PageSummary,
@@ -16,6 +17,7 @@ import { PromptCard } from "./PromptCard";
 import "@fontsource/atkinson-hyperlegible/400.css";
 import "@fontsource/atkinson-hyperlegible/700.css";
 import { loadAppInfo } from "./appInfo";
+import { CastMenu } from "./CastMenu";
 import { ExportMenu } from "./ExportMenu";
 import { type FindRequest, RichEditor } from "./RichEditor";
 import { SearchBox } from "./SearchBox";
@@ -81,6 +83,8 @@ export function App(): JSX.Element {
   const [pages, setPages] = useState<PageSummary[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [layout, setLayout] = useState<readonly LayoutEntry[]>([]);
+  const [cast, setCast] = useState<CastEntry[]>([]);
+  const [castRename, setCastRename] = useState<{ from: string; to: string } | null>(null);
   const [text, setText] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [message, setMessage] = useState("");
@@ -225,6 +229,8 @@ export function App(): JSX.Element {
       setCredit("");
       const shelf = await commands.listIdeas(path);
       setIdeas(shelf.status === "ok" ? shelf.data : []);
+      const castList = await commands.getCast(path);
+      setCast(castList.status === "ok" ? castList.data : []);
       const first = result.data[0];
       if (first !== undefined) {
         await showPage(path, first.id);
@@ -536,6 +542,25 @@ export function App(): JSX.Element {
     await commands.markPromptSeen(project, promptHash(next));
   };
 
+  const saveCast = async (next: CastEntry[]): Promise<void> => {
+    if (project === null) {
+      return;
+    }
+    setCast(next);
+    const result = await commands.setCast(project, next);
+    if (result.status === "error") {
+      setMessage(`Could not save the cast list: ${result.error.message}`);
+    }
+  };
+
+  /** New speakers typed in a chat join the cast. */
+  const addSpeakers = (names: string[]): void => {
+    const fresh = names.filter((n) => !cast.some((c) => c.name === n));
+    if (fresh.length > 0) {
+      void saveCast([...cast, ...fresh.map((name) => ({ name, kind: "character" as const }))]);
+    }
+  };
+
   const saveLabel =
     saveState === "saved" ? "Saved" : saveState === "saving" ? "Saving" : "Not saved yet";
 
@@ -600,6 +625,13 @@ export function App(): JSX.Element {
             </div>
           </nav>
           <section className="editor" aria-label="Editor">
+            <CastMenu
+              cast={cast}
+              onChange={(next) => void saveCast(next)}
+              onRename={(from, to) => {
+                setCastRename({ from, to });
+              }}
+            />
             <ExportMenu
               project={project}
               pages={orderPages(pages, layout)}
@@ -626,6 +658,9 @@ export function App(): JSX.Element {
               markdown={text}
               onChange={onChange}
               find={find}
+              cast={cast}
+              rename={castRename}
+              onSpeakers={addSpeakers}
             />
             <div className="prompt-bar">
               <button

@@ -24,7 +24,7 @@ function mockProject(calls: Call[]): void {
     if (cmd === "save_page") {
       return null;
     }
-    if (cmd === "list_ideas") {
+    if (cmd === "list_ideas" || cmd === "get_cast") {
       return [];
     }
     if (cmd === "get_layout") {
@@ -72,6 +72,9 @@ describe("App", () => {
       }
       if (cmd === "read_page") {
         return "Some **bold** words";
+      }
+      if (cmd === "get_cast") {
+        return [];
       }
       if (cmd === "get_layout") {
         return [
