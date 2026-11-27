@@ -1746,3 +1746,8 @@ button.icon-btn {
   background: color-mix(in srgb, var(--paper) 80%, transparent);
   border-radius: 24px;
 }
+
+/* Each theme's own atmosphere: faint abstract texture and light behind the whole app. */
+.app-shell {
+  background-image: var(--atmos, none);
+}

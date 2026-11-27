@@ -270,3 +270,85 @@ export function themeMotif(theme: ThemeDef): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">${shapes.replaceAll("ACC", theme.accent)}</svg>`;
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
+
+/*
+ * Each preset's atmosphere: an abstract, very faint texture and light behind the app (never a
+ * picture). Distinct enough to set a mood, quiet enough to disappear while writing.
+ */
+const svgUrl = (w: number, h: number, body: string): string =>
+  `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${String(w)}" height="${String(h)}">${body}</svg>`)}")`;
+
+const grain = (c: string, a: number): string =>
+  svgUrl(
+    160,
+    160,
+    `<filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="${String(a)}"/></feComponentTransfer></filter><rect width="160" height="160" fill="${c}" filter="url(#n)"/>`,
+  );
+const ripples = (c: string, a: number): string =>
+  svgUrl(
+    240,
+    40,
+    `<path d="M0 20 q30 -10 60 0 t60 0 t60 0 t60 0" stroke="${c}" stroke-opacity="${String(a)}" fill="none"/>`,
+  );
+const rules = (c: string, a: number, gap: number): string =>
+  svgUrl(
+    10,
+    gap,
+    `<path d="M0 ${String(gap - 0.5)} H10" stroke="${c}" stroke-opacity="${String(a)}"/>`,
+  );
+const dots = (c: string, a: number, gap: number): string =>
+  svgUrl(
+    gap,
+    gap,
+    `<circle cx="${String(gap / 2)}" cy="${String(gap / 2)}" r=".9" fill="${c}" fill-opacity="${String(a)}"/>`,
+  );
+const scatter = (c: string, a: number): string =>
+  svgUrl(
+    200,
+    200,
+    `<g fill="${c}" fill-opacity="${String(a)}"><circle cx="20" cy="30" r="1"/><circle cx="140" cy="60" r=".7"/><circle cx="90" cy="150" r="1.2"/><circle cx="170" cy="170" r=".6"/><circle cx="60" cy="95" r=".5"/></g>`,
+  );
+const vgrain = (c: string, a: number): string =>
+  svgUrl(
+    200,
+    200,
+    `<filter id="w"><feTurbulence type="fractalNoise" baseFrequency=".02 .6" numOctaves="2"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ${String(a)} 0"/></filter><rect width="200" height="200" fill="${c}" filter="url(#w)"/>`,
+  );
+const glow = (c: string, at: string, pct: number): string =>
+  `radial-gradient(ellipse at ${at}, color-mix(in srgb, ${c} ${String(pct)}%, transparent), transparent 65%)`;
+const fade = (c: string, pct: number, dir = "180deg"): string =>
+  `linear-gradient(${dir}, color-mix(in srgb, ${c} ${String(pct)}%, transparent), transparent 70%)`;
+
+type Atmos = (t: ThemeDef) => string[];
+const ATMOS: Record<string, Atmos> = {
+  paper: (t) => [grain(t.text, 0.05)],
+  sepia: (t) => [grain(t.text, 0.08), glow(t.accent, "50% 50%", 6)],
+  parchment: (t) => [grain(t.text, 0.1), fade(t.accent, 8, "0deg")],
+  lemonade: (t) => [glow(t.accent, "85% 0%", 12), rules(t.accent, 0.08, 28)],
+  autumn: (t) => [fade(t.accent, 10, "160deg"), grain(t.text, 0.05)],
+  night: (t) => [glow(t.accent, "70% 0%", 8), grain("#fff", 0.03)],
+  forest: (t) => [vgrain(t.accent, 0.06), fade("#000", 25, "0deg")],
+  mocha: (t) => [glow(t.accent, "0% 100%", 10), grain("#fff", 0.04)],
+  coffeehouse: (t) => [glow(t.accent, "100% 100%", 12), grain("#fff", 0.04)],
+  library: (t) => [vgrain(t.accent, 0.05), glow(t.accent, "50% 0%", 8)],
+  "terminal-green": (t) => [rules(t.text, 0.05, 4)],
+  slate: (t) => [fade(t.accent, 8), grain("#fff", 0.03)],
+  storm: (t) => [fade("#000", 20), ripples(t.accent, 0.06)],
+  "midnight-blue": (t) => [scatter(t.text, 0.35), glow(t.accent, "50% 0%", 10)],
+  ocean: (t) => [ripples(t.accent, 0.08), fade(t.accent, 6, "0deg")],
+  winter: (t) => [scatter(t.accent, 0.3), fade("#fff", 40)],
+  rose: (t) => [glow(t.accent, "0% 0%", 10), glow(t.accent, "100% 100%", 8)],
+  "cherry-blossom": (t) => [glow(t.accent, "100% 0%", 12), scatter(t.accent, 0.3)],
+  dawn: (t) => [fade(t.accent, 10, "0deg"), glow("#ffd27f", "50% 100%", 14)],
+  dusk: (t) => [fade(t.accent, 12), glow("#000", "50% 100%", 20)],
+  lavender: (t) => [glow(t.accent, "20% 80%", 10), dots(t.accent, 0.12, 24)],
+  mint: (t) => [dots(t.accent, 0.12, 18), fade(t.accent, 5, "0deg")],
+  spring: (t) => [glow(t.accent, "0% 100%", 10), glow("#ffe680", "100% 0%", 12)],
+  summer: (t) => [glow(t.accent, "100% 0%", 16), grain(t.text, 0.03)],
+};
+
+/** The theme's atmosphere as CSS background layers, or "none" (custom and high-contrast themes). */
+export function themeAtmosphere(theme: ThemeDef): string {
+  const make = ATMOS[theme.id];
+  return make === undefined ? "none" : make(theme).join(", ");
+}

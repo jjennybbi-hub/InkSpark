@@ -7,6 +7,7 @@ import {
   THEME_GROUPS,
   makeCustomTheme,
   parseThemeFile,
+  themeAtmosphere,
   themeMotif,
   themeStyle,
   themeToFile,
@@ -136,5 +137,18 @@ describe("theme pictures", () => {
     expect(pics.every((p) => p.startsWith('url("data:image/svg+xml,'))).toBe(true);
     expect(new Set(pics).size).toBe(PRESET_THEMES.length);
     expect(themeMotif(makeCustomTheme("Mine", "#ffffff", "#111111", "#3355aa"))).toBe("none");
+  });
+});
+
+describe("theme atmospheres", () => {
+  it("gives each mood theme its own atmosphere, and none to contrast and custom themes", () => {
+    const moods = PRESET_THEMES.filter((t) => themeStyle(t) !== "contrast");
+    const atmos = moods.map((t) => themeAtmosphere(t));
+    expect(atmos.every((a) => a !== "none")).toBe(true);
+    expect(new Set(atmos).size).toBe(moods.length);
+    for (const t of PRESET_THEMES.filter((p) => themeStyle(p) === "contrast")) {
+      expect(themeAtmosphere(t)).toBe("none");
+    }
+    expect(themeAtmosphere(makeCustomTheme("Mine", "#ffffff", "#111111", "#3355aa"))).toBe("none");
   });
 });
