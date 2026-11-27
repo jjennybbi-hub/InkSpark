@@ -227,3 +227,46 @@ const STYLE_OF: Record<string, ThemeStyle> = {
 export function themeStyle(theme: ThemeDef): ThemeStyle {
   return STYLE_OF[theme.id] ?? (theme.dark ? "focus" : "paper");
 }
+
+/*
+ * Each preset's own picture, drawn in its accent colour (ACC is replaced). Shown faintly in the
+ * corners of the app, never inside the writing. Plain shapes, nothing downloaded.
+ */
+const MOTIFS: Record<string, string> = {
+  paper: `<path d="M20 180 L150 50 L165 65 L35 195 Z" fill="ACC"/><path d="M150 50 L175 25 L190 40 L165 65 Z" fill="ACC" opacity=".6"/><path d="M10 190 q60 -20 120 0 t110 0" stroke="ACC" stroke-width="2" fill="none"/>`,
+  night: `<path d="M140 40 a60 60 0 1 0 50 90 a48 48 0 1 1 -50 -90z" fill="ACC"/><circle cx="40" cy="40" r="3" fill="ACC"/><circle cx="70" cy="90" r="2" fill="ACC"/><circle cx="30" cy="150" r="2.5" fill="ACC"/>`,
+  sepia: `<rect x="40" y="60" width="120" height="90" rx="4" fill="none" stroke="ACC" stroke-width="5"/><circle cx="100" cy="105" r="28" fill="none" stroke="ACC" stroke-width="5"/><rect x="60" y="45" width="30" height="15" fill="ACC"/>`,
+  forest: `<path d="M50 180 L80 100 L110 180Z M30 180 L65 60 L100 180Z M100 180 L140 70 L180 180Z" fill="ACC"/><rect x="62" y="180" width="6" height="15" fill="ACC"/><rect x="137" y="180" width="6" height="15" fill="ACC"/>`,
+  ocean: `<path d="M0 120 q25 -25 50 0 t50 0 t50 0 t50 0 M0 150 q25 -25 50 0 t50 0 t50 0 t50 0 M0 180 q25 -25 50 0 t50 0 t50 0 t50 0" stroke="ACC" stroke-width="7" fill="none" stroke-linecap="round"/>`,
+  rose: `<circle cx="100" cy="90" r="20" fill="ACC"/><circle cx="75" cy="80" r="22" fill="ACC" opacity=".7"/><circle cx="125" cy="80" r="22" fill="ACC" opacity=".7"/><circle cx="100" cy="60" r="22" fill="ACC" opacity=".7"/><path d="M100 110 q-5 40 0 80" stroke="ACC" stroke-width="5" fill="none"/><path d="M100 150 q25 -20 40 -5 q-20 15 -40 5" fill="ACC"/>`,
+  lavender: `<path d="M100 195 V60" stroke="ACC" stroke-width="4"/><g fill="ACC"><ellipse cx="92" cy="70" rx="6" ry="10"/><ellipse cx="108" cy="80" rx="6" ry="10"/><ellipse cx="92" cy="92" rx="6" ry="10"/><ellipse cx="108" cy="104" rx="6" ry="10"/><ellipse cx="92" cy="116" rx="6" ry="10"/><ellipse cx="100" cy="55" rx="5" ry="9"/></g>`,
+  slate: `<path d="M20 170 L80 70 L120 130 L150 90 L190 170Z" fill="ACC"/><path d="M80 70 L95 95 L70 95Z" fill="#fff" opacity=".5"/>`,
+  mocha: `<path d="M50 90 h90 v50 a40 40 0 0 1 -40 40 h-10 a40 40 0 0 1 -40 -40z" fill="ACC"/><path d="M140 100 a20 20 0 0 1 0 40" stroke="ACC" stroke-width="8" fill="none"/><path d="M80 75 q-10 -15 0 -30 M105 75 q-10 -15 0 -30" stroke="ACC" stroke-width="4" fill="none"/>`,
+  mint: `<path d="M100 190 C40 150 40 70 100 20 C160 70 160 150 100 190Z" fill="ACC"/><path d="M100 185 V40" stroke="#fff" stroke-width="3" opacity=".6"/>`,
+  autumn: `<path d="M100 20 L115 70 L160 55 L130 95 L170 120 L120 125 L125 170 L100 140 L75 170 L80 125 L30 120 L70 95 L40 55 L85 70Z" fill="ACC"/><path d="M100 140 V195" stroke="ACC" stroke-width="4"/>`,
+  winter: `<g stroke="ACC" stroke-width="6" stroke-linecap="round"><path d="M100 20 V180 M30 60 L170 140 M30 140 L170 60"/><path d="M85 35 L100 50 L115 35 M85 165 L100 150 L115 165"/></g>`,
+  spring: `<g fill="ACC"><circle cx="100" cy="70" r="18"/><circle cx="125" cy="90" r="18"/><circle cx="115" cy="120" r="18"/><circle cx="85" cy="120" r="18"/><circle cx="75" cy="90" r="18"/></g><circle cx="100" cy="98" r="12" fill="#fff" opacity=".7"/><path d="M100 135 V195" stroke="ACC" stroke-width="5"/>`,
+  summer: `<circle cx="100" cy="100" r="38" fill="ACC"/><g stroke="ACC" stroke-width="7" stroke-linecap="round"><path d="M100 20 V45 M100 155 V180 M20 100 H45 M155 100 H180 M43 43 L60 60 M140 140 L157 157 M43 157 L60 140 M140 60 L157 43"/></g>`,
+  dusk: `<circle cx="100" cy="140" r="50" fill="ACC"/><rect x="0" y="140" width="200" height="60" fill="ACC" opacity=".35"/><path d="M20 160 H180 M40 175 H160" stroke="ACC" stroke-width="4"/>`,
+  dawn: `<path d="M30 160 a70 70 0 0 1 140 0Z" fill="ACC"/><g stroke="ACC" stroke-width="5" stroke-linecap="round"><path d="M100 60 V75 M45 85 L55 95 M155 85 L145 95"/></g><path d="M10 175 H190" stroke="ACC" stroke-width="5"/>`,
+  "midnight-blue": `<g fill="ACC"><path d="M100 30 l8 24 h25 l-20 15 l8 24 l-21 -15 l-21 15 l8 -24 l-20 -15 h25z"/><circle cx="40" cy="130" r="4"/><circle cx="160" cy="150" r="5"/><circle cx="70" cy="175" r="3"/><circle cx="150" cy="40" r="3"/></g>`,
+  parchment: `<path d="M50 40 h100 v120 a20 20 0 0 1 -20 20 h-100 a20 20 0 0 0 20 -20z" fill="none" stroke="ACC" stroke-width="5"/><path d="M70 70 H135 M70 95 H135 M70 120 H120" stroke="ACC" stroke-width="4"/>`,
+  "terminal-green": `<path d="M30 60 L80 100 L30 140" stroke="ACC" stroke-width="10" fill="none" stroke-linecap="square"/><rect x="95" y="130" width="70" height="12" fill="ACC"/>`,
+  "cherry-blossom": `<path d="M10 190 Q80 120 190 100" stroke="ACC" stroke-width="5" fill="none"/><g fill="ACC"><circle cx="70" cy="140" r="12"/><circle cx="120" cy="115" r="14"/><circle cx="165" cy="100" r="10"/><circle cx="140" cy="160" r="6" opacity=".6"/><circle cx="60" cy="80" r="5" opacity=".6"/></g>`,
+  coffeehouse: `<g fill="ACC"><ellipse cx="70" cy="100" rx="22" ry="32" transform="rotate(30 70 100)"/><ellipse cx="135" cy="110" rx="22" ry="32" transform="rotate(-25 135 110)"/></g><path d="M58 80 q20 20 24 40 M125 90 q18 20 20 40" stroke="#000" stroke-width="3" opacity=".35" fill="none"/>`,
+  library: `<g fill="ACC"><rect x="30" y="60" width="22" height="120"/><rect x="56" y="80" width="18" height="100"/><rect x="78" y="50" width="26" height="130"/><rect x="118" y="70" width="20" height="110" transform="rotate(12 128 180)"/></g><path d="M20 182 H180" stroke="ACC" stroke-width="5"/>`,
+  lemonade: `<ellipse cx="100" cy="100" rx="60" ry="45" fill="ACC"/><ellipse cx="100" cy="100" rx="45" ry="32" fill="#fff" opacity=".45"/><path d="M100 70 V130 M70 100 H130 M78 80 L122 120 M78 120 L122 80" stroke="ACC" stroke-width="3"/>`,
+  storm: `<path d="M50 100 a30 30 0 0 1 40 -40 a35 35 0 0 1 65 15 a25 25 0 0 1 -5 50 h-95 a25 25 0 0 1 -5 -25z" fill="ACC"/><path d="M110 125 L90 160 H110 L95 195 L135 150 H115 L130 125Z" fill="ACC"/>`,
+  "contrast-light": `<path d="M20 180 L180 20" stroke="ACC" stroke-width="16"/><rect x="25" y="25" width="60" height="60" fill="ACC"/>`,
+  "contrast-dark": `<path d="M20 180 L180 20" stroke="ACC" stroke-width="16"/><circle cx="145" cy="150" r="30" fill="ACC"/>`,
+};
+
+/** The theme's picture as a CSS image, or "none" for custom themes. */
+export function themeMotif(theme: ThemeDef): string {
+  const shapes = MOTIFS[theme.id];
+  if (shapes === undefined) {
+    return "none";
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">${shapes.replaceAll("ACC", theme.accent)}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}

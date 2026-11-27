@@ -1791,3 +1791,46 @@ button.icon-btn {
   background: color-mix(in srgb, var(--paper) 80%, transparent);
   border-radius: 24px;
 }
+
+/* Each theme's own picture: large and faint, in two corners, floating behind everything. */
+.app-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-shell::before,
+.app-shell::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--motif, none) center / contain no-repeat;
+}
+
+/* Bottom of the page list. */
+.app-shell::before {
+  z-index: 1;
+  left: 1rem;
+  bottom: 1rem;
+  width: 11rem;
+  height: 11rem;
+  opacity: 0.22;
+}
+
+/* Top-right of the writing area, larger and fainter, partly off the edge. */
+.app-shell::after {
+  top: -3rem;
+  right: -3rem;
+  width: 22rem;
+  height: 22rem;
+  opacity: 0.08;
+  transform: rotate(-12deg);
+}
+
+:root[data-style="contrast"] .app-shell::before {
+  opacity: 0.3;
+}
+
+:root[data-style="contrast"] .app-shell::after {
+  opacity: 0.12;
+}
