@@ -272,8 +272,8 @@ export function themeMotif(theme: ThemeDef): string {
 }
 
 /*
- * Each preset's atmosphere: an abstract, very faint texture and light behind the app (never a
- * picture). Distinct enough to set a mood, quiet enough to disappear while writing.
+ * Each preset's atmosphere: a faint scene behind the app (rain, sea, hills, trees) with soft
+ * light. Low-contrast on purpose: it sets a mood, then fades away while you write.
  */
 const svgUrl = (w: number, h: number, body: string): string =>
   `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${String(w)}" height="${String(h)}">${body}</svg>`)}")`;
@@ -283,12 +283,6 @@ const grain = (c: string, a: number): string =>
     160,
     160,
     `<filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="${String(a)}"/></feComponentTransfer></filter><rect width="160" height="160" fill="${c}" filter="url(#n)"/>`,
-  );
-const ripples = (c: string, a: number): string =>
-  svgUrl(
-    240,
-    40,
-    `<path d="M0 20 q30 -10 60 0 t60 0 t60 0 t60 0" stroke="${c}" stroke-opacity="${String(a)}" fill="none"/>`,
   );
 const rules = (c: string, a: number, gap: number): string =>
   svgUrl(
@@ -308,43 +302,104 @@ const scatter = (c: string, a: number): string =>
     200,
     `<g fill="${c}" fill-opacity="${String(a)}"><circle cx="20" cy="30" r="1"/><circle cx="140" cy="60" r=".7"/><circle cx="90" cy="150" r="1.2"/><circle cx="170" cy="170" r=".6"/><circle cx="60" cy="95" r=".5"/></g>`,
   );
-const vgrain = (c: string, a: number): string =>
-  svgUrl(
-    200,
-    200,
-    `<filter id="w"><feTurbulence type="fractalNoise" baseFrequency=".02 .6" numOctaves="2"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ${String(a)} 0"/></filter><rect width="200" height="200" fill="${c}" filter="url(#w)"/>`,
-  );
 const glow = (c: string, at: string, pct: number): string =>
   `radial-gradient(ellipse at ${at}, color-mix(in srgb, ${c} ${String(pct)}%, transparent), transparent 65%)`;
 const fade = (c: string, pct: number, dir = "180deg"): string =>
   `linear-gradient(${dir}, color-mix(in srgb, ${c} ${String(pct)}%, transparent), transparent 70%)`;
 
+/** A wide landscape along the bottom of the window, stretched to fit. */
+const sceneSvg = (body: string): string =>
+  `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" preserveAspectRatio="none">${body}</svg>`)}")`;
+const land = (body: string, height = "38%"): string =>
+  `${sceneSvg(body)} bottom / 100% ${height} no-repeat`;
+const op = (a: number): string => String(a);
+const hills = (c: string, a: number): string =>
+  land(
+    `<path d="M0 190 C200 120 380 170 560 140 S900 90 1200 150 V300 H0Z" fill="${c}" fill-opacity="${op(a * 0.6)}"/><path d="M0 240 C250 190 450 230 700 205 S1050 190 1200 220 V300 H0Z" fill="${c}" fill-opacity="${op(a)}"/>`,
+  );
+const sea = (c: string, a: number): string =>
+  land(
+    `<path d="M0 170 q75 -22 150 0 t150 0 t150 0 t150 0 t150 0 t150 0 t150 0 t150 0 V300 H0Z" fill="${c}" fill-opacity="${op(a * 0.5)}"/><path d="M0 215 q100 -28 200 0 t200 0 t200 0 t200 0 t200 0 t200 0 V300 H0Z" fill="${c}" fill-opacity="${op(a * 0.8)}"/><path d="M0 260 q60 -18 120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0 V300 H0Z" fill="${c}" fill-opacity="${op(a)}"/>`,
+    "34%",
+  );
+const treeline = (c: string, a: number): string => {
+  let d = "M0 300 V230";
+  for (let x = 0; x < 1200; x += 40) {
+    const h = 150 + ((x * 37) % 70);
+    d += ` L${String(x + 20)} ${String(h)} L${String(x + 40)} 230`;
+  }
+  return land(`<path d="${d} V300Z" fill="${c}" fill-opacity="${op(a)}"/>`, "42%");
+};
+const peaks = (c: string, a: number): string =>
+  land(
+    `<path d="M0 260 L180 120 L300 200 L470 70 L640 210 L800 110 L980 220 L1100 150 L1200 200 V300 H0Z" fill="${c}" fill-opacity="${op(a)}"/>`,
+    "45%",
+  );
+const rain = (c: string, a: number): string =>
+  svgUrl(
+    90,
+    120,
+    `<g stroke="${c}" stroke-opacity="${op(a)}" stroke-linecap="round"><path d="M10 0 l-6 22"/><path d="M50 40 l-6 22"/><path d="M80 75 l-6 22"/><path d="M30 90 l-6 22"/><path d="M65 5 l-6 18"/></g>`,
+  );
+const snow = (c: string, a: number): string =>
+  svgUrl(
+    140,
+    140,
+    `<g fill="${c}" fill-opacity="${op(a)}"><circle cx="15" cy="20" r="1.6"/><circle cx="90" cy="45" r="1.2"/><circle cx="50" cy="100" r="2"/><circle cx="120" cy="125" r="1.3"/><circle cx="70" cy="10" r="1"/></g>`,
+  );
+const petals = (c: string, a: number): string =>
+  svgUrl(
+    220,
+    220,
+    `<g fill="${c}" fill-opacity="${op(a)}"><ellipse cx="30" cy="40" rx="5" ry="2.5" transform="rotate(30 30 40)"/><ellipse cx="160" cy="90" rx="4" ry="2" transform="rotate(-25 160 90)"/><ellipse cx="90" cy="180" rx="5" ry="2.5" transform="rotate(65 90 180)"/></g>`,
+  );
+const grass = (c: string, a: number): string => {
+  let d = "";
+  for (let x = 0; x < 1200; x += 9) {
+    const h = 230 + ((x * 13) % 40);
+    d += `M${String(x)} 300 q3 -30 ${String(((x * 7) % 9) - 4)} ${String(h - 300)} `;
+  }
+  return land(`<path d="${d}" stroke="${c}" stroke-opacity="${op(a)}" fill="none"/>`, "22%");
+};
+const shelves = (c: string, a: number): string => {
+  let r = "";
+  for (let x = 0; x < 1200; x += 26) {
+    const h = 140 + ((x * 29) % 90);
+    r += `<rect x="${String(x)}" y="${String(300 - h)}" width="${String(18 + ((x * 3) % 6))}" height="${String(h)}"/>`;
+  }
+  return land(`<g fill="${c}" fill-opacity="${op(a)}">${r}</g>`, "30%");
+};
+
 type Atmos = (t: ThemeDef) => string[];
 const ATMOS: Record<string, Atmos> = {
   paper: (t) => [grain(t.text, 0.05)],
-  sepia: (t) => [grain(t.text, 0.08), glow(t.accent, "50% 50%", 6)],
+  sepia: (t) => [hills(t.text, 0.05), grain(t.text, 0.08)],
   parchment: (t) => [grain(t.text, 0.1), fade(t.accent, 8, "0deg")],
-  lemonade: (t) => [glow(t.accent, "85% 0%", 12), rules(t.accent, 0.08, 28)],
-  autumn: (t) => [fade(t.accent, 10, "160deg"), grain(t.text, 0.05)],
-  night: (t) => [glow(t.accent, "70% 0%", 8), grain("#fff", 0.03)],
-  forest: (t) => [vgrain(t.accent, 0.06), fade("#000", 25, "0deg")],
-  mocha: (t) => [glow(t.accent, "0% 100%", 10), grain("#fff", 0.04)],
-  coffeehouse: (t) => [glow(t.accent, "100% 100%", 12), grain("#fff", 0.04)],
-  library: (t) => [vgrain(t.accent, 0.05), glow(t.accent, "50% 0%", 8)],
+  lemonade: (t) => [hills(t.accent, 0.08), glow(t.accent, "85% 0%", 12)],
+  autumn: (t) => [treeline(t.accent, 0.07), petals(t.accent, 0.18)],
+  night: (t) => [hills(t.text, 0.05), scatter(t.text, 0.25), glow(t.accent, "70% 0%", 8)],
+  forest: (t) => [treeline(t.accent, 0.08), fade("#000", 25, "0deg")],
+  mocha: (t) => [rain(t.text, 0.1), glow(t.accent, "0% 100%", 10)],
+  coffeehouse: (t) => [rain(t.text, 0.08), glow(t.accent, "100% 100%", 12)],
+  library: (t) => [shelves(t.accent, 0.06), glow(t.accent, "50% 0%", 8)],
   "terminal-green": (t) => [rules(t.text, 0.05, 4)],
-  slate: (t) => [fade(t.accent, 8), grain("#fff", 0.03)],
-  storm: (t) => [fade("#000", 20), ripples(t.accent, 0.06)],
-  "midnight-blue": (t) => [scatter(t.text, 0.35), glow(t.accent, "50% 0%", 10)],
-  ocean: (t) => [ripples(t.accent, 0.08), fade(t.accent, 6, "0deg")],
-  winter: (t) => [scatter(t.accent, 0.3), fade("#fff", 40)],
-  rose: (t) => [glow(t.accent, "0% 0%", 10), glow(t.accent, "100% 100%", 8)],
-  "cherry-blossom": (t) => [glow(t.accent, "100% 0%", 12), scatter(t.accent, 0.3)],
-  dawn: (t) => [fade(t.accent, 10, "0deg"), glow("#ffd27f", "50% 100%", 14)],
-  dusk: (t) => [fade(t.accent, 12), glow("#000", "50% 100%", 20)],
-  lavender: (t) => [glow(t.accent, "20% 80%", 10), dots(t.accent, 0.12, 24)],
-  mint: (t) => [dots(t.accent, 0.12, 18), fade(t.accent, 5, "0deg")],
-  spring: (t) => [glow(t.accent, "0% 100%", 10), glow("#ffe680", "100% 0%", 12)],
-  summer: (t) => [glow(t.accent, "100% 0%", 16), grain(t.text, 0.03)],
+  slate: (t) => [peaks(t.text, 0.05), fade(t.accent, 8)],
+  storm: (t) => [rain(t.text, 0.14), sea(t.accent, 0.06), fade("#000", 20)],
+  "midnight-blue": (t) => [
+    peaks(t.text, 0.05),
+    scatter(t.text, 0.35),
+    glow(t.accent, "50% 0%", 10),
+  ],
+  ocean: (t) => [sea(t.accent, 0.1), fade(t.accent, 6, "0deg")],
+  winter: (t) => [hills("#fff", 0.6), snow(t.accent, 0.3)],
+  rose: (t) => [petals(t.accent, 0.15), glow(t.accent, "0% 0%", 10)],
+  "cherry-blossom": (t) => [petals(t.accent, 0.2), glow(t.accent, "100% 0%", 12)],
+  dawn: (t) => [hills(t.accent, 0.08), glow("#ffd27f", "50% 100%", 16)],
+  dusk: (t) => [sea(t.accent, 0.08), glow(t.accent, "50% 100%", 18)],
+  lavender: (t) => [hills(t.accent, 0.07), dots(t.accent, 0.12, 24)],
+  mint: (t) => [grass(t.accent, 0.12), fade(t.accent, 5, "0deg")],
+  spring: (t) => [grass(t.accent, 0.14), glow("#ffe680", "100% 0%", 12)],
+  summer: (t) => [sea(t.accent, 0.07), glow(t.accent, "100% 0%", 16)],
 };
 
 /** The theme's atmosphere as CSS background layers, or "none" (custom and high-contrast themes). */

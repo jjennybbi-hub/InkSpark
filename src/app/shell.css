@@ -1749,5 +1749,5 @@ button.icon-btn {
 
 /* Each theme's own atmosphere: faint abstract texture and light behind the whole app. */
 .app-shell {
-  background-image: var(--atmos, none);
+  background: var(--atmos, none), var(--paper);
 }
