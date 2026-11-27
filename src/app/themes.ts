@@ -393,7 +393,7 @@ const KRUNGTHEP = `Krungthep, sans-serif`;
 const SANA = `Sana, sans-serif`;
 const GENEVA = `Geneva, sans-serif`;
 const COURIER = `Courier, monospace`;
-const MONACO = `Monaco, monospace`;
+const PT_MONO = `"PT Mono", Monaco, monospace`;
 const LEGIBLE = `"Atkinson Hyperlegible", sans-serif`;
 
 const THEME_UI: Record<string, ThemeUi> = {
@@ -407,7 +407,7 @@ const THEME_UI: Record<string, ThemeUi> = {
   mocha: { font: CLARENDON, radius: 8, heads: "italic" },
   coffeehouse: { font: COURIER, radius: 3, heads: "plain" },
   library: { font: BODONI_SC, radius: 2, heads: "small-caps", tracking: 0.04 },
-  "terminal-green": { font: MONACO, radius: 0, heads: "caps", tracking: 0.06 },
+  "terminal-green": { font: PT_MONO, radius: 0, heads: "caps", tracking: 0.06 },
   slate: { font: GALVJI, radius: 4, heads: "caps", tracking: 0.08 },
   storm: { font: KRUNGTHEP, radius: 2, heads: "caps", tracking: 0.05, weight: 500 },
   "midnight-blue": { font: GALVJI, radius: 10, heads: "caps", tracking: 0.12 },
