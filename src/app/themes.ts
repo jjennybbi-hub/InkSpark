@@ -420,45 +420,49 @@ export interface ThemeUi {
   weight?: number;
 }
 
-const SERIF_BOOK = `"Iowan Old Style", Charter, "Palatino Linotype", Georgia, serif`;
-const BASKERVILLE = `Baskerville, "Baskerville Old Face", "Libre Baskerville", Georgia, serif`;
-const HOEFLER = `"Hoefler Text", Garamond, "EB Garamond", Georgia, serif`;
-const PALATINO = `Palatino, "Palatino Linotype", "Book Antiqua", serif`;
-const OPTIMA = `Optima, Candara, "Segoe UI", sans-serif`;
-const GILL = `"Gill Sans", "Gill Sans MT", Calibri, sans-serif`;
-const FUTURA = `Futura, "Century Gothic", "Trebuchet MS", sans-serif`;
-const AVENIR = `"Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif`;
-const HELVETICA = `"Helvetica Neue", Helvetica, Arial, sans-serif`;
-const TYPEWRITER = `"American Typewriter", "Courier New", Courier, monospace`;
-const MONO = `Menlo, "SF Mono", Consolas, monospace`;
-const ROUNDED = `ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Varela Round", system-ui, sans-serif`;
-const LEGIBLE = `"Atkinson Hyperlegible", Verdana, system-ui, sans-serif`;
+// Distinctive faces that ship with macOS; the common interface fonts are left out on purpose.
+const CHARTER = `Charter, "Bitstream Charter", serif`;
+const BASKERVILLE = `Baskerville, "Baskerville Old Face", serif`;
+const HOEFLER = `"Hoefler Text", Garamond, serif`;
+const COCHIN = `Cochin, serif`;
+const ATHELAS = `Athelas, serif`;
+const BIG_CASLON = `"Big Caslon", serif`;
+const OPTIMA = `Optima, Candara, sans-serif`;
+const GILL = `"Gill Sans", "Gill Sans MT", sans-serif`;
+const SKIA = `Skia, sans-serif`;
+const SERAVEK = `Seravek, sans-serif`;
+const KEFA = `Kefa, sans-serif`;
+const ROCKWELL = `Rockwell, serif`;
+const NOTEWORTHY = `Noteworthy, cursive`;
+const TYPEWRITER = `"American Typewriter", "Courier New", monospace`;
+const PT_MONO = `"PT Mono", "Andale Mono", monospace`;
+const LEGIBLE = `"Atkinson Hyperlegible", sans-serif`;
 
 const THEME_UI: Record<string, ThemeUi> = {
-  paper: { font: SERIF_BOOK, radius: 6, heads: "small-caps" },
+  paper: { font: CHARTER, radius: 6, heads: "small-caps" },
   sepia: { font: BASKERVILLE, radius: 3, heads: "italic" },
   parchment: { font: HOEFLER, radius: 2, heads: "small-caps", tracking: 0.03 },
-  lemonade: { font: AVENIR, radius: 12, pill: true, heads: "plain", weight: 500 },
-  autumn: { font: PALATINO, radius: 5, heads: "italic" },
-  night: { font: AVENIR, radius: 6, heads: "caps", tracking: 0.02 },
+  lemonade: { font: NOTEWORTHY, radius: 12, pill: true, heads: "plain", weight: 500 },
+  autumn: { font: COCHIN, radius: 5, heads: "italic" },
+  night: { font: ATHELAS, radius: 6, heads: "caps", tracking: 0.02 },
   forest: { font: GILL, radius: 4, heads: "caps", tracking: 0.04 },
-  mocha: { font: OPTIMA, radius: 8, heads: "italic" },
+  mocha: { font: ATHELAS, radius: 8, heads: "italic" },
   coffeehouse: { font: TYPEWRITER, radius: 3, heads: "plain" },
   library: { font: BASKERVILLE, radius: 2, heads: "small-caps", tracking: 0.04 },
-  "terminal-green": { font: MONO, radius: 0, heads: "caps", tracking: 0.06 },
-  slate: { font: FUTURA, radius: 4, heads: "caps", tracking: 0.08 },
-  storm: { font: HELVETICA, radius: 2, heads: "caps", tracking: 0.05, weight: 500 },
-  "midnight-blue": { font: FUTURA, radius: 10, heads: "caps", tracking: 0.12 },
-  ocean: { font: AVENIR, radius: 14, pill: true, heads: "plain" },
-  winter: { font: HELVETICA, radius: 10, heads: "caps", tracking: 0.1 },
-  rose: { font: OPTIMA, radius: 14, pill: true, heads: "italic" },
-  "cherry-blossom": { font: ROUNDED, radius: 16, pill: true, heads: "plain" },
-  dawn: { font: GILL, radius: 12, pill: true, heads: "plain", tracking: 0.02 },
-  dusk: { font: FUTURA, radius: 12, pill: true, heads: "caps", tracking: 0.08 },
+  "terminal-green": { font: PT_MONO, radius: 0, heads: "caps", tracking: 0.06 },
+  slate: { font: SKIA, radius: 4, heads: "caps", tracking: 0.08 },
+  storm: { font: ROCKWELL, radius: 2, heads: "caps", tracking: 0.05, weight: 500 },
+  "midnight-blue": { font: SERAVEK, radius: 10, heads: "caps", tracking: 0.12 },
+  ocean: { font: OPTIMA, radius: 14, pill: true, heads: "plain" },
+  winter: { font: SERAVEK, radius: 10, heads: "caps", tracking: 0.1 },
+  rose: { font: BIG_CASLON, radius: 14, pill: true, heads: "italic" },
+  "cherry-blossom": { font: NOTEWORTHY, radius: 16, pill: true, heads: "plain" },
+  dawn: { font: SERAVEK, radius: 12, pill: true, heads: "plain", tracking: 0.02 },
+  dusk: { font: ATHELAS, radius: 12, pill: true, heads: "caps", tracking: 0.08 },
   lavender: { font: OPTIMA, radius: 14, heads: "small-caps" },
-  mint: { font: ROUNDED, radius: 12, pill: true, heads: "plain" },
-  spring: { font: ROUNDED, radius: 16, pill: true, heads: "plain", weight: 500 },
-  summer: { font: AVENIR, radius: 18, pill: true, heads: "caps", tracking: 0.06, weight: 500 },
+  mint: { font: KEFA, radius: 12, pill: true, heads: "plain" },
+  spring: { font: NOTEWORTHY, radius: 16, pill: true, heads: "plain", weight: 500 },
+  summer: { font: SKIA, radius: 18, pill: true, heads: "caps", tracking: 0.06, weight: 500 },
   "contrast-light": { font: LEGIBLE, radius: 2, heads: "plain", weight: 700 },
   "contrast-dark": { font: LEGIBLE, radius: 2, heads: "plain", weight: 700 },
 };
