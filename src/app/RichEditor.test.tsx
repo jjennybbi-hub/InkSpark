@@ -8,7 +8,6 @@ import {
   makeCustomTheme,
   parseThemeFile,
   themeAtmosphere,
-  themeMotif,
   themeStyle,
   themeToFile,
 } from "./themes";
@@ -128,15 +127,6 @@ describe("theme families", () => {
   it("puts custom themes in Paper or Focus by brightness", () => {
     expect(themeStyle(makeCustomTheme("Mine", "#111111", "#eeeeee", "#88aaff"))).toBe("focus");
     expect(themeStyle(makeCustomTheme("Mine", "#ffffff", "#111111", "#3355aa"))).toBe("paper");
-  });
-});
-
-describe("theme pictures", () => {
-  it("gives every preset its own picture, and custom themes none", () => {
-    const pics = PRESET_THEMES.map((t) => themeMotif(t));
-    expect(pics.every((p) => p.startsWith('url("data:image/svg+xml,'))).toBe(true);
-    expect(new Set(pics).size).toBe(PRESET_THEMES.length);
-    expect(themeMotif(makeCustomTheme("Mine", "#ffffff", "#111111", "#3355aa"))).toBe("none");
   });
 });
 
