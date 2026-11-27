@@ -229,8 +229,8 @@ export function themeStyle(theme: ThemeDef): ThemeStyle {
 }
 
 /*
- * Each preset's atmosphere: a faint scene behind the app (rain, sea, hills, trees) with soft
- * light. Low-contrast on purpose: it sets a mood, then fades away while you write.
+ * Each preset's atmosphere: a faint scene behind the app (rain, sea, hills, trees) drawn in
+ * fine lines. Low-contrast on purpose: it sets a mood, then fades away while you write.
  */
 const svgUrl = (w: number, h: number, body: string): string =>
   `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${String(w)}" height="${String(h)}">${body}</svg>`)}")`;
@@ -259,37 +259,36 @@ const scatter = (c: string, a: number): string =>
     200,
     `<g fill="${c}" fill-opacity="${String(a)}"><circle cx="20" cy="30" r="1"/><circle cx="140" cy="60" r=".7"/><circle cx="90" cy="150" r="1.2"/><circle cx="170" cy="170" r=".6"/><circle cx="60" cy="95" r=".5"/></g>`,
   );
-const glow = (c: string, at: string, pct: number): string =>
-  `radial-gradient(ellipse at ${at}, color-mix(in srgb, ${c} ${String(pct)}%, transparent), transparent 65%)`;
-const fade = (c: string, pct: number, dir = "180deg"): string =>
-  `linear-gradient(${dir}, color-mix(in srgb, ${c} ${String(pct)}%, transparent), transparent 70%)`;
 
 /** A wide landscape along the bottom of the window, stretched to fit. */
 const sceneSvg = (body: string): string =>
   `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" preserveAspectRatio="none">${body}</svg>`)}")`;
 const land = (body: string, height = "38%"): string =>
   `${sceneSvg(body)} bottom / 100% ${height} no-repeat`;
-const op = (a: number): string => String(Math.min(1, a * 1.6));
+const op = (a: number): string => String(Math.min(1, a * 3));
 const hills = (c: string, a: number): string =>
   land(
-    `<path d="M0 190 C200 120 380 170 560 140 S900 90 1200 150 V300 H0Z" fill="${c}" fill-opacity="${op(a * 0.6)}"/><path d="M0 240 C250 190 450 230 700 205 S1050 190 1200 220 V300 H0Z" fill="${c}" fill-opacity="${op(a)}"/>`,
+    `<path d="M0 190 C200 120 380 170 560 140 S900 90 1200 150" fill="none" stroke="${c}" stroke-width="1.2" stroke-opacity="${op(a * 0.6)}"/><path d="M0 240 C250 190 450 230 700 205 S1050 190 1200 220" fill="none" stroke="${c}" stroke-width="1.2" stroke-opacity="${op(a)}"/>`,
   );
 const sea = (c: string, a: number): string =>
   land(
-    `<path d="M0 170 q75 -22 150 0 t150 0 t150 0 t150 0 t150 0 t150 0 t150 0 t150 0 V300 H0Z" fill="${c}" fill-opacity="${op(a * 0.5)}"/><path d="M0 215 q100 -28 200 0 t200 0 t200 0 t200 0 t200 0 t200 0 V300 H0Z" fill="${c}" fill-opacity="${op(a * 0.8)}"/><path d="M0 260 q60 -18 120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0 V300 H0Z" fill="${c}" fill-opacity="${op(a)}"/>`,
+    `<path d="M0 170 q75 -22 150 0 t150 0 t150 0 t150 0 t150 0 t150 0 t150 0 t150 0" fill="none" stroke="${c}" stroke-width="1.2" stroke-opacity="${op(a * 0.5)}"/><path d="M0 215 q100 -28 200 0 t200 0 t200 0 t200 0 t200 0 t200 0" fill="none" stroke="${c}" stroke-width="1.2" stroke-opacity="${op(a * 0.8)}"/><path d="M0 260 q60 -18 120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0" fill="none" stroke="${c}" stroke-width="1.2" stroke-opacity="${op(a)}"/>`,
     "34%",
   );
 const treeline = (c: string, a: number): string => {
-  let d = "M0 300 V230";
+  let d = "M0 230";
   for (let x = 0; x < 1200; x += 40) {
     const h = 150 + ((x * 37) % 70);
     d += ` L${String(x + 20)} ${String(h)} L${String(x + 40)} 230`;
   }
-  return land(`<path d="${d} V300Z" fill="${c}" fill-opacity="${op(a)}"/>`, "42%");
+  return land(
+    `<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2" stroke-opacity="${op(a)}"/>`,
+    "42%",
+  );
 };
 const peaks = (c: string, a: number): string =>
   land(
-    `<path d="M0 260 L180 120 L300 200 L470 70 L640 210 L800 110 L980 220 L1100 150 L1200 200 V300 H0Z" fill="${c}" fill-opacity="${op(a)}"/>`,
+    `<path d="M0 260 L180 120 L300 200 L470 70 L640 210 L800 110 L980 220 L1100 150 L1200 200" fill="none" stroke="${c}" stroke-width="1.2" stroke-opacity="${op(a)}"/>`,
     "45%",
   );
 const rain = (c: string, a: number): string =>
@@ -327,81 +326,38 @@ const shelves = (c: string, a: number): string => {
   return land(`<g fill="${c}" fill-opacity="${op(a)}">${r}</g>`, "30%");
 };
 
-/** A sky wash from top to bottom, in colours that set the theme's mood. */
-const SKY: Record<string, [string, string, number]> = {
-  paper: ["#e8dcc0", "#ffffff", 30],
-  sepia: ["#c79a5b", "#f1e4c8", 30],
-  parchment: ["#b98d4a", "#efe2bd", 30],
-  lemonade: ["#fff27a", "#c9e6a0", 35],
-  autumn: ["#e9893a", "#7a3b1a", 22],
-  night: ["#1b2a4a", "#3a2a1a", 45],
-  forest: ["#5d8f6a", "#0c1610", 35],
-  mocha: ["#6b4a35", "#140e0b", 40],
-  coffeehouse: ["#b2733f", "#1a120d", 30],
-  library: ["#8a6b2a", "#0f1712", 30],
-  "terminal-green": ["#103d1c", "#000000", 40],
-  slate: ["#5b6d88", "#161a20", 35],
-  storm: ["#1d2329", "#6b7a88", 45],
-  "midnight-blue": ["#2a4a8a", "#05080f", 45],
-  ocean: ["#bfe0f2", "#4f9ac7", 30],
-  winter: ["#cfe0f0", "#ffffff", 45],
-  rose: ["#f6c6cf", "#fff6f2", 35],
-  "cherry-blossom": ["#ffd6e4", "#e8f2ff", 40],
-  dawn: ["#ffc6a8", "#c9b3e6", 40],
-  dusk: ["#3b2a6b", "#e8877a", 35],
-  lavender: ["#cdbdf0", "#f4eefc", 40],
-  mint: ["#c4ecd6", "#ffffff", 40],
-  spring: ["#fff3b0", "#bfe6a0", 35],
-  summer: ["#ffd86b", "#8fd3e8", 30],
-};
-
-const sky = (id: string): string[] => {
-  const s = SKY[id];
-  if (s === undefined) {
-    return [];
-  }
-  const [top, bottom, pct] = s;
-  return [
-    `linear-gradient(180deg, color-mix(in srgb, ${top} ${String(pct)}%, transparent), color-mix(in srgb, ${bottom} ${String(pct)}%, transparent))`,
-  ];
-};
-
 type Atmos = (t: ThemeDef) => string[];
 const ATMOS: Record<string, Atmos> = {
   paper: (t) => [grain(t.text, 0.05)],
-  sepia: (t) => [hills(t.text, 0.05), grain(t.text, 0.08)],
-  parchment: (t) => [grain(t.text, 0.1), fade(t.accent, 8, "0deg")],
-  lemonade: (t) => [hills(t.accent, 0.08), glow(t.accent, "85% 0%", 12)],
-  autumn: (t) => [treeline(t.accent, 0.07), petals(t.accent, 0.18)],
-  night: (t) => [hills(t.text, 0.05), scatter(t.text, 0.25), glow(t.accent, "70% 0%", 8)],
-  forest: (t) => [treeline(t.accent, 0.08), fade("#000", 25, "0deg")],
-  mocha: (t) => [rain(t.text, 0.1), glow(t.accent, "0% 100%", 10)],
-  coffeehouse: (t) => [rain(t.text, 0.08), glow(t.accent, "100% 100%", 12)],
-  library: (t) => [shelves(t.accent, 0.06), glow(t.accent, "50% 0%", 8)],
+  sepia: (t) => [hills(t.text, 0.05), grain(t.text, 0.05)],
+  parchment: (t) => [grain(t.text, 0.06)],
+  lemonade: (t) => [hills(t.accent, 0.08)],
+  autumn: (t) => [treeline(t.accent, 0.07), petals(t.accent, 0.06)],
+  night: (t) => [hills(t.text, 0.05), scatter(t.text, 0.25)],
+  forest: (t) => [treeline(t.accent, 0.08)],
+  mocha: (t) => [rain(t.text, 0.06)],
+  coffeehouse: (t) => [rain(t.text, 0.05)],
+  library: (t) => [shelves(t.accent, 0.06)],
   "terminal-green": (t) => [rules(t.text, 0.05, 4)],
-  slate: (t) => [peaks(t.text, 0.05), fade(t.accent, 8)],
-  storm: (t) => [rain(t.text, 0.14), sea(t.accent, 0.06), fade("#000", 20)],
-  "midnight-blue": (t) => [
-    peaks(t.text, 0.05),
-    scatter(t.text, 0.35),
-    glow(t.accent, "50% 0%", 10),
-  ],
-  ocean: (t) => [sea(t.accent, 0.1), fade(t.accent, 6, "0deg")],
-  winter: (t) => [hills("#fff", 0.6), snow(t.accent, 0.3)],
-  rose: (t) => [petals(t.accent, 0.15), glow(t.accent, "0% 0%", 10)],
-  "cherry-blossom": (t) => [petals(t.accent, 0.2), glow(t.accent, "100% 0%", 12)],
-  dawn: (t) => [hills(t.accent, 0.08), glow("#ffd27f", "50% 100%", 16)],
-  dusk: (t) => [sea(t.accent, 0.08), glow(t.accent, "50% 100%", 18)],
+  slate: (t) => [peaks(t.text, 0.05)],
+  storm: (t) => [rain(t.text, 0.08), sea(t.accent, 0.06)],
+  "midnight-blue": (t) => [peaks(t.text, 0.05), scatter(t.text, 0.35)],
+  ocean: (t) => [sea(t.accent, 0.1)],
+  winter: (t) => [hills(t.accent, 0.06), snow(t.accent, 0.1)],
+  rose: (t) => [petals(t.accent, 0.05)],
+  "cherry-blossom": (t) => [petals(t.accent, 0.07)],
+  dawn: (t) => [hills(t.accent, 0.08)],
+  dusk: (t) => [sea(t.accent, 0.08)],
   lavender: (t) => [hills(t.accent, 0.07), dots(t.accent, 0.12, 24)],
-  mint: (t) => [grass(t.accent, 0.12), fade(t.accent, 5, "0deg")],
-  spring: (t) => [grass(t.accent, 0.14), glow("#ffe680", "100% 0%", 12)],
-  summer: (t) => [sea(t.accent, 0.07), glow(t.accent, "100% 0%", 16)],
+  mint: (t) => [grass(t.accent, 0.05)],
+  spring: (t) => [grass(t.accent, 0.06)],
+  summer: (t) => [sea(t.accent, 0.07)],
 };
 
 /** The theme's atmosphere as CSS background layers, or "none" (custom and high-contrast themes). */
 export function themeAtmosphere(theme: ThemeDef): string {
   const make = ATMOS[theme.id];
-  return make === undefined ? "none" : [...make(theme), ...sky(theme.id)].join(", ");
+  return make === undefined ? "none" : [...make(theme)].join(", ");
 }
 
 /** A theme's own interface design: lettering, shapes and heading voice. Never the writing. */
@@ -420,49 +376,51 @@ export interface ThemeUi {
   weight?: number;
 }
 
-// Distinctive faces that ship with macOS; the common interface fonts are left out on purpose.
-const CHARTER = `Charter, "Bitstream Charter", serif`;
-const BASKERVILLE = `Baskerville, "Baskerville Old Face", serif`;
-const HOEFLER = `"Hoefler Text", Garamond, serif`;
-const COCHIN = `Cochin, serif`;
-const ATHELAS = `Athelas, serif`;
+// Rarer faces that ship with macOS; the fonts every app and AI tool reaches for are left out.
+const NEW_YORK = `"New York", ui-serif, serif`;
+const MARION = `Marion, serif`;
 const BIG_CASLON = `"Big Caslon", serif`;
-const OPTIMA = `Optima, Candara, sans-serif`;
-const GILL = `"Gill Sans", "Gill Sans MT", sans-serif`;
-const SKIA = `Skia, sans-serif`;
-const SERAVEK = `Seravek, sans-serif`;
-const KEFA = `Kefa, sans-serif`;
-const ROCKWELL = `Rockwell, serif`;
-const NOTEWORTHY = `Noteworthy, cursive`;
-const TYPEWRITER = `"American Typewriter", "Courier New", monospace`;
-const PT_MONO = `"PT Mono", "Andale Mono", monospace`;
+const BODONI_OS = `"Bodoni 72 Oldstyle", "Bodoni 72", serif`;
+const BODONI_SC = `"Bodoni 72 Smallcaps", "Bodoni 72", serif`;
+const BODONI = `"Bodoni 72", serif`;
+const DIDOT = `Didot, serif`;
+const STIX = `"STIX Two Text", serif`;
+const CLARENDON = `Superclarendon, serif`;
+const EUPHEMIA = `"Euphemia UCAS", sans-serif`;
+const SUKHUMVIT = `"Sukhumvit Set", sans-serif`;
+const GALVJI = `Galvji, sans-serif`;
+const KRUNGTHEP = `Krungthep, sans-serif`;
+const SANA = `Sana, sans-serif`;
+const GENEVA = `Geneva, sans-serif`;
+const COURIER = `Courier, monospace`;
+const MONACO = `Monaco, monospace`;
 const LEGIBLE = `"Atkinson Hyperlegible", sans-serif`;
 
 const THEME_UI: Record<string, ThemeUi> = {
-  paper: { font: CHARTER, radius: 6, heads: "small-caps" },
-  sepia: { font: BASKERVILLE, radius: 3, heads: "italic" },
-  parchment: { font: HOEFLER, radius: 2, heads: "small-caps", tracking: 0.03 },
-  lemonade: { font: NOTEWORTHY, radius: 12, pill: true, heads: "plain", weight: 500 },
-  autumn: { font: COCHIN, radius: 5, heads: "italic" },
-  night: { font: ATHELAS, radius: 6, heads: "caps", tracking: 0.02 },
-  forest: { font: GILL, radius: 4, heads: "caps", tracking: 0.04 },
-  mocha: { font: ATHELAS, radius: 8, heads: "italic" },
-  coffeehouse: { font: TYPEWRITER, radius: 3, heads: "plain" },
-  library: { font: BASKERVILLE, radius: 2, heads: "small-caps", tracking: 0.04 },
-  "terminal-green": { font: PT_MONO, radius: 0, heads: "caps", tracking: 0.06 },
-  slate: { font: SKIA, radius: 4, heads: "caps", tracking: 0.08 },
-  storm: { font: ROCKWELL, radius: 2, heads: "caps", tracking: 0.05, weight: 500 },
-  "midnight-blue": { font: SERAVEK, radius: 10, heads: "caps", tracking: 0.12 },
-  ocean: { font: OPTIMA, radius: 14, pill: true, heads: "plain" },
-  winter: { font: SERAVEK, radius: 10, heads: "caps", tracking: 0.1 },
-  rose: { font: BIG_CASLON, radius: 14, pill: true, heads: "italic" },
-  "cherry-blossom": { font: NOTEWORTHY, radius: 16, pill: true, heads: "plain" },
-  dawn: { font: SERAVEK, radius: 12, pill: true, heads: "plain", tracking: 0.02 },
-  dusk: { font: ATHELAS, radius: 12, pill: true, heads: "caps", tracking: 0.08 },
-  lavender: { font: OPTIMA, radius: 14, heads: "small-caps" },
-  mint: { font: KEFA, radius: 12, pill: true, heads: "plain" },
-  spring: { font: NOTEWORTHY, radius: 16, pill: true, heads: "plain", weight: 500 },
-  summer: { font: SKIA, radius: 18, pill: true, heads: "caps", tracking: 0.06, weight: 500 },
+  paper: { font: NEW_YORK, radius: 6, heads: "small-caps" },
+  sepia: { font: MARION, radius: 3, heads: "italic" },
+  parchment: { font: BIG_CASLON, radius: 2, heads: "small-caps", tracking: 0.03 },
+  lemonade: { font: SUKHUMVIT, radius: 12, heads: "plain", weight: 500 },
+  autumn: { font: BODONI_OS, radius: 5, heads: "italic" },
+  night: { font: STIX, radius: 6, heads: "caps", tracking: 0.02 },
+  forest: { font: EUPHEMIA, radius: 4, heads: "caps", tracking: 0.04 },
+  mocha: { font: CLARENDON, radius: 8, heads: "italic" },
+  coffeehouse: { font: COURIER, radius: 3, heads: "plain" },
+  library: { font: BODONI_SC, radius: 2, heads: "small-caps", tracking: 0.04 },
+  "terminal-green": { font: MONACO, radius: 0, heads: "caps", tracking: 0.06 },
+  slate: { font: GALVJI, radius: 4, heads: "caps", tracking: 0.08 },
+  storm: { font: KRUNGTHEP, radius: 2, heads: "caps", tracking: 0.05, weight: 500 },
+  "midnight-blue": { font: GALVJI, radius: 10, heads: "caps", tracking: 0.12 },
+  ocean: { font: SANA, radius: 14, heads: "plain" },
+  winter: { font: GENEVA, radius: 10, heads: "caps", tracking: 0.1 },
+  rose: { font: DIDOT, radius: 14, heads: "italic" },
+  "cherry-blossom": { font: MARION, radius: 16, heads: "plain" },
+  dawn: { font: EUPHEMIA, radius: 12, heads: "plain", tracking: 0.02 },
+  dusk: { font: BODONI, radius: 12, heads: "caps", tracking: 0.08 },
+  lavender: { font: STIX, radius: 14, heads: "small-caps" },
+  mint: { font: SUKHUMVIT, radius: 12, heads: "plain" },
+  spring: { font: SANA, radius: 16, heads: "plain", weight: 500 },
+  summer: { font: CLARENDON, radius: 18, heads: "caps", tracking: 0.06, weight: 500 },
   "contrast-light": { font: LEGIBLE, radius: 2, heads: "plain", weight: 700 },
   "contrast-dark": { font: LEGIBLE, radius: 2, heads: "plain", weight: 700 },
 };

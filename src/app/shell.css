@@ -19,7 +19,7 @@
  * touches the formatting inside the writing.
  */
 
-/* Paper: warm and printed. Soft corners, hairlines, gentle lifted shadows, frosted buttons. */
+/* Paper: warm and printed. Soft corners, hairlines, outlined buttons, gentle shadows. */
 :root,
 :root[data-style="paper"] {
   --radius-sm: 4px;
@@ -29,16 +29,12 @@
   --line: color-mix(in srgb, var(--ink) 24%, transparent);
   --line-soft: color-mix(in srgb, var(--ink) 15%, transparent);
   --shadow-lg: 0 6px 24px color-mix(in srgb, var(--ink) 18%, transparent);
-  --btn-bg: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--ink) 4%, transparent),
-    color-mix(in srgb, var(--ink) 10%, transparent)
-  );
+  --btn-bg: transparent;
   --btn-hover: color-mix(in srgb, var(--ink) 15%, transparent);
-  --btn-blur: blur(10px) saturate(140%);
-  --btn-border: 0;
+  --btn-blur: none;
+  --btn-border: var(--line-w) solid var(--line);
   --btn-radius: var(--radius);
-  --btn-shadow: inset 0 1px 0 rgb(255 255 255 / 28%), 0 1px 2px rgb(0 0 0 / 10%);
+  --btn-shadow: none;
   --ui-weight: 400;
   --ui-tracking: 0;
 }
@@ -80,11 +76,10 @@
 :root[data-style="soft"] {
   --radius-sm: 8px;
   --radius: 10px;
-  --btn-radius: 999px;
   --radius-lg: 18px;
   --line: color-mix(in srgb, var(--accent) 28%, transparent);
   --line-soft: color-mix(in srgb, var(--accent) 16%, transparent);
-  --shadow-lg: 0 12px 40px color-mix(in srgb, var(--accent) 22%, transparent);
+  --shadow-lg: 0 8px 24px color-mix(in srgb, var(--ink) 12%, transparent);
   --btn-bg: color-mix(in srgb, var(--accent) 12%, transparent);
   --btn-hover: color-mix(in srgb, var(--accent) 22%, transparent);
   --btn-blur: none;
@@ -718,7 +713,7 @@ select:focus-visible {
   padding-bottom: 3.5rem;
 }
 
-/* App buttons: quiet frosted glass in the theme's own colours, one height. List items, format controls and theme cards stay quiet. */
+/* App buttons: quiet, in the theme's own colours and shape, one height. List items, format controls and theme cards stay quiet. */
 button:not(.page-link, .fmt-btn, .theme-btn) {
   min-height: 2rem;
   padding: 0 0.7rem;
@@ -1640,10 +1635,6 @@ button.icon-btn {
   border-right-color: transparent;
 }
 
-:root[data-style="soft"] .page-link {
-  border-radius: 999px;
-}
-
 :root[data-style="soft"] .page-link[aria-current="page"] {
   background: color-mix(in srgb, var(--accent) 24%, var(--paper));
 }
@@ -1738,11 +1729,11 @@ button.icon-btn {
 }
 
 :root[data-style="soft"] .page .ProseMirror {
-  background: color-mix(in srgb, var(--paper) 80%, transparent);
-  border-radius: 24px;
+  background: var(--paper);
+  border-radius: var(--radius-lg);
 }
 
-/* Each theme's own atmosphere: a sky wash and a faint scene behind the whole app. No symbols. */
+/* Each theme's own atmosphere: a faint line-drawn scene behind the whole app. No symbols. */
 .app-shell {
   background: var(--atmos, none), var(--paper);
 }
