@@ -187,6 +187,9 @@ const UI_VARS = [
 /** Sets a theme's own interface design; custom themes fall back to their family's. */
 function applyThemeUi(root: HTMLElement, theme: ThemeDef): void {
   const ui = themeUi(theme);
+  root.dataset.mark = ui?.mark ?? "bar";
+  root.dataset.panel = ui?.panel ?? "card";
+  root.dataset.button = ui?.button ?? "outline";
   if (ui === undefined) {
     for (const name of UI_VARS) {
       root.style.removeProperty(name);

@@ -1759,3 +1759,104 @@ button.icon-btn {
 .popover {
   font-weight: var(--ui-weight, 400);
 }
+
+/*
+ * Per-theme interface touches. Each theme picks a current-page mark, a panel style and a button
+ * style. Only colours, lines and outlines change (outlines and inset shadows take no space), so
+ * nothing ever moves or resizes.
+ */
+
+/* Current page in the list. Family rules above are reset so the theme's own mark shows. */
+:root[data-mark] .page-link[aria-current="page"] {
+  color: inherit;
+  background: transparent;
+  box-shadow: none;
+  opacity: 1;
+}
+
+:root[data-mark="bar"] .page-link[aria-current="page"] {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+:root[data-mark="underline"] .page-link[aria-current="page"] {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+
+:root[data-mark="dot"] .page-link[aria-current="page"] {
+  background: radial-gradient(circle, var(--accent) 3px, transparent 3.5px) 0.35rem center / 8px 8px
+    no-repeat;
+  color: var(--accent);
+}
+
+:root[data-mark="bracket"] .page-link[aria-current="page"] {
+  box-shadow:
+    inset 2px 0 0 var(--accent),
+    inset -2px 0 0 var(--accent);
+}
+
+:root[data-mark="invert"] .page-link[aria-current="page"] {
+  color: var(--paper);
+  background: var(--ink);
+}
+
+/* Menu panels. */
+:root[data-panel="ruled"] .popover {
+  box-shadow: var(--shadow-lg);
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0 1.6rem,
+    color-mix(in srgb, var(--accent) 10%, transparent) 1.6rem calc(1.6rem + 1px)
+  );
+}
+
+:root[data-panel="frame"] .popover {
+  box-shadow: none;
+  outline: 1px solid var(--line);
+  outline-offset: 3px;
+}
+
+:root[data-panel="flat"] .popover {
+  box-shadow: none;
+  background: color-mix(in srgb, var(--ink) 5%, var(--paper));
+}
+
+:root[data-panel] .popover h2 {
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+/* App buttons (same selector as the base rule, so list items and format controls stay as they are). */
+:root[data-button="flat"] button:not(.page-link, .fmt-btn, .theme-btn) {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+
+:root[data-button="underline"] button:not(.page-link, .fmt-btn, .theme-btn) {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--accent);
+  border-radius: 0;
+}
+
+:root[data-button="solid"] button:not(.page-link, .fmt-btn, .theme-btn) {
+  color: var(--paper);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+:root[data-button="solid"] button:not(.page-link, .fmt-btn, .theme-btn):hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+:root[data-button="flat"] button:not(.page-link, .fmt-btn, .theme-btn):hover {
+  background: color-mix(in srgb, var(--ink) 13%, transparent);
+}
+
+:root[data-button="underline"] button:not(.page-link, .fmt-btn, .theme-btn):hover {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}

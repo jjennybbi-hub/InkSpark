@@ -151,3 +151,14 @@ describe("theme interface designs", () => {
     expect(themeUi(makeCustomTheme("Mine", "#ffffff", "#111111", "#3355aa"))).toBeUndefined();
   });
 });
+
+describe("theme interface touches", () => {
+  it("gives every preset a page mark, panel and button style", () => {
+    for (const t of PRESET_THEMES) {
+      const ui = themeUi(t);
+      expect(ui?.mark).toBeDefined();
+      expect(ui?.panel).toBeDefined();
+      expect(ui?.button).toBeDefined();
+    }
+  });
+});
