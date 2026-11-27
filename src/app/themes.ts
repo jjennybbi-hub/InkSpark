@@ -229,8 +229,8 @@ export function themeStyle(theme: ThemeDef): ThemeStyle {
 }
 
 /*
- * Each preset's own picture, drawn in its accent colour (ACC is replaced). Shown faintly in the
- * corners of the app, never inside the writing. Plain shapes, nothing downloaded.
+ * Each preset's own small picture, drawn in its accent colour (ACC is replaced). Shown only on
+ * the theme cards in Settings, never in the writing space. Plain shapes, nothing downloaded.
  */
 const MOTIFS: Record<string, string> = {
   paper: `<path d="M20 180 L150 50 L165 65 L35 195 Z" fill="ACC"/><path d="M150 50 L175 25 L190 40 L165 65 Z" fill="ACC" opacity=".6"/><path d="M10 190 q60 -20 120 0 t110 0" stroke="ACC" stroke-width="2" fill="none"/>`,

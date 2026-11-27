@@ -4,7 +4,6 @@ import {
   type ThemeDef,
   findTheme,
   parseTheme,
-  themeMotif,
   themeStyle,
 } from "./themes";
 
@@ -146,7 +145,6 @@ export function applyAppearance(a: Appearance, custom: readonly ThemeDef[]): voi
   const root = document.documentElement;
   root.dataset.font = a.font;
   root.dataset.style = themeStyle(theme);
-  root.style.setProperty("--motif", themeMotif(theme));
   root.style.colorScheme = theme.dark ? "dark" : "light";
   root.style.setProperty("--paper", theme.bg);
   root.style.setProperty("--ink", theme.text);

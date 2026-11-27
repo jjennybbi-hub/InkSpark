@@ -25,6 +25,7 @@ import {
   makeCustomTheme,
   parseThemeFile,
   isDarkColor,
+  themeMotif,
   themeToFile,
 } from "./themes";
 
@@ -49,13 +50,19 @@ interface Props {
 }
 
 function Swatch({ theme }: { theme: ThemeDef }): JSX.Element {
+  const motif = themeMotif(theme);
   return (
     <span
       className="swatch"
       aria-hidden="true"
-      style={{ background: theme.bg, color: theme.text, borderColor: theme.accent }}
+      style={{
+        backgroundColor: theme.bg,
+        backgroundImage: motif === "none" ? undefined : motif,
+        color: theme.text,
+        borderColor: theme.accent,
+      }}
     >
-      Aa
+      {motif === "none" ? "Aa" : null}
     </span>
   );
 }
