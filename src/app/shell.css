@@ -1564,3 +1564,95 @@ button.icon-btn {
   opacity: 0.7;
   cursor: pointer;
 }
+
+/*
+ * Family surfaces, stated boldly so each family reads differently at a glance. Backgrounds,
+ * borders and lettering only: nothing here changes a size, so the layout never moves.
+ */
+
+/* Paper: a slightly darker desk beside the page, a printed ribbon on the current page, small caps. */
+:root[data-style="paper"] .pages,
+:root:not([data-style]) .pages {
+  background: color-mix(in srgb, var(--ink) 4%, var(--paper));
+}
+
+:root[data-style="paper"] .page-link[aria-current="page"] {
+  background: var(--paper);
+  box-shadow:
+    inset 3px 0 0 var(--accent),
+    0 1px 3px color-mix(in srgb, var(--ink) 15%, transparent);
+}
+
+:root[data-style="paper"] .popover h2,
+:root[data-style="paper"] .theme-group h3 {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  font-size: 0.9rem;
+}
+
+/* Focus dark: a deeper sidebar with no dividing line, the current page lit in the accent only. */
+:root[data-style="focus"] .pages {
+  background: color-mix(in srgb, #000 28%, var(--paper));
+  border-right-color: transparent;
+}
+
+:root[data-style="focus"] .page-link {
+  opacity: 0.65;
+}
+
+:root[data-style="focus"] .page-link[aria-current="page"] {
+  opacity: 1;
+  color: var(--accent);
+  background: transparent;
+}
+
+:root[data-style="focus"] .popover {
+  background: color-mix(in srgb, #000 22%, var(--paper));
+}
+
+:root[data-style="focus"] .popover h2,
+:root[data-style="focus"] .theme-group h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.7rem;
+}
+
+/* Bold contrast: a heavy divider, the current page inverted, headings bold and underlined. */
+:root[data-style="contrast"] .pages {
+  border-right: 3px solid var(--ink);
+}
+
+:root[data-style="contrast"] .page-link[aria-current="page"] {
+  color: var(--paper);
+  background: var(--ink);
+}
+
+:root[data-style="contrast"] .popover h2,
+:root[data-style="contrast"] .theme-group h3 {
+  opacity: 1;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Soft mood: a tinted sidebar, the current page as a coloured pill, headings in the accent. */
+:root[data-style="soft"] .pages {
+  background: color-mix(in srgb, var(--accent) 9%, var(--paper));
+  border-right-color: transparent;
+}
+
+:root[data-style="soft"] .page-link {
+  border-radius: 999px;
+}
+
+:root[data-style="soft"] .page-link[aria-current="page"] {
+  background: color-mix(in srgb, var(--accent) 24%, var(--paper));
+}
+
+:root[data-style="soft"] .popover h2,
+:root[data-style="soft"] .theme-group h3 {
+  opacity: 1;
+  color: color-mix(in srgb, var(--accent) 70%, var(--ink));
+  letter-spacing: 0.03em;
+}
