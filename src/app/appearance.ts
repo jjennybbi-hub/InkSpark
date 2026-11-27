@@ -6,6 +6,7 @@ import {
   parseTheme,
   themeAtmosphere,
   themeStyle,
+  themeUi,
 } from "./themes";
 
 export type FontChoice = "serif" | "sans" | "mono" | "dyslexia";
@@ -147,6 +148,7 @@ export function applyAppearance(a: Appearance, custom: readonly ThemeDef[]): voi
   root.dataset.font = a.font;
   root.dataset.style = themeStyle(theme);
   root.style.setProperty("--atmos", themeAtmosphere(theme));
+  applyThemeUi(root, theme);
   root.style.colorScheme = theme.dark ? "dark" : "light";
   root.style.setProperty("--paper", theme.bg);
   root.style.setProperty("--ink", theme.text);
@@ -160,4 +162,47 @@ export function applyAppearance(a: Appearance, custom: readonly ThemeDef[]): voi
   root.style.setProperty("--page-width", WIDTH_CH[a.width]);
   root.style.setProperty("--line-spacing", LOOK_SPACING[a.look].line);
   root.style.setProperty("--paragraph-spacing", LOOK_SPACING[a.look].paragraph);
+}
+
+const HEADS = {
+  caps: { transform: "uppercase", variant: "normal", style: "normal" },
+  "small-caps": { transform: "none", variant: "small-caps", style: "normal" },
+  italic: { transform: "none", variant: "normal", style: "italic" },
+  plain: { transform: "none", variant: "normal", style: "normal" },
+} as const;
+
+const UI_VARS = [
+  "--ui-font",
+  "--radius",
+  "--radius-lg",
+  "--radius-sm",
+  "--btn-radius",
+  "--ui-tracking",
+  "--ui-weight",
+  "--head-transform",
+  "--head-variant",
+  "--head-style",
+] as const;
+
+/** Sets a theme's own interface design; custom themes fall back to their family's. */
+function applyThemeUi(root: HTMLElement, theme: ThemeDef): void {
+  const ui = themeUi(theme);
+  if (ui === undefined) {
+    for (const name of UI_VARS) {
+      root.style.removeProperty(name);
+    }
+    return;
+  }
+  const head = HEADS[ui.heads ?? "plain"];
+  const px = (n: number): string => `${String(n)}px`;
+  root.style.setProperty("--ui-font", ui.font);
+  root.style.setProperty("--radius", px(ui.radius));
+  root.style.setProperty("--radius-lg", px(Math.round(ui.radius * 1.5)));
+  root.style.setProperty("--radius-sm", px(Math.round(ui.radius * 0.6)));
+  root.style.setProperty("--btn-radius", ui.pill === true ? "999px" : px(ui.radius));
+  root.style.setProperty("--ui-tracking", `${String(ui.tracking ?? 0)}em`);
+  root.style.setProperty("--ui-weight", String(ui.weight ?? 400));
+  root.style.setProperty("--head-transform", head.transform);
+  root.style.setProperty("--head-variant", head.variant);
+  root.style.setProperty("--head-style", head.style);
 }

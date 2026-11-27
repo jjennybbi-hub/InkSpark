@@ -9,6 +9,7 @@ import {
   parseThemeFile,
   themeAtmosphere,
   themeStyle,
+  themeUi,
   themeToFile,
 } from "./themes";
 
@@ -140,5 +141,13 @@ describe("theme atmospheres", () => {
       expect(themeAtmosphere(t)).toBe("none");
     }
     expect(themeAtmosphere(makeCustomTheme("Mine", "#ffffff", "#111111", "#3355aa"))).toBe("none");
+  });
+});
+
+describe("theme interface designs", () => {
+  it("gives every preset its own lettering and shape, and none to custom themes", () => {
+    const designs = PRESET_THEMES.map((t) => themeUi(t));
+    expect(designs.every((d) => d !== undefined && d.font.length > 0)).toBe(true);
+    expect(themeUi(makeCustomTheme("Mine", "#ffffff", "#111111", "#3355aa"))).toBeUndefined();
   });
 });

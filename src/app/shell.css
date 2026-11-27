@@ -1585,7 +1585,6 @@ button.icon-btn {
 
 :root[data-style="paper"] .popover h2,
 :root[data-style="paper"] .theme-group h3 {
-  font-variant: small-caps;
   letter-spacing: 0.04em;
   font-size: 0.9rem;
 }
@@ -1612,7 +1611,6 @@ button.icon-btn {
 
 :root[data-style="focus"] .popover h2,
 :root[data-style="focus"] .theme-group h3 {
-  text-transform: uppercase;
   letter-spacing: 0.1em;
   font-size: 0.7rem;
 }
@@ -1747,4 +1745,26 @@ button.icon-btn {
 /* Each theme's own atmosphere: a sky wash and a faint scene behind the whole app. No symbols. */
 .app-shell {
   background: var(--atmos, none), var(--paper);
+}
+
+/* Each theme's interface voice: its own lettering, letter spacing and heading style in the app. */
+.app-shell {
+  letter-spacing: var(--ui-tracking, 0);
+}
+
+.app-shell .page .ProseMirror {
+  letter-spacing: normal;
+}
+
+.popover h2,
+.theme-group h3,
+.pages h2 {
+  text-transform: var(--head-transform, none);
+  font-variant: var(--head-variant, normal);
+  font-style: var(--head-style, normal);
+}
+
+.page-link,
+.popover {
+  font-weight: var(--ui-weight, 400);
 }
