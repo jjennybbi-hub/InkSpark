@@ -199,3 +199,31 @@ export function themeToFile(theme: ThemeDef): string {
 export function findTheme(id: string, custom: readonly ThemeDef[]): ThemeDef | undefined {
   return [...PRESET_THEMES, ...custom].find((t) => t.id === id);
 }
+
+/** A theme's design family: how the interface around the page feels, beyond its colours. */
+export type ThemeStyle = "paper" | "focus" | "contrast" | "soft";
+
+const STYLE_OF: Record<string, ThemeStyle> = {
+  paper: "paper",
+  sepia: "paper",
+  parchment: "paper",
+  lemonade: "paper",
+  autumn: "paper",
+  "contrast-light": "contrast",
+  "contrast-dark": "contrast",
+  rose: "soft",
+  "cherry-blossom": "soft",
+  dawn: "soft",
+  lavender: "soft",
+  mint: "soft",
+  spring: "soft",
+  summer: "soft",
+  ocean: "soft",
+  winter: "soft",
+  dusk: "soft",
+};
+
+/** Presets use their own family; other themes (custom ones) follow light or dark. */
+export function themeStyle(theme: ThemeDef): ThemeStyle {
+  return STYLE_OF[theme.id] ?? (theme.dark ? "focus" : "paper");
+}

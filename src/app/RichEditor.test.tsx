@@ -2,7 +2,14 @@ import { render, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { RichEditor } from "./RichEditor";
 import { DEFAULTS, LOOK_WIDTH, applyAppearance, loadAppearance } from "./appearance";
-import { PRESET_THEMES, THEME_GROUPS, parseThemeFile, themeToFile } from "./themes";
+import {
+  PRESET_THEMES,
+  THEME_GROUPS,
+  makeCustomTheme,
+  parseThemeFile,
+  themeStyle,
+  themeToFile,
+} from "./themes";
 
 /** Loads a page, makes a one-character edit, and returns the Markdown that would be saved. */
 async function roundTrip(source: string): Promise<string> {
@@ -92,5 +99,32 @@ describe("theme groups", () => {
   it("places every preset theme in exactly one group", () => {
     const grouped = THEME_GROUPS.flatMap((g) => [...g.ids]).sort();
     expect(grouped).toEqual(PRESET_THEMES.map((t) => t.id).sort());
+  });
+});
+
+describe("theme families", () => {
+  const lum = (hex: string): number => {
+    const n = Number.parseInt(hex.slice(1), 16);
+    const ch = [16, 8, 0].map((s) => {
+      const c = ((n >> s) & 255) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * (ch[0] ?? 0) + 0.7152 * (ch[1] ?? 0) + 0.0722 * (ch[2] ?? 0);
+  };
+  const ratio = (a: string, b: string): number => {
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+    return ((hi ?? 0) + 0.05) / ((lo ?? 0) + 0.05);
+  };
+
+  it("gives every preset a family, with readable text", () => {
+    for (const t of PRESET_THEMES) {
+      expect(["paper", "focus", "contrast", "soft"]).toContain(themeStyle(t));
+      expect(ratio(t.bg, t.text)).toBeGreaterThanOrEqual(themeStyle(t) === "contrast" ? 15 : 7);
+    }
+  });
+
+  it("puts custom themes in Paper or Focus by brightness", () => {
+    expect(themeStyle(makeCustomTheme("Mine", "#111111", "#eeeeee", "#88aaff"))).toBe("focus");
+    expect(themeStyle(makeCustomTheme("Mine", "#ffffff", "#111111", "#3355aa"))).toBe("paper");
   });
 });

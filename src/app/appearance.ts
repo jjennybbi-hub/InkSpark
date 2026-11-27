@@ -1,4 +1,11 @@
-import { PRESET_THEMES, SYSTEM_THEME_ID, type ThemeDef, findTheme, parseTheme } from "./themes";
+import {
+  PRESET_THEMES,
+  SYSTEM_THEME_ID,
+  type ThemeDef,
+  findTheme,
+  parseTheme,
+  themeStyle,
+} from "./themes";
 
 export type FontChoice = "serif" | "sans" | "mono" | "dyslexia";
 export type EditorWidth = "narrow" | "medium" | "wide";
@@ -137,6 +144,7 @@ export function applyAppearance(a: Appearance, custom: readonly ThemeDef[]): voi
   const theme = resolveTheme(a.themeId, custom);
   const root = document.documentElement;
   root.dataset.font = a.font;
+  root.dataset.style = themeStyle(theme);
   root.style.colorScheme = theme.dark ? "dark" : "light";
   root.style.setProperty("--paper", theme.bg);
   root.style.setProperty("--ink", theme.text);

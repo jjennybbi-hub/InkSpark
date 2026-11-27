@@ -13,6 +13,105 @@
   font-family: var(--font-body);
 }
 
+/*
+ * Theme families. Each theme's colours come from themes.ts; its family sets the feel of the
+ * interface around the page: corners, lines, surfaces, shadows and label weight. None of this
+ * touches the formatting inside the writing.
+ */
+
+/* Paper: warm and printed. Soft corners, hairlines, gentle lifted shadows, frosted buttons. */
+:root,
+:root[data-style="paper"] {
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --line-w: 1px;
+  --line: color-mix(in srgb, var(--ink) 24%, transparent);
+  --line-soft: color-mix(in srgb, var(--ink) 15%, transparent);
+  --shadow-lg: 0 6px 24px color-mix(in srgb, var(--ink) 18%, transparent);
+  --btn-bg: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ink) 4%, transparent),
+    color-mix(in srgb, var(--ink) 10%, transparent)
+  );
+  --btn-hover: color-mix(in srgb, var(--ink) 15%, transparent);
+  --btn-blur: blur(10px) saturate(140%);
+  --btn-border: 0;
+  --btn-radius: var(--radius);
+  --btn-shadow: inset 0 1px 0 rgb(255 255 255 / 28%), 0 1px 2px rgb(0 0 0 / 10%);
+  --ui-weight: 400;
+  --ui-tracking: 0;
+}
+
+/* Focus dark: quiet and flat. Tight corners, no glass or glow, surfaces separated by tone. */
+:root[data-style="focus"] {
+  --radius-sm: 3px;
+  --radius: 4px;
+  --radius-lg: 6px;
+  --line: color-mix(in srgb, var(--ink) 16%, transparent);
+  --line-soft: color-mix(in srgb, var(--ink) 10%, transparent);
+  --shadow-lg:
+    0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent), 0 10px 30px rgb(0 0 0 / 45%);
+  --btn-bg: color-mix(in srgb, var(--ink) 7%, transparent);
+  --btn-hover: color-mix(in srgb, var(--ink) 13%, transparent);
+  --btn-blur: none;
+  --btn-shadow: none;
+  --ui-tracking: 0.01em;
+}
+
+/* Bold contrast: nothing faint. Solid outlines, square corners, no see-through, heavier labels. */
+:root[data-style="contrast"] {
+  --radius-sm: 0;
+  --radius: 2px;
+  --radius-lg: 2px;
+  --line-w: 2px;
+  --line: var(--ink);
+  --line-soft: var(--ink);
+  --shadow-lg: none;
+  --btn-bg: var(--paper);
+  --btn-hover: color-mix(in srgb, var(--accent) 25%, var(--paper));
+  --btn-blur: none;
+  --btn-border: 2px solid var(--ink);
+  --btn-shadow: none;
+  --ui-weight: 600;
+}
+
+/* Soft mood: airy and rounded. Pill buttons, tinted surfaces, wide diffuse shadows. */
+:root[data-style="soft"] {
+  --radius-sm: 8px;
+  --radius: 10px;
+  --btn-radius: 999px;
+  --radius-lg: 18px;
+  --line: color-mix(in srgb, var(--accent) 28%, transparent);
+  --line-soft: color-mix(in srgb, var(--accent) 16%, transparent);
+  --shadow-lg: 0 12px 40px color-mix(in srgb, var(--accent) 22%, transparent);
+  --btn-bg: color-mix(in srgb, var(--accent) 12%, transparent);
+  --btn-hover: color-mix(in srgb, var(--accent) 22%, transparent);
+  --btn-blur: none;
+  --btn-shadow: none;
+  --ui-tracking: 0.015em;
+}
+
+/* Popovers and menus take the family's surface: tinted in Soft, flat in Contrast. */
+:root[data-style="soft"] .popover {
+  background: color-mix(in srgb, var(--accent) 5%, var(--paper));
+}
+
+:root[data-style="contrast"] .popover {
+  font-weight: 500;
+}
+
+:root[data-style="contrast"] button:focus-visible,
+:root[data-style="contrast"] textarea:focus-visible,
+:root[data-style="contrast"] select:focus-visible {
+  outline-width: 3px;
+}
+
+/* Chat bubbles stay readable when the faint grey would disappear. */
+:root[data-style="contrast"] .page .ProseMirror .chat-line:not([data-side="me"]) {
+  outline: 2px solid var(--ink);
+}
+
 :root[data-font="serif"] {
   --font-body:
     ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
@@ -81,8 +180,8 @@ button {
   font: inherit;
   color: inherit;
   background: transparent;
-  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
-  border-radius: 6px;
+  border: var(--line-w) solid var(--line);
+  border-radius: var(--radius);
   padding: 0.35rem 0.7rem;
   cursor: pointer;
 }
@@ -183,8 +282,8 @@ select:focus-visible {
   font-size: 0.85rem;
   color: inherit;
   background: var(--paper);
-  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
-  border-radius: 6px;
+  border: var(--line-w) solid var(--line);
+  border-radius: var(--radius);
 }
 
 .fmt-btn {
@@ -287,9 +386,9 @@ select:focus-visible {
   padding: 0.75rem 1rem 1rem;
   background: var(--paper);
   color: var(--ink);
-  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
-  border-radius: 8px;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 25%);
+  border: var(--line-w) solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   font-size: 0.9rem;
 }
 
@@ -310,8 +409,8 @@ select:focus-visible {
   font: inherit;
   color: inherit;
   background: var(--paper);
-  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
-  border-radius: 6px;
+  border: var(--line-w) solid var(--line);
+  border-radius: var(--radius);
   padding: 0.25rem;
 }
 
@@ -341,7 +440,7 @@ select:focus-visible {
   display: grid;
   place-content: center;
   border: 2px solid color-mix(in srgb, var(--ink) 30%, transparent);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.7rem;
 }
 
@@ -434,8 +533,8 @@ select:focus-visible {
   font: inherit;
   color: inherit;
   background: transparent;
-  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
-  border-radius: 6px;
+  border: var(--line-w) solid var(--line);
+  border-radius: var(--radius);
   padding: 0.4rem;
 }
 
@@ -508,7 +607,7 @@ select:focus-visible {
   z-index: 30;
   transform: translateX(-50%);
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--ink);
   color: var(--paper);
   font-size: 0.75rem;
@@ -530,12 +629,12 @@ select:focus-visible {
 }
 
 .fmt-color input::-webkit-color-swatch {
-  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  border: var(--line-w) solid var(--line);
   border-radius: 50%;
 }
 
 .fmt-color input::-moz-color-swatch {
-  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  border: var(--line-w) solid var(--line);
   border-radius: 50%;
 }
 
@@ -570,9 +669,9 @@ select:focus-visible {
   gap: 0.2rem;
   background: var(--paper);
   color: var(--ink);
-  border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--ink) 20%, transparent);
+  border: var(--line-w) solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 .fmt-tooltip {
@@ -626,20 +725,17 @@ button:not(.page-link, .fmt-btn, .theme-btn) {
   font-size: 0.9rem;
   line-height: 1;
   color: var(--ink);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--ink) 5%, transparent),
-    color-mix(in srgb, var(--ink) 11%, transparent)
-  );
-  backdrop-filter: blur(10px) saturate(140%);
-  border: 0;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 28%),
-    0 1px 2px rgb(0 0 0 / 10%);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
+  background: var(--btn-bg);
+  backdrop-filter: var(--btn-blur);
+  border: var(--btn-border);
+  border-radius: var(--btn-radius);
+  box-shadow: var(--btn-shadow);
 }
 
 button:not(.page-link, .fmt-btn, .theme-btn):hover {
-  background: color-mix(in srgb, var(--ink) 15%, transparent);
+  background: var(--btn-hover);
 }
 
 button.icon-btn {
@@ -705,9 +801,9 @@ button.icon-btn {
   overflow-y: auto;
   padding: 0.75rem 2.75rem 0.75rem 1rem;
   background: var(--paper);
-  border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--ink) 20%, transparent);
+  border: var(--line-w) solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 .prompt-card > .icon-btn {
@@ -782,8 +878,8 @@ button.icon-btn {
   font-size: 0.85rem;
   color: inherit;
   background: var(--paper);
-  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
-  border-radius: 6px;
+  border: var(--line-w) solid var(--line);
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
@@ -804,9 +900,9 @@ button.icon-btn {
   list-style: none;
   color: var(--ink);
   background: var(--paper);
-  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
-  border-radius: 8px;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 25%);
+  border: var(--line-w) solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   font-size: 1rem;
 }
 
@@ -816,7 +912,7 @@ button.icon-btn {
 
 .font-list li {
   padding: 0.3rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -887,9 +983,9 @@ button.icon-btn {
   padding: 0.25rem;
   background: var(--paper);
   color: var(--ink);
-  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
-  border-radius: 8px;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 25%);
+  border: var(--line-w) solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 .page-menu button {
@@ -924,9 +1020,9 @@ button.icon-btn {
   padding: 0.75rem 1rem 1rem;
   background: var(--paper);
   color: var(--ink);
-  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
-  border-radius: 8px;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 25%);
+  border: var(--line-w) solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   font-size: 0.9rem;
 }
 
@@ -1001,7 +1097,7 @@ button.icon-btn {
 
 .page-tree [data-drop="into"] {
   background: color-mix(in srgb, var(--accent) 18%, transparent);
-  border-radius: 6px;
+  border-radius: var(--radius);
 }
 
 .page-tree [data-dragging] {
@@ -1041,8 +1137,8 @@ button.icon-btn {
   width: 100%;
   height: 100%;
   padding: 0 0.6rem 0 1.9rem;
-  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
-  border-radius: 8px;
+  border: var(--line-w) solid var(--line-soft);
+  border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--ink) 4%, var(--paper));
   color: inherit;
   font: inherit;
@@ -1065,10 +1161,10 @@ button.icon-btn {
   max-height: 60vh;
   overflow-y: auto;
   padding: 0.35rem;
-  border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
-  border-radius: 10px;
+  border: var(--line-w) solid var(--line-soft);
+  border-radius: var(--radius-lg);
   background: var(--paper);
-  box-shadow: 0 8px 28px color-mix(in srgb, var(--ink) 14%, transparent);
+  box-shadow: var(--shadow-lg);
 }
 
 .search-results ul {
@@ -1110,8 +1206,8 @@ button.icon-btn {
 .search-tag {
   flex: none;
   padding: 0 0.35rem;
-  border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
-  border-radius: 4px;
+  border: var(--line-w) solid var(--line-soft);
+  border-radius: var(--radius-sm);
   font-weight: 400;
 }
 
@@ -1123,7 +1219,7 @@ button.icon-btn {
   width: 100%;
   padding: 0.3rem 0.55rem;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: none;
   color: inherit;
   font: inherit;
@@ -1192,9 +1288,9 @@ button.icon-btn {
   overflow: hidden;
   background: var(--paper);
   color: var(--ink);
-  border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
-  border-radius: 8px;
-  box-shadow: 0 8px 28px color-mix(in srgb, var(--ink) 18%, transparent);
+  border: var(--line-w) solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 .versions-head {
@@ -1236,7 +1332,7 @@ button.icon-btn {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font-family: var(--font-body);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--ink) 5%, transparent);
 }
 
@@ -1332,13 +1428,13 @@ button.icon-btn {
   list-style: none;
   color: var(--ink);
   background: var(--paper, Canvas);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
 }
 
 .mention-list li {
   padding: 0.25rem 0.6rem;
-  border-radius: 6px;
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
@@ -1368,7 +1464,7 @@ button.icon-btn {
   margin: 0.6rem -2rem 0.75rem;
   padding: 0.35rem 0.9rem;
   color: color-mix(in srgb, var(--ink) 40%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  border: var(--line-w) solid var(--line-soft);
   border-radius: 999px;
   pointer-events: none;
   user-select: none;
