@@ -1656,3 +1656,138 @@ button.icon-btn {
   color: color-mix(in srgb, var(--accent) 70%, var(--ink));
   letter-spacing: 0.03em;
 }
+
+/*
+ * Family character: interface lettering, spacing and drawn background pictures. The writing keeps
+ * its own font (.ProseMirror uses --font-body), so only the app around it changes. Pictures are
+ * inline drawings, nothing downloaded.
+ */
+.app-shell {
+  font-family: var(--ui-font, var(--font-body));
+}
+
+/* Paper: a printed book. Old-style serif labels, roomy list, paper grain, the page as a sheet on a desk. */
+:root[data-style="paper"] {
+  --ui-font: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
+:root[data-style="paper"] .app-shell {
+  background-color: color-mix(in srgb, var(--ink) 6%, var(--paper));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .25 0 0 0 0 .15 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+:root[data-style="paper"] .pages {
+  gap: 1rem;
+  padding: 1.5rem 1rem;
+  background: transparent;
+  border-right: 0;
+  /* A ruled margin line, like a notebook. */
+  box-shadow: inset -1px 0 0 color-mix(in srgb, #c0392b 35%, transparent);
+}
+
+:root[data-style="paper"] .page-link {
+  padding: 0.5rem 0.75rem;
+  font-style: italic;
+}
+
+:root[data-style="paper"] .page .ProseMirror {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  background: var(--paper);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--ink) 12%, transparent),
+    0 12px 32px color-mix(in srgb, var(--ink) 14%, transparent);
+}
+
+/* Focus dark: a cockpit at night. Tight system lettering, faint star dots, a soft glow behind the page. */
+:root[data-style="focus"] {
+  --ui-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+:root[data-style="focus"] .app-shell {
+  background:
+    radial-gradient(
+      ellipse at 60% 30%,
+      color-mix(in srgb, var(--accent) 10%, transparent),
+      transparent 60%
+    ),
+    var(--paper);
+}
+
+:root[data-style="focus"] .pages {
+  gap: 0.4rem;
+  padding: 0.75rem 0.5rem;
+  font-size: 0.85rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cg fill='%23fff' fill-opacity='.18'%3E%3Ccircle cx='10' cy='14' r='.8'/%3E%3Ccircle cx='55' cy='40' r='.6'/%3E%3Ccircle cx='78' cy='9' r='1'/%3E%3Ccircle cx='30' cy='70' r='.7'/%3E%3Ccircle cx='70' cy='80' r='.5'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+:root[data-style="focus"] .page-link {
+  padding: 0.3rem 0.5rem;
+}
+
+/* Bold contrast: a road sign. Big heavy lettering, warning stripes, nothing faint or see-through. */
+:root[data-style="contrast"] {
+  --ui-font: "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root[data-style="contrast"] .app-shell {
+  font-size: 1.05rem;
+}
+
+:root[data-style="contrast"] .pages {
+  padding-top: 1.75rem;
+  background:
+    repeating-linear-gradient(-45deg, var(--accent) 0 10px, var(--paper) 10px 20px) top / 100% 10px
+      no-repeat,
+    var(--paper);
+}
+
+:root[data-style="contrast"] .page-link {
+  padding: 0.55rem 0.75rem;
+  font-weight: 700;
+}
+
+:root[data-style="contrast"] .page .ProseMirror {
+  border-left: 6px solid var(--accent);
+}
+
+/* Soft mood: a watercolour. Rounded lettering, drifting colour washes, scattered petals. */
+:root[data-style="soft"] {
+  --ui-font: ui-rounded, "SF Pro Rounded", "Nunito", "Varela Round", system-ui, sans-serif;
+}
+
+:root[data-style="soft"] .app-shell {
+  background:
+    radial-gradient(
+      circle at 8% 12%,
+      color-mix(in srgb, var(--accent) 22%, transparent),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 92% 88%,
+      color-mix(in srgb, var(--accent) 18%, transparent),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 75% 10%,
+      color-mix(in srgb, var(--accent) 10%, transparent),
+      transparent 28%
+    ),
+    var(--paper);
+}
+
+:root[data-style="soft"] .pages {
+  gap: 1rem;
+  padding: 1.25rem 0.9rem;
+  background-color: color-mix(in srgb, var(--accent) 7%, transparent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cg fill='%23d6527f' fill-opacity='.13'%3E%3Cellipse cx='25' cy='30' rx='9' ry='4' transform='rotate(35 25 30)'/%3E%3Cellipse cx='100' cy='60' rx='7' ry='3' transform='rotate(-20 100 60)'/%3E%3Cellipse cx='60' cy='115' rx='8' ry='3.5' transform='rotate(70 60 115)'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+:root[data-style="soft"] .page-link {
+  padding: 0.5rem 0.9rem;
+}
+
+:root[data-style="soft"] .page .ProseMirror {
+  background: color-mix(in srgb, var(--paper) 80%, transparent);
+  border-radius: 24px;
+}
